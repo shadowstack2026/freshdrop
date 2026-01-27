@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f9fafb;
+  --foreground: #0f172a;
+}
+
+body {
+  @apply bg-[var(--background)] text-[var(--foreground)] antialiased;
+}
+
+a {
+  @apply text-primary hover:underline;
+}
+
+.container {
+  @apply mx-auto px-4 sm:px-6 lg:px-8 max-w-content;
+}
