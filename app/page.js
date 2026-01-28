@@ -2,134 +2,140 @@
 
 import Link from "next/link";
 import { Droplets, Calendar, ArrowRight, CheckCircle2 } from "lucide-react";
+import BookingForm from "@/components/booking-form";
+import Testimonials from "@/components/testimonials";
+import Card from "@/components/ui/card";
+import { useRouter } from "next/navigation";
 
 const PRICE_PER_KG = 60;
 
-const steps = [
+const howItWorksSteps = [
   {
     title: "Boka upphämtning",
-    description:
-      "Välj datum och tidsfönster som passar dig. Vi hämtar direkt vid din dörr.",
+    description: "Välj en tid som passar dig. Vi kommer och hämtar din tvätt direkt vid din dörr.",
     icon: Calendar
   },
   {
-    title: "Vi tvättar",
-    description:
-      "Dina kläder tvättas skonsamt, torkas och viks – redo att användas.",
+    title: "Vi tvättar & viker",
+    description: "Dina kläder tvättas professionellt, torkas och viks med omsorg.",
     icon: Droplets
   },
   {
     title: "Leverans inom 48 timmar",
-    description:
-      "Vi levererar tillbaka dina kläder inom 48 timmar från upphämtning.",
+    description: "Få tillbaka din rena, fräscha tvätt inom 48 timmar från upphämtning.",
     icon: CheckCircle2
   }
 ];
 
 export default function HomePage() {
+  const router = useRouter();
+
+  function handleScrollToBooking() {
+    const bookingSection = document.getElementById("booking-section");
+    if (bookingSection) {
+      bookingSection.scrollIntoView({ behavior: "smooth" });
+    }
+  }
+
+  function handleBookingSuccess(checkoutUrl) {
+    router.push(checkoutUrl);
+  }
+
   return (
-    <div className="bg-[var(--background)]">
-      <section className="container py-12 md:py-20">
-        <div className="grid gap-10 md:grid-cols-2 md:items-center">
-          <div className="space-y-6">
-            <span className="inline-flex items-center rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700">
-              Ny tjänst i stan
-            </span>
-            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-900">
-              Tvätt hämtad och levererad{" "}
-              <span className="text-primary">inom 48 timmar</span>.
-            </h1>
-            <p className="text-slate-600 text-sm md:text-base">
-              FreshDrop hämtar dina kläder hemma hos dig, tvättar och levererar
-              tillbaka – utan att du behöver lyfta ett finger. Välj upphämtning,
-              luta dig tillbaka och få allt tillbaka inom 48 timmar.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/order/new"
-                className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-sky-400"
-              >
-                Boka tvätt
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-800 hover:bg-slate-50"
-              >
-                Logga in / Skapa konto
-              </Link>
-            </div>
-            <div className="rounded-xl border bg-white px-4 py-3 text-sm text-slate-700 shadow-sm max-w-md">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Fast pris</span>
-                <span className="text-primary font-semibold">
-                  {PRICE_PER_KG} kr/kg
-                </span>
-              </div>
-              <p className="mt-1 text-xs text-slate-500">
-                Du betalar efter faktisk vikt. Leverans alltid inom 48 timmar
-                från vald upphämtningstid.
-              </p>
-            </div>
-          </div>
-          <div className="space-y-6">
-            <div className="rounded-2xl border bg-white p-5 shadow-sm">
-              <h2 className="text-sm font-semibold text-slate-900">
-                Så funkar det
-              </h2>
-              <div className="mt-4 space-y-4">
-                {steps.map((step) => (
-                  <div
-                    key={step.title}
-                    className="flex gap-3 rounded-xl bg-slate-50 px-3 py-3"
-                  >
-                    <div className="mt-0.5 rounded-full bg-sky-100 p-2">
-                      <step.icon className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-slate-900">
-                        {step.title}
-                      </div>
-                      <p className="text-xs text-slate-600">
-                        {step.description}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="rounded-2xl border bg-white p-5 shadow-sm space-y-3">
-              <h2 className="text-sm font-semibold text-slate-900">
-                Varför FreshDrop?
-              </h2>
-              <ul className="space-y-1 text-xs text-slate-600">
-                <li>• Hämtning och leverans hemma hos dig.</li>
-                <li>• Tydligt pris: 60 kr/kg, inga dolda avgifter.</li>
-                <li>• Pålitlig leverans inom 48 timmar.</li>
-              </ul>
-            </div>
+    <div>
+      {/* Hero Section */}
+      <section className="relative h-[600px] flex items-center justify-center text-white overflow-hidden hero-bg">
+        <div className="absolute inset-0 bg-gradient-to-tr from-primary/60 to-sky-400/60 z-10"></div>
+        <div className="container relative z-20 text-center">
+          <span className="inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white mb-4">
+            Enklare tvätt, renare liv
+          </span>
+          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mb-6 leading-tight drop-shadow-sm">
+            Tvätt hämtad, tvättad och levererad inom{" "}
+            <span className="text-white">48 timmar</span>.
+          </h1>
+          <p className="text-lg md:text-xl max-w-2xl mx-auto mb-8 opacity-90 drop-shadow-sm">
+            FreshDrop gör din vardag enklare. Vi hämtar dina kläder hemma hos
+            dig, tvättar och levererar tillbaka – allt utan att du behöver
+            lyfta ett finger. Upplev friheten med enkel tvätt.
+          </p>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <button
+              onClick={handleScrollToBooking}
+              className="inline-flex items-center gap-2 rounded-full bg-white text-primary px-6 py-3 text-base font-medium shadow-lg hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-white/60 focus:ring-offset-2"
+            >
+              Boka tvätt
+              <ArrowRight className="h-5 w-5" />
+            </button>
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 rounded-full border border-white/30 text-white px-6 py-3 text-base font-medium shadow-lg hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-white/60 focus:ring-offset-2"
+            >
+              Logga in / Skapa konto
+            </Link>
           </div>
         </div>
       </section>
 
-      <section className="border-t bg-white">
-        <div className="container py-12 space-y-10">
+      {/* How it Works Section */}
+      <section className="py-16 md:py-24 bg-gradient-to-br from-slate-50 to-sky-50 border-y">
+        <div className="container">
+          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-center text-slate-900 mb-12">
+            Så fungerar FreshDrop
+          </h2>
           <div className="grid gap-8 md:grid-cols-3">
-            <div>
-              <h2 className="text-sm font-semibold text-slate-900">
+            {howItWorksSteps.map((step, index) => (
+              <Card key={step.title} className="text-center p-6 bg-white border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <div className="flex items-center justify-center h-20 w-20 rounded-full bg-primary/15 text-primary mx-auto mb-6">
+                  <step.icon className="h-10 w-10" />
+                </div>
+                <h3 className="text-xl font-semibold text-slate-900 mb-3">
+                  {index + 1}. {step.title}
+                </h3>
+                <p className="text-base text-slate-700 leading-relaxed">{step.description}</p>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Booking Section */}
+      <section id="booking-section" className="py-16 md:py-24 bg-white">
+        <div className="container">
+          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-center text-slate-900 mb-12">
+            Boka din tvätt
+          </h2>
+          <div className="max-w-3xl mx-auto border border-primary/20 rounded-xl shadow-lg p-6 md:p-8 bg-sky-50">
+            <BookingForm embedded onSubmitSuccess={handleBookingSuccess} />
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <Testimonials />
+
+      {/* FAQ / Contact Section */}
+      <section className="bg-slate-50 border-t py-16 md:py-24">
+        <div className="container space-y-12">
+          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-center text-slate-900 mb-10">
+            Frågor & Kontakt
+          </h2>
+          <div className="grid gap-10 md:grid-cols-3">
+            <Card className="bg-white border-none shadow-md p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-3">
                 Pris och betalning
-              </h2>
-              <p className="mt-2 text-xs text-slate-600">
+              </h3>
+              <p className="text-sm text-slate-700 leading-relaxed">
                 Du anger en uppskattad vikt när du bokar, så beräknar vi ett
                 preliminärt pris. Slutligt pris baseras på uppmätt vikt vid
                 tvätt. All betalning sker via säker kassa med Stripe.
               </p>
-            </div>
-            <div>
-              <h2 className="text-sm font-semibold text-slate-900">
+            </Card>
+            <Card className="bg-white border-none shadow-md p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-3">
                 Vanliga frågor
-              </h2>
-              <ul className="mt-2 space-y-2 text-xs text-slate-600">
+              </h3>
+              <ul className="mt-2 space-y-2 text-sm text-slate-700 leading-relaxed">
                 <li>
                   <span className="font-medium">
                     Vad händer om vikten skiljer sig?
@@ -147,12 +153,12 @@ export default function HomePage() {
                   med samma e-post kopplas dina tidigare beställningar.
                 </li>
               </ul>
-            </div>
-            <div>
-              <h2 className="text-sm font-semibold text-slate-900">
+            </Card>
+            <Card className="bg-white border-none shadow-md p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-3">
                 Kontakt
-              </h2>
-              <p className="mt-2 text-xs text-slate-600">
+              </h3>
+              <p className="text-sm text-slate-700 leading-relaxed">
                 Har du frågor om din bokning eller vill du göra ändringar?
                 Kontakta oss på{" "}
                 <a href="mailto:kontakt@freshdrop.se">
@@ -160,7 +166,7 @@ export default function HomePage() {
                 </a>
                 .
               </p>
-            </div>
+            </Card>
           </div>
         </div>
       </section>

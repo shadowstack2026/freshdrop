@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
+import PasswordInput from "@/components/password-input";
+import Modal from "@/components/ui/modal";
 
 export const dynamic = 'force-dynamic';
 
@@ -16,48 +18,76 @@ export default function SignUpPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
     setLoading(true);
+    setShowVerificationModal(false);
+
+    if (password !== confirmPassword) {
+      setError("Lösenorden matchar inte.");
+      setLoading(false);
+      return;
+    }
 
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password
     });
 
-    if (signUpError || !data.user) {
-      setError("Kunde inte skapa konto. Försök igen.");
+    if (signUpError) {
+      console.error("Supabase signUp error:", signUpError);
+      setError(signUpError.message || "Kunde inte skapa konto. Försök igen.");
       setLoading(false);
       return;
     }
 
-    const { error: profileError } = await supabase.from("profiles").upsert({
-      id: data.user.id,
-      email,
-      full_name: fullName
-    });
-
-    if (profileError) {
-      setError("Konto skapades men profilen kunde inte sparas.");
+    if (!data.user) {
+      setError("Kunde inte skapa konto. Ingen användardata mottogs.");
       setLoading(false);
       return;
     }
 
-    try {
-      await fetch("/api/auth/claim-orders", {
-        method: "POST"
+    // Om Supabase skickar en session, betyder det att ingen verifiering behövs (Email Confirmation är OFF)
+    if (data.session) {
+      const { error: profileError } = await supabase.from("profiles").upsert({
+        id: data.user.id,
+        email,
+        full_name: fullName
       });
-    } catch {
-      // Ignorera.
+
+      if (profileError) {
+        console.error("Supabase profile upsert error:", profileError);
+        setError("Konto skapades men profilen kunde inte sparas. Försök logga in.");
+        setLoading(false);
+        router.push(redirectTo);
+        router.refresh();
+        return;
+      }
+
+      try {
+        await fetch("/api/auth/claim-orders", {
+          method: "POST"
+        });
+      } catch (err) {
+        console.error("Error claiming orders:", err);
+      }
+
+      router.push(redirectTo);
+      router.refresh();
+
+    } else {
+      // Ingen session, så e-postverifiering krävs.
+      setShowVerificationModal(true);
     }
 
-    router.push(redirectTo);
-    router.refresh();
+    setLoading(false);
   }
 
   return (
@@ -82,13 +112,19 @@ export default function SignUpPage() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <Input
+        <PasswordInput
           id="password"
           label="Lösenord"
-          type="password"
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+        />
+        <PasswordInput
+          id="confirmPassword"
+          label="Bekräfta lösenord"
+          required
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
         />
         {error && (
           <p className="text-xs text-red-500">{error}</p>
@@ -101,7 +137,23 @@ export default function SignUpPage() {
           {loading ? "Skapar konto..." : "Skapa konto"}
         </Button>
       </form>
+
+      <Modal
+        isOpen={showVerificationModal}
+        onClose={() => setShowVerificationModal(false)}
+        title="Verifiera din e-post"
+      >
+        <p className="text-sm text-slate-700 mb-4">
+          Ett verifieringsmejl har skickats till <span className="font-medium">{email}</span>.
+          Vänligen klicka på länken i mejlet för att aktivera ditt konto.
+        </p>
+        <Button
+          onClick={() => setShowVerificationModal(false)}
+          className="w-full bg-primary text-white hover:bg-sky-400"
+        >
+          Stäng
+        </Button>
+      </Modal>
     </div>
   );
 }
-

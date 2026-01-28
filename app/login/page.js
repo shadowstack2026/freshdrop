@@ -30,7 +30,14 @@ export default function LoginPage() {
     });
 
     if (signInError) {
-      setError("Inloggning misslyckades. Kontrollera uppgifterna och försök igen.");
+      console.error("Supabase signIn error:", signInError);
+      setError(signInError.message || "Inloggning misslyckades. Kontrollera uppgifterna och försök igen.");
+      setLoading(false);
+      return;
+    }
+
+    if (!data.user) {
+      setError("Inloggning misslyckades. Ingen användardata mottogs.");
       setLoading(false);
       return;
     }
@@ -39,16 +46,13 @@ export default function LoginPage() {
       await fetch("/api/auth/claim-orders", {
         method: "POST"
       });
-    } catch {
+    } catch (err) {
+      console.error("Error claiming orders after login:", err);
       // Ignorera fel här, dashboard laddar ändå.
     }
 
-    if (data?.user) {
-      router.push(redirectTo);
-      router.refresh();
-    } else {
-      setLoading(false);
-    }
+    router.push(redirectTo);
+    router.refresh();
   }
 
   return (
@@ -95,4 +99,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

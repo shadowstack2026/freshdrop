@@ -18,3 +18,21 @@ a {
 .container {
   @apply mx-auto px-4 sm:px-6 lg:px-8 max-w-content;
 }
+
+/* Hero Background Animation */
+.hero-bg {
+  background-image: url(/images/hero-bg.jpg);
+  background-size: cover;
+  background-position: center center;
+  animation: pan-background 30s linear infinite alternate;
+  min-height: 600px; /* Ensure visibility */
+}
+
+@keyframes pan-background {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 100% 100%;
+  }
+}

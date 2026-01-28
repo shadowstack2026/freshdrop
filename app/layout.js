@@ -10,12 +10,12 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="sv">
-      <body className="min-h-screen flex flex-col">
+      <body className="min-h-screen flex flex-col bg-slate-50">
         <NavBar />
         <main className="flex-1">
           {children}
         </main>
-        <footer className="border-t bg-white py-4 mt-8">
+        <footer className="border-t bg-white py-6 mt-12 shadow-sm">
           <div className="container flex flex-col sm:flex-row justify-between gap-2 text-xs text-slate-500">
             <span>© {new Date().getFullYear()} FreshDrop.</span>
             <span>Tvätt hämtad, tvättad och levererad inom 48 timmar.</span>
@@ -25,4 +25,3 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
-
