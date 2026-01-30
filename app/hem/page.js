@@ -7,6 +7,7 @@ import Link from "next/link";
 import { User, LogOut, Package, ChevronRight, Menu, X, CalendarDays } from "lucide-react";
 import Card from "@/components/ui/card";
 import Button from "@/components/ui/button";
+import BookingFlow from "@/components/booking-flow";
 
 export const dynamic = 'force-dynamic';
 
@@ -118,13 +119,7 @@ export default function HomePage() {
         </section>
 
         {/* Välj typ av tvätt - sektion */}
-        <section id="boka-tvatt" className="bg-white/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl">
-          <h2 className="text-2xl font-bold text-slate-800 mb-6">Välj typ av tvätt</h2>
-          <div className="border border-dashed border-slate-300 p-8 text-center text-slate-500 rounded-lg">
-            <p className="text-lg">Här kommer alternativen för tvätt att läggas till.</p>
-            <p className="text-sm mt-2">T.ex. "Standardtvätt", "Kemtvätt", "Endast strykning"</p>
-          </div>
-        </section>
+        <BookingFlow showContactStep profile={profile} user={user} />
       </main>
     </div>
   );

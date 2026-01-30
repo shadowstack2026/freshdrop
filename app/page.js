@@ -2,24 +2,17 @@
 
 import Link from "next/link";
 import { Droplets, ArrowRight } from "lucide-react";
-import BookingForm from "@/components/booking-form";
 import Testimonials from "@/components/testimonials";
 import HowItWorksSection from "@/components/how-it-works";
+import BookingFlow from "@/components/booking-flow";
 import Card from "@/components/ui/card";
-import { useRouter } from "next/navigation";
 
 export default function HomePage() {
-  const router = useRouter();
-
   function handleScrollToBooking() {
     const bookingSection = document.getElementById("booking-section");
     if (bookingSection) {
       bookingSection.scrollIntoView({ behavior: "smooth" });
     }
-  }
-
-  function handleBookingSuccess(checkoutUrl) {
-    router.push(checkoutUrl);
   }
 
   return (
@@ -61,17 +54,7 @@ export default function HomePage() {
       {/* How it Works Section */}
       <HowItWorksSection />
 
-      {/* Booking Section */}
-      <section id="booking-section" className="py-16 md:py-24 bg-white">
-        <div className="container">
-          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-center text-slate-900 mb-12">
-            Boka din tvätt
-          </h2>
-          <div className="max-w-3xl mx-auto border border-primary/20 rounded-xl shadow-lg p-6 md:p-8 bg-sky-50">
-            <BookingForm embedded onSubmitSuccess={handleBookingSuccess} />
-          </div>
-        </div>
-      </section>
+      <BookingFlow showContactStep />
 
       {/* Testimonials Section */}
       <Testimonials />

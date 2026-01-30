@@ -100,6 +100,31 @@ create policy "Användare kan uppdatera sina egna orders"
   for update
   using (auth.uid() = user_id);
 
+-- GUEST LEADS (for visitors)
+create table if not exists public.guest_leads (
+  id uuid primary key default gen_random_uuid(),
+  email text,
+  full_name text,
+  phone text,
+  address_line1 text,
+  address_line2 text,
+  postal_code text,
+  city text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.guest_leads enable row level security;
+
+create policy "Allow public to insert guest leads"
+  on public.guest_leads
+  for insert
+  with check (true);
+
+create policy "Prevent select on guest leads"
+  on public.guest_leads
+  for select
+  using (false);
+
 -- ORDER STATUS HISTORIK (valfri men inkluderad)
 create table if not exists public.order_status_history (
   id uuid primary key default gen_random_uuid(),

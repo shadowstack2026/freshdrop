@@ -1,0 +1,768 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Input from "@/components/ui/input";
+import Card from "@/components/ui/card";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { CheckCircle2, XCircle } from "lucide-react";
+
+const TIME_SLOTS = [
+  { id: "morning", label: "Morgon", emoji: "🌅", start: "08:00", end: "11:00" },
+  { id: "foren", label: "Förmiddag", emoji: "☀️", start: "11:00", end: "14:00" },
+  { id: "afternoon", label: "Eftermiddag", emoji: "🌤", start: "14:00", end: "17:00" },
+  { id: "evening", label: "Kväll", emoji: "🌙", start: "17:00", end: "20:00" }
+];
+
+const WASH_OPTIONS = [
+  {
+    id: "grovtvatt",
+    title: "Grovtvätt",
+    description: "För kraftigare plagg som tål hårdare tvätt.",
+    included: ["Handdukar", "Sängkläder", "Jeans", "Arbetskläder"],
+    excluded: ["Ull", "Silke", "Fina klänningar"]
+  },
+  {
+    id: "vardagstvatt",
+    title: "Vardagstvätt",
+    description: "För vardagskläder och känsligare plagg.",
+    included: ["T-shirts", "Underkläder", "Tröjor"],
+    excluded: ["Kraftigt smutsade arbetskläder"]
+  }
+];
+
+const SCENT_OPTIONS = [
+  { id: "fresh-linen", label: "Fresh Linen", note: "Doften appliceras på hela tvätten", color: "from-sky-50 to-blue-100" },
+  { id: "citrus-clean", label: "Citrus Clean", note: "Doften appliceras på hela tvätten", color: "from-amber-50 to-amber-100" },
+  { id: "lavender-calm", label: "Lavender Calm", note: "Doften appliceras på hela tvätten", color: "from-purple-50 to-purple-100" },
+  { id: "doftfri", label: "Doftfri", note: "Doften appliceras på hela tvätten", color: "from-slate-50 to-slate-100" }
+];
+
+function addHours(date, hours) {
+  const result = new Date(date);
+  result.setHours(result.getHours() + hours);
+  return result;
+}
+
+function calculatePrice(weight) {
+  if (!weight || weight <= 0) return 0;
+  if (weight < 5) {
+    return Math.round(weight * 69);
+  }
+  if (weight <= 10) {
+    const ratio = (weight - 5) / 5;
+    return Math.round(200 + ratio * 200);
+  }
+  return Math.round(400 + (weight - 10) * 69);
+}
+
+const POSTAL_CODE_REGEX = /^\d{5}$/;
+
+export default function BookingFlow({
+  showContactStep = false,
+  profile = null,
+  user = null
+}) {
+  const supabase = createClientComponentClient();
+  const profileHasBasics =
+    Boolean(profile?.first_name) &&
+    Boolean(profile?.last_name) &&
+    Boolean(profile?.address) &&
+    Boolean(profile?.postal_code);
+
+  const [activeStepIndex, setActiveStepIndex] = useState(showContactStep ? 0 : 0);
+  const [washType, setWashType] = useState(WASH_OPTIONS[0].id);
+  const [scent, setScent] = useState(SCENT_OPTIONS[0].id);
+  const [weight, setWeight] = useState("");
+  const [pickupDate, setPickupDate] = useState("");
+  const [pickupSlot, setPickupSlot] = useState(TIME_SLOTS[0].id);
+  const [deliveryDate, setDeliveryDate] = useState("");
+  const [deliverySlot, setDeliverySlot] = useState(TIME_SLOTS[0].id);
+  const [contactSaved, setContactSaved] = useState(showContactStep && profileHasBasics);
+  const [contactError, setContactError] = useState("");
+  const [contactSaving, setContactSaving] = useState(false);
+  const [contactInfo, setContactInfo] = useState({
+    firstName: profile?.first_name || "",
+    lastName: profile?.last_name || "",
+    address: profile?.address_line1 || "",
+    address2: profile?.address_line2 || "",
+    postalCode: profile?.postal_code || "",
+    city: profile?.city || "",
+    phone: profile?.phone || "",
+    email: user?.email || ""
+  });
+  const [bookingSuccess, setBookingSuccess] = useState("");
+  const [showSummary, setShowSummary] = useState(false);
+
+  useEffect(() => {
+    if (showContactStep && profileHasBasics) {
+      setContactInfo({
+        firstName: profile?.first_name || "",
+        lastName: profile?.last_name || "",
+        address: profile?.address_line1 || "",
+        address2: profile?.address_line2 || "",
+        postalCode: profile?.postal_code || "",
+        city: profile?.city || "",
+        phone: profile?.phone || "",
+        email: user?.email || ""
+      });
+      setContactSaved(true);
+      setActiveStepIndex(1);
+    }
+  }, [showContactStep, profileHasBasics]);
+
+  useEffect(() => {
+    setContactInfo((prev) => ({
+      firstName: profile?.first_name || prev.firstName,
+      lastName: profile?.last_name || prev.lastName,
+      address: profile?.address_line1 || prev.address,
+      address2: profile?.address_line2 || prev.address2,
+      postalCode: profile?.postal_code || prev.postalCode,
+      city: profile?.city || prev.city,
+      phone: profile?.phone || prev.phone,
+      email: user?.email || prev.email
+    }));
+  }, [profile, user]);
+
+  const parsedWeight = parseFloat(weight);
+  const price = useMemo(() => calculatePrice(parsedWeight), [parsedWeight]);
+  const weightIsValid = Number.isFinite(parsedWeight) && parsedWeight > 0;
+
+  const selectedPickup = TIME_SLOTS.find((slot) => slot.id === pickupSlot);
+  const selectedDelivery = TIME_SLOTS.find((slot) => slot.id === deliverySlot);
+
+  const deliveryEstimate = useMemo(() => {
+    if (!pickupDate || !selectedPickup) return null;
+    const pickup = new Date(`${pickupDate}T${selectedPickup.start}:00`);
+    const delivery = addHours(pickup, 48);
+    return delivery.toLocaleString("sv-SE", {
+      weekday: "short",
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }, [pickupDate, selectedPickup]);
+
+  const handleWeightChange = (value) => {
+    const floatValue = parseFloat(value);
+    if (!value) {
+      setWeight("");
+    } else if (!Number.isNaN(floatValue)) {
+      setWeight(value);
+    }
+  };
+
+  const handleContactChange = (field) => (event) => {
+    setContactSaved(false);
+    setContactError("");
+    setContactInfo((prev) => ({
+      ...prev,
+      [field]: event.target.value
+    }));
+  };
+
+  const stepCount = showContactStep ? 5 : 4;
+  const getBaseStepNumber = (index) => index + (showContactStep ? 2 : 1);
+  const baseSteps = [
+    {
+      id: "wash",
+      title: "Välj typ av tvätt",
+      render: () => (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                Steg {getBaseStepNumber(0)}
+              </p>
+              <h3 className="text-xl font-semibold text-slate-900">Välj typ av tvätt</h3>
+              <p className="text-sm text-slate-600">Grovtvätt eller vardagstvätt – välj en stil som matchar dina plagg.</p>
+            </div>
+            <span className="text-xs font-medium text-slate-500">Endast ett val åt gången</span>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {WASH_OPTIONS.map((option) => {
+              const isSelected = washType === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => {
+                    setWashType(option.id);
+                    setActiveStepIndex((prev) => Math.min(prev + 1, stepCount - 1));
+                  }}
+                  className={`group relative flex flex-col gap-4 rounded-3xl border p-5 text-left transition-shadow duration-300 ${
+                    isSelected
+                      ? "border-primary/80 shadow-2xl shadow-primary/20 bg-primary/10"
+                      : "border-slate-200 bg-white hover:border-primary/50 hover:shadow-lg"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-lg font-semibold text-slate-900">{option.title}</p>
+                      <p className="text-sm text-slate-500">{option.description}</p>
+                    </div>
+                    {isSelected && (
+                      <CheckCircle2 className="h-6 w-6 text-primary" aria-label="Valt alternativ" />
+                    )}
+                  </div>
+                  <div className="grid gap-2 text-sm text-slate-600">
+                    <div>
+                      <p className="text-xs font-semibold text-emerald-600">Detta ingår</p>
+                      <ul className="mt-1 space-y-1 text-xs font-medium text-emerald-800">
+                        {option.included.map((item) => (
+                          <li key={item} className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-red-500">Detta ingår inte</p>
+                      <ul className="mt-1 space-y-1 text-xs font-medium text-red-700">
+                        {option.excluded.map((item) => (
+                          <li key={item} className="flex items-center gap-2">
+                            <XCircle className="h-4 w-4 text-red-500" />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex gap-3">
+                    <div className="flex-1 rounded-2xl bg-emerald-100/80 p-3 text-xs font-semibold uppercase tracking-widest text-emerald-700">
+                      ✓ Rätt plagg
+                    </div>
+                    <div className="flex-1 rounded-2xl bg-red-100/80 p-3 text-xs font-semibold uppercase tracking-widest text-red-600">
+                      ✕ Fel plagg
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ),
+      isComplete: () => Boolean(washType)
+    },
+    {
+      id: "scent",
+      title: "Välj doft",
+      render: () => (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                Steg {getBaseStepNumber(1)}
+              </p>
+              <h3 className="text-xl font-semibold text-slate-900">Välj doft</h3>
+              <p className="text-sm text-slate-600">Färgade kort för en tillfredsställande känsla.</p>
+            </div>
+            <span className="text-xs font-medium text-slate-500">Doften appliceras på hela tvätten</span>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {SCENT_OPTIONS.map((option) => {
+              const isActive = scent === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => {
+                    setScent(option.id);
+                    setActiveStepIndex((prev) => Math.min(prev + 1, stepCount - 1));
+                  }}
+                  className={`group relative flex flex-col justify-between rounded-2xl border p-5 text-left transition duration-300 ${
+                    isActive
+                      ? "border-primary/80 bg-gradient-to-br text-slate-900 shadow-2xl shadow-primary/30 scale-[1.01]"
+                      : "border-slate-200 bg-gradient-to-br hover:scale-[1.01] hover:border-primary/40"
+                  } ${option.color}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-lg font-semibold">{option.label}</p>
+                    {isActive && <CheckCircle2 className="h-5 w-5 text-primary" />}
+                  </div>
+                  <p className="mt-3 text-xs text-slate-600">{option.note}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ),
+      isComplete: () => Boolean(scent)
+    },
+    {
+      id: "pickup",
+      title: "Upphämtning & leverans",
+      render: () => (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                Steg {getBaseStepNumber(2)}
+              </p>
+              <h3 className="text-xl font-semibold text-slate-900">Upphämtning & leverans</h3>
+              <p className="text-sm text-slate-600">
+                Välj datum och tider för upphämtning och leverans i samma steg.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-3 rounded-2xl border border-slate-100 bg-white/70 p-4 shadow-sm">
+              <p className="text-sm font-semibold text-slate-700">Upphämtning</p>
+              <label className="text-sm font-semibold text-slate-700">
+                Datum
+                <input
+                  type="date"
+                  className="mt-2 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  value={pickupDate}
+                  onChange={(e) => {
+                    setPickupDate(e.target.value);
+                  }}
+                />
+              </label>
+              <p className="text-sm font-semibold text-slate-700">Tid på dagen</p>
+              <div className="flex flex-wrap gap-3">
+                {TIME_SLOTS.map((slot) => {
+                  const isActive = pickupSlot === slot.id;
+                  return (
+                    <button
+                      key={slot.id}
+                      type="button"
+                      onClick={() => {
+                        setPickupSlot(slot.id);
+                      }}
+                      className={`rounded-full border px-4 py-2 text-sm font-semibold transition duration-200 ${
+                        isActive
+                          ? "border-primary bg-primary/10 text-primary shadow-lg shadow-primary/20"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-primary/40 hover:shadow-sm"
+                      }`}
+                    >
+                      <span className="mr-1">{slot.emoji}</span>
+                      {slot.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="space-y-3 rounded-2xl border border-slate-100 bg-white/70 p-4 shadow-sm">
+              <p className="text-sm font-semibold text-slate-700">Leverans</p>
+              <label className="text-sm font-semibold text-slate-700">
+                Datum
+                <input
+                  type="date"
+                  className="mt-2 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  value={deliveryDate}
+                  onChange={(e) => {
+                    setDeliveryDate(e.target.value);
+                  }}
+                />
+              </label>
+              <p className="text-sm font-semibold text-slate-700">Tid på dagen</p>
+              <div className="flex flex-wrap gap-3">
+                {TIME_SLOTS.map((slot) => {
+                  const isActive = deliverySlot === slot.id;
+                  return (
+                    <button
+                      key={slot.id}
+                      type="button"
+                      onClick={() => {
+                        setDeliverySlot(slot.id);
+                      }}
+                      className={`rounded-full border px-4 py-2 text-sm font-semibold transition duration-200 ${
+                        isActive
+                          ? "border-primary bg-primary/10 text-primary shadow-lg shadow-primary/20"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-primary/40 hover:shadow-sm"
+                      }`}
+                    >
+                      <span className="mr-1">{slot.emoji}</span>
+                      {slot.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          <p className="text-sm text-slate-600">
+            Leverans sker till din dörr – rent, vikt och klart inom 48 timmar efter upphämtning.
+          </p>
+        </div>
+      ),
+      isComplete: () => Boolean(pickupDate && pickupSlot && deliveryDate && deliverySlot)
+    },
+    {
+      id: "weight",
+      title: "Uppskattad vikt",
+      render: () => (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                Steg {getBaseStepNumber(3)}
+              </p>
+              <h3 className="text-xl font-semibold text-slate-900">Uppskattad vikt</h3>
+              <p className="text-sm text-slate-600">
+                Berätta hur mycket tvätt du planerar att lämna så räknar vi ett pris åt dig.
+              </p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Input
+              id="weight-step"
+              label="Vikt (kg)"
+              type="number"
+              min="0"
+              step="0.1"
+              value={weight}
+              onChange={(event) => handleWeightChange(event.target.value)}
+              placeholder="Ex: 5.0"
+            />
+            <p className="text-xs text-slate-500">
+              Pris:{" "}
+              <span className="font-semibold text-slate-900">
+                {price > 0 ? `${price} kr` : "Välj vikt"}
+              </span>
+            </p>
+          </div>
+        </div>
+      ),
+      isComplete: () => weightIsValid
+    }
+  ];
+
+  const postalCodeValue = contactInfo.postalCode.trim();
+  const isPostalCodeValid = POSTAL_CODE_REGEX.test(postalCodeValue);
+  const postalInvalid = Boolean(contactInfo.postalCode) && !isPostalCodeValid;
+
+  const contactInputsValid =
+    Boolean(contactInfo.firstName.trim()) &&
+    Boolean(contactInfo.lastName.trim()) &&
+    Boolean(contactInfo.address.trim()) &&
+    Boolean(contactInfo.city.trim()) &&
+    isPostalCodeValid;
+
+  const contactStep = {
+    id: "contact",
+    title: "Information",
+    render: () => (
+      <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                Steg {activeStepIndex + 1}
+              </p>
+              <h3 className="text-xl font-semibold text-slate-900">Information</h3>
+              <p className="text-sm text-slate-600">
+                Ange kontaktuppgifter som vi sparar i {user ? "din profil" : "Gästlistan"}.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+          <Input
+            label="Förnamn"
+            value={contactInfo.firstName}
+            onChange={handleContactChange("firstName")}
+            required
+          />
+          <Input
+            label="Efternamn"
+            value={contactInfo.lastName}
+            onChange={handleContactChange("lastName")}
+            required
+          />
+          <Input
+            label="Adress"
+            value={contactInfo.address}
+            onChange={handleContactChange("address")}
+            required
+          />
+          <Input
+            label="Adressrad 2 (frivillig)"
+            value={contactInfo.address2}
+            onChange={handleContactChange("address2")}
+          />
+          <Input
+            label="Postnummer"
+            value={contactInfo.postalCode}
+            onChange={handleContactChange("postalCode")}
+            error={postalInvalid ? "Endast fem siffror godkänns" : undefined}
+          />
+          <Input
+            label="Stad"
+            value={contactInfo.city}
+            onChange={handleContactChange("city")}
+          />
+          <Input
+            label="Telefonnummer"
+            value={contactInfo.phone}
+            onChange={handleContactChange("phone")}
+          />
+          <Input
+            label="E-post"
+            value={contactInfo.email}
+            readOnly={Boolean(user?.email)}
+            onChange={handleContactChange("email")}
+            helpText={Boolean(user?.email) ? "Låst från inloggningen" : undefined}
+          />
+        </div>
+        {contactError && <p className="text-xs text-red-500">{contactError}</p>}
+      </div>
+    ),
+    isComplete: () => contactInputsValid
+  };
+
+  const steps = showContactStep ? [contactStep, ...baseSteps] : baseSteps;
+  const totalSteps = steps.length;
+  const currentStep = steps[activeStepIndex];
+  const progressPercent = Math.min(100, ((activeStepIndex + 1) / totalSteps) * 100);
+
+  const handlePersistContact = async ({ skipStepAdvance = false } = {}) => {
+    if (!contactInputsValid) {
+      setContactError("Fyll i alla obligatoriska kontaktfält korrekt.");
+      return;
+    }
+    setContactError("");
+    if (!isPostalCodeValid) {
+      setContactError("Postnummer måste vara fem siffror.");
+      return;
+    }
+
+    setContactSaving(true);
+    let result;
+
+    if (user) {
+      const payload = {
+        id: profile?.id || user?.id,
+        first_name: contactInfo.firstName,
+        last_name: contactInfo.lastName,
+        address_line1: contactInfo.address,
+        address_line2: contactInfo.address2,
+        postal_code: postalCodeValue,
+        city: contactInfo.city,
+        phone: contactInfo.phone,
+        full_name: `${contactInfo.firstName} ${contactInfo.lastName}`.trim()
+      };
+      result = await supabase.from("profiles").upsert(payload);
+    } else {
+      const payload = {
+        email: contactInfo.email,
+        full_name: `${contactInfo.firstName} ${contactInfo.lastName}`.trim(),
+        phone: contactInfo.phone,
+        address_line1: contactInfo.address,
+        address_line2: contactInfo.address2,
+        postal_code: postalCodeValue,
+        city: contactInfo.city
+      };
+      result = await supabase.from("guest_leads").insert(payload);
+    }
+
+    const { error } = result;
+    setContactSaving(false);
+
+    if (error) {
+      setContactError(error.message);
+      return;
+    }
+
+    setContactSaved(true);
+    setBookingSuccess("Tack! Din bokning är bekräftad och vi återkommer innan leverans.");
+    if (!skipStepAdvance) {
+      setActiveStepIndex((prev) => Math.min(prev + 1, totalSteps - 1));
+    }
+  };
+
+  const canProceed = currentStep.isComplete();
+
+  const handleNext = () => {
+    setBookingSuccess("");
+    setShowSummary(false);
+    if (!canProceed) return;
+    if (activeStepIndex >= totalSteps - 1) {
+      setShowSummary(true);
+      return;
+    }
+    setActiveStepIndex((prev) => Math.min(prev + 1, totalSteps - 1));
+  };
+
+  const handleCancelSummary = () => {
+    setShowSummary(false);
+    setBookingSuccess("");
+    setActiveStepIndex(0);
+  };
+
+  const handleConfirmBooking = async () => {
+    setShowSummary(false);
+    await handlePersistContact({ skipStepAdvance: true });
+  };
+
+  const handleBack = () => {
+    setShowSummary(false);
+    setBookingSuccess("");
+    if (activeStepIndex === 0) return;
+    setActiveStepIndex((prev) => Math.max(prev - 1, 0));
+  };
+
+  const summaryContactInfo = contactSaved
+    ? `${contactInfo.firstName || ""} ${contactInfo.lastName || ""}`.trim()
+    : "Ej sparad";
+
+  return (
+    <section id="boka-tvatt" className="bg-white/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-slate-100">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+            Steg {activeStepIndex + 1} av {totalSteps}
+          </p>
+          <h2 className="text-2xl font-semibold text-slate-900">Bygg din FreshDrop-upplevelse</h2>
+        </div>
+        <div className="text-sm font-medium text-slate-600">
+          {price > 0 ? `Livepris: ${price} kr` : "Ange vikt för pris"}
+        </div>
+      </div>
+
+      <div className="mt-6 h-2 w-full rounded-full bg-slate-200">
+        <div
+          className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+
+      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
+        <div className="flex flex-col">
+          <div className="relative min-h-[520px] pb-6">
+            {steps.map((step, index) => {
+              const isActive = index === activeStepIndex;
+              return (
+                <div
+                  key={step.id}
+                  className={`absolute inset-0 transition-all duration-300 ease-out ${isActive ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"}`}
+                >
+                  {step.render()}
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-3 flex items-center justify-between pt-2">
+            <button
+              type="button"
+              onClick={handleBack}
+              disabled={activeStepIndex === 0}
+              className="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Tillbaka
+            </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={!canProceed}
+              className={`rounded-full px-5 py-2 text-sm font-semibold text-white transition ${
+                canProceed
+                  ? "bg-primary hover:bg-sky-500"
+                  : "bg-slate-200 text-slate-500 cursor-not-allowed"
+              }`}
+            >
+              {currentStep.id === "weight" ? "Boka" : "Nästa"}
+            </button>
+          </div>
+          {bookingSuccess && (
+            <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-emerald-600 animate-pulse">
+              <CheckCircle2 className="h-4 w-4" />
+              {bookingSuccess}
+            </p>
+          )}
+        </div>
+
+        <aside className="space-y-6">
+          {showSummary ? (
+            <Card className="rounded-2xl border bg-white p-5 shadow-sm space-y-4 rounded-3xl bg-white/80">
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Sammanfattning</p>
+                <h3 className="text-lg font-semibold text-slate-900">Ditt val</h3>
+                <p className="text-[11px] uppercase tracking-[0.4em] text-slate-500">
+                  {user
+                    ? "Konto: sparas i Profil"
+                    : contactSaved
+                      ? "Gästinfo: sparad i Gäst leads"
+                      : "Gästinfo: sparas som separat post"}
+                </p>
+              </div>
+              <div className="space-y-2 text-sm text-slate-600">
+                <p>
+                  <span className="font-semibold text-slate-900">Wash:</span>{" "}
+                  {WASH_OPTIONS.find((option) => option.id === washType)?.title}
+                </p>
+                <p>
+                  <span className="font-semibold text-slate-900">Doft:</span>{" "}
+                  {SCENT_OPTIONS.find((option) => option.id === scent)?.label}
+                </p>
+                <p>
+                  <span className="font-semibold text-slate-900">Upphämtning:</span>{" "}
+                  {pickupDate ? pickupDate : "Välj datum"} {selectedPickup ? `· ${selectedPickup.label}` : ""}
+                </p>
+                <p>
+                  <span className="font-semibold text-slate-900">Leverans:</span>{" "}
+                  {deliveryDate ? deliveryDate : "Välj datum"} {selectedDelivery ? `· ${selectedDelivery.label}` : ""}
+                </p>
+                {showContactStep && (
+                  <>
+                    <p>
+                      <span className="font-semibold text-slate-900">Kontakt:</span>{" "}
+                      {summaryContactInfo || "Ej sparad"}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-slate-900">Tel:</span>{" "}
+                      {contactInfo.phone || "–"}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-slate-900">Postnummer:</span>{" "}
+                      {contactInfo.postalCode || "–"}
+                    </p>
+                  </>
+                )}
+                <p>
+                  <span className="font-semibold text-slate-900">Vikt:</span>{" "}
+                  {weight ? `${weight} kg` : "Ej angiven"}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Beräknad leverans</p>
+                <p className="font-semibold text-slate-900">
+                  {deliveryEstimate || "Välj upphämtningstid för exakt datum"}
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={handleConfirmBooking}
+                  disabled={contactSaving}
+                  className="flex-1 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {contactSaving ? "Sparar..." : "Bekräfta bokning"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelSummary}
+                  className="flex-1 rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400"
+                >
+                  Avbryt
+                </button>
+              </div>
+            </Card>
+          ) : (
+            <Card className="rounded-2xl border bg-white p-5 shadow-sm space-y-4 rounded-3xl bg-white/80">
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Sammanfattning</p>
+                <h3 className="text-lg font-semibold text-slate-900">Ditt val</h3>
+                <p className="text-[11px] uppercase tracking-[0.4em] text-slate-500">
+                  Slutför stegen, klicka på ”Boka” och se din bekräftelse här.
+                </p>
+              </div>
+              <p className="text-sm text-slate-600">
+                När du fyllt i allt får du en översikt med bekräftelseknapp för att säkra din tid.
+              </p>
+            </Card>
+          )}
+        </aside>
+      </div>
+    </section>
+  );
+}
