@@ -1,31 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Droplets, Calendar, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Droplets, ArrowRight } from "lucide-react";
 import BookingForm from "@/components/booking-form";
 import Testimonials from "@/components/testimonials";
+import HowItWorksSection from "@/components/how-it-works";
 import Card from "@/components/ui/card";
 import { useRouter } from "next/navigation";
-
-const PRICE_PER_KG = 60;
-
-const howItWorksSteps = [
-  {
-    title: "Boka upphämtning",
-    description: "Välj en tid som passar dig. Vi kommer och hämtar din tvätt direkt vid din dörr.",
-    icon: Calendar
-  },
-  {
-    title: "Vi tvättar & viker",
-    description: "Dina kläder tvättas professionellt, torkas och viks med omsorg.",
-    icon: Droplets
-  },
-  {
-    title: "Leverans inom 48 timmar",
-    description: "Få tillbaka din rena, fräscha tvätt inom 48 timmar från upphämtning.",
-    icon: CheckCircle2
-  }
-];
 
 export default function HomePage() {
   const router = useRouter();
@@ -78,26 +59,7 @@ export default function HomePage() {
       </section>
 
       {/* How it Works Section */}
-      <section className="py-16 md:py-24 bg-gradient-to-br from-slate-50 to-sky-50 border-y">
-        <div className="container">
-          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-center text-slate-900 mb-12">
-            Så fungerar FreshDrop
-          </h2>
-          <div className="grid gap-8 md:grid-cols-3">
-            {howItWorksSteps.map((step, index) => (
-              <Card key={step.title} className="text-center p-6 bg-white border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
-                <div className="flex items-center justify-center h-20 w-20 rounded-full bg-primary/15 text-primary mx-auto mb-6">
-                  <step.icon className="h-10 w-10" />
-                </div>
-                <h3 className="text-xl font-semibold text-slate-900 mb-3">
-                  {index + 1}. {step.title}
-                </h3>
-                <p className="text-base text-slate-700 leading-relaxed">{step.description}</p>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+      <HowItWorksSection />
 
       {/* Booking Section */}
       <section id="booking-section" className="py-16 md:py-24 bg-white">
