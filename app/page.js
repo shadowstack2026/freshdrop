@@ -19,7 +19,7 @@ export default function HomePage() {
     <div>
       {/* Hero Section */}
       <section className="relative h-[600px] flex items-center justify-center text-white overflow-hidden hero-bg">
-        <div className="absolute inset-0 bg-gradient-to-tr from-primary/60 to-sky-400/60 z-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-tr from-primary/60 to-sky-400/60 z-10 hero-overlay"></div>
         <div className="container relative z-20 text-center">
           <span className="inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white mb-4">
             Enklare tvätt, renare liv

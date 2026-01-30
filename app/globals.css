@@ -22,6 +22,12 @@
   .container {
     @apply mx-auto px-5 sm:px-6 lg:px-8 max-w-content;
   }
+  .hero-overlay {
+    transition: opacity 0.25s ease;
+  }
+  .nav-menu-open .hero-overlay {
+    opacity: 0.4;
+  }
 }
 
 /* Hero Background Animation */

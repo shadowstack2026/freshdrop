@@ -258,7 +258,6 @@ export default function BookingFlow({
                   type="button"
                   onClick={() => {
                     setWashType(option.id);
-                    setActiveStepIndex((prev) => Math.min(prev + 1, stepCount - 1));
                   }}
                   className={`group relative flex flex-col gap-5 rounded-[32px] border border-slate-200 bg-white/80 p-5 text-left transition duration-300 sm:p-6 ${
                     isSelected
@@ -337,7 +336,6 @@ export default function BookingFlow({
                   type="button"
                   onClick={() => {
                     setScent(option.id);
-                    setActiveStepIndex((prev) => Math.min(prev + 1, stepCount - 1));
                   }}
                 className={`group relative flex min-h-[140px] flex-col justify-between overflow-hidden rounded-[28px] border bg-gradient-to-br p-4 text-left text-slate-900 transition duration-200 transform-gpu ${
                   isActive
@@ -756,20 +754,20 @@ export default function BookingFlow({
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
         <div className="flex flex-col">
-          <div className="relative min-h-[520px] pb-6">
+          <div className="space-y-10 pb-6">
             {steps.map((step, index) => {
               const isActive = index === activeStepIndex;
               return (
                 <div
                   key={step.id}
-                  className={`absolute inset-0 transition-all duration-300 ease-out ${isActive ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"}`}
+                  className={`transition-all duration-300 ease-out ${isActive ? "block opacity-100 translate-y-0" : "hidden opacity-0 -translate-y-4"}`}
                 >
                   {step.render()}
                 </div>
               );
             })}
           </div>
-          <div className="sticky bottom-0 left-0 right-0 z-20 mt-6 flex w-full flex-col gap-3 border-t border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200 sm:mt-3 sm:flex-row sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none">
+          <div className="mt-6 flex w-full flex-col gap-3 border-t border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200 sm:mt-3 sm:flex-row sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none">
             <button
               type="button"
               onClick={handleBack}
