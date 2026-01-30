@@ -2,21 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #f9fafb;
-  --foreground: #0f172a;
-}
+@layer base {
+  :root {
+    --background: #f9fafb;
+    --foreground: #0f172a;
+    --border: rgba(15, 23, 42, 0.08);
+  }
 
-body {
-  @apply bg-[var(--background)] text-[var(--foreground)] antialiased;
-}
+  body {
+    @apply bg-[var(--background)] text-[var(--foreground)] antialiased;
+    font-size: 18px;
+    line-height: 1.8;
+  }
 
-a {
-  @apply text-primary hover:underline;
-}
+  a {
+    @apply text-primary hover:underline;
+  }
 
-.container {
-  @apply mx-auto px-4 sm:px-6 lg:px-8 max-w-content;
+  .container {
+    @apply mx-auto px-5 sm:px-6 lg:px-8 max-w-content;
+  }
 }
 
 /* Hero Background Animation */

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Input from "@/components/ui/input";
 import Card from "@/components/ui/card";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronDown, XCircle } from "lucide-react";
 
 const TIME_SLOTS = [
   { id: "morning", label: "Morgon", emoji: "🌅", start: "08:00", end: "11:00" },
@@ -95,6 +95,7 @@ export default function BookingFlow({
   const [bookingSuccess, setBookingSuccess] = useState("");
   const [showSummary, setShowSummary] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const [postalStatus, setPostalStatus] = useState("idle");
   const postalTimerRef = useRef(null);
 
@@ -220,7 +221,7 @@ export default function BookingFlow({
             </div>
             <span className="text-xs font-medium text-slate-500">Endast ett val åt gången</span>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 grid-cols-1">
             {WASH_OPTIONS.map((option) => {
               const isSelected = washType === option.id;
               return (
@@ -231,13 +232,14 @@ export default function BookingFlow({
                     setWashType(option.id);
                     setActiveStepIndex((prev) => Math.min(prev + 1, stepCount - 1));
                   }}
-                  className={`group relative flex flex-col gap-4 rounded-3xl border p-5 text-left transition-shadow duration-300 ${
+                  className={`group relative flex flex-col gap-5 rounded-[32px] border border-slate-200 bg-white/80 p-5 text-left transition duration-300 sm:p-6 ${
                     isSelected
-                      ? "border-primary/80 shadow-2xl shadow-primary/20 bg-primary/10"
-                      : "border-slate-200 bg-white hover:border-primary/50 hover:shadow-lg"
+                      ? "border-primary/80 bg-primary/10 shadow-[0_0_25px_rgba(56,189,248,0.25)]"
+                      : "hover:border-primary/50 hover:shadow-lg"
                   }`}
+                  style={{ minHeight: "280px" }}
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-lg font-semibold text-slate-900">{option.title}</p>
                       <p className="text-sm text-slate-500">{option.description}</p>
@@ -246,10 +248,10 @@ export default function BookingFlow({
                       <CheckCircle2 className="h-6 w-6 text-primary" aria-label="Valt alternativ" />
                     )}
                   </div>
-                  <div className="grid gap-2 text-sm text-slate-600">
+                  <div className="grid grid-cols-1 gap-4 text-sm text-slate-600 sm:grid-cols-2">
                     <div>
-                      <p className="text-xs font-semibold text-emerald-600">Detta ingår</p>
-                      <ul className="mt-1 space-y-1 text-xs font-medium text-emerald-800">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-emerald-600">Detta ingår</p>
+                      <ul className="mt-2 space-y-1 text-sm font-medium text-emerald-800">
                         {option.included.map((item) => (
                           <li key={item} className="flex items-center gap-2">
                             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
@@ -259,8 +261,8 @@ export default function BookingFlow({
                       </ul>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-red-500">Detta ingår inte</p>
-                      <ul className="mt-1 space-y-1 text-xs font-medium text-red-700">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-red-500">Detta ingår inte</p>
+                      <ul className="mt-2 space-y-1 text-sm font-medium text-red-700">
                         {option.excluded.map((item) => (
                           <li key={item} className="flex items-center gap-2">
                             <XCircle className="h-4 w-4 text-red-500" />
@@ -270,13 +272,9 @@ export default function BookingFlow({
                       </ul>
                     </div>
                   </div>
-                  <div className="mt-3 flex gap-3">
-                    <div className="flex-1 rounded-2xl bg-emerald-100/80 p-3 text-xs font-semibold uppercase tracking-widest text-emerald-700">
-                      ✓ Rätt plagg
-                    </div>
-                    <div className="flex-1 rounded-2xl bg-red-100/80 p-3 text-xs font-semibold uppercase tracking-widest text-red-600">
-                      ✕ Fel plagg
-                    </div>
+                  <div className="mt-auto flex gap-3 text-[11px] font-semibold uppercase tracking-[0.2em]">
+                    <div className="flex-1 rounded-2xl bg-emerald-100/80 p-3 text-emerald-700">✓ Rätt plagg</div>
+                    <div className="flex-1 rounded-2xl bg-red-100/80 p-3 text-red-600">✕ Fel plagg</div>
                   </div>
                 </button>
               );
@@ -301,9 +299,10 @@ export default function BookingFlow({
             </div>
             <span className="text-xs font-medium text-slate-500">Doften appliceras på hela tvätten</span>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
             {SCENT_OPTIONS.map((option) => {
               const isActive = scent === option.id;
+              const isNeutral = option.id === "doftfri";
               return (
                 <button
                   key={option.id}
@@ -312,17 +311,24 @@ export default function BookingFlow({
                     setScent(option.id);
                     setActiveStepIndex((prev) => Math.min(prev + 1, stepCount - 1));
                   }}
-                  className={`group relative flex flex-col justify-between rounded-2xl border p-5 text-left transition duration-300 ${
+                  className={`group flex min-h-[180px] flex-col justify-between rounded-[28px] border bg-gradient-to-br p-6 text-left text-slate-900 transition duration-300 ${
                     isActive
-                      ? "border-primary/80 bg-gradient-to-br text-slate-900 shadow-2xl shadow-primary/30 scale-[1.01]"
-                      : "border-slate-200 bg-gradient-to-br hover:scale-[1.01] hover:border-primary/40"
+                      ? "border-primary/90 bg-primary/10 shadow-[0_10px_25px_rgba(59,130,246,0.25)]"
+                      : "border-slate-200 bg-gradient-to-br from-white to-slate-50 hover:border-primary/50 hover:shadow-lg"
                   } ${option.color}`}
                 >
                   <div className="flex items-center justify-between">
-                    <p className="text-lg font-semibold">{option.label}</p>
+                    <div>
+                      <p className="text-lg font-semibold">{option.label}</p>
+                      <p className="text-xs text-slate-600">{option.note}</p>
+                    </div>
                     {isActive && <CheckCircle2 className="h-5 w-5 text-primary" />}
                   </div>
-                  <p className="mt-3 text-xs text-slate-600">{option.note}</p>
+                  <div className="mt-4">
+                    <p className={`text-[11px] font-semibold uppercase tracking-[0.4em] ${isNeutral ? "text-slate-900" : "text-slate-500"}`}>
+                      {isNeutral ? "Doftfri" : "Doften appliceras på hela tvätten"}
+                    </p>
+                  </div>
                 </button>
               );
             })}
@@ -362,7 +368,7 @@ export default function BookingFlow({
                 />
               </label>
               <p className="text-sm font-semibold text-slate-700">Tid på dagen</p>
-              <div className="flex flex-wrap gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {TIME_SLOTS.map((slot) => {
                   const isActive = pickupSlot === slot.id;
                   return (
@@ -372,14 +378,14 @@ export default function BookingFlow({
                       onClick={() => {
                         setPickupSlot(slot.id);
                       }}
-                      className={`rounded-full border px-4 py-2 text-sm font-semibold transition duration-200 ${
+                      className={`flex h-12 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition duration-200 ${
                         isActive
                           ? "border-primary bg-primary/10 text-primary shadow-lg shadow-primary/20"
                           : "border-slate-200 bg-white text-slate-600 hover:border-primary/40 hover:shadow-sm"
                       }`}
                     >
-                      <span className="mr-1">{slot.emoji}</span>
-                      {slot.label}
+                      <span>{slot.emoji}</span>
+                      <span>{slot.label}</span>
                     </button>
                   );
                 })}
@@ -399,7 +405,7 @@ export default function BookingFlow({
                 />
               </label>
               <p className="text-sm font-semibold text-slate-700">Tid på dagen</p>
-              <div className="flex flex-wrap gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {TIME_SLOTS.map((slot) => {
                   const isActive = deliverySlot === slot.id;
                   return (
@@ -409,14 +415,14 @@ export default function BookingFlow({
                       onClick={() => {
                         setDeliverySlot(slot.id);
                       }}
-                      className={`rounded-full border px-4 py-2 text-sm font-semibold transition duration-200 ${
+                      className={`flex h-12 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition duration-200 ${
                         isActive
                           ? "border-primary bg-primary/10 text-primary shadow-lg shadow-primary/20"
                           : "border-slate-200 bg-white text-slate-600 hover:border-primary/40 hover:shadow-sm"
                       }`}
                     >
-                      <span className="mr-1">{slot.emoji}</span>
-                      {slot.label}
+                      <span>{slot.emoji}</span>
+                      <span>{slot.label}</span>
                     </button>
                   );
                 })}
@@ -648,6 +654,7 @@ export default function BookingFlow({
     setShowSummary(false);
     if (!canProceed) return;
     if (activeStepIndex >= totalSteps - 1) {
+      setSummaryOpen(true);
       setShowSummary(true);
       return;
     }
@@ -658,10 +665,17 @@ export default function BookingFlow({
     setShowSummary(false);
     setBookingSuccess("");
     setActiveStepIndex(0);
+    setSummaryOpen(false);
+  };
+
+  const toggleSummaryAccordion = () => {
+    setSummaryOpen((prev) => !prev);
+    setShowSummary(false);
   };
 
   const handleConfirmBooking = async () => {
     setShowSummary(false);
+    setSummaryOpen(false);
     await handlePersistContact({ skipStepAdvance: true });
   };
 
@@ -672,11 +686,13 @@ export default function BookingFlow({
 
   const handleBack = () => {
     setShowSummary(false);
+    setSummaryOpen(false);
     setBookingSuccess("");
     if (activeStepIndex === 0) return;
     setActiveStepIndex((prev) => Math.max(prev - 1, 0));
   };
 
+  const summaryVisible = showSummary || summaryOpen;
   const summaryContactInfo = contactSaved
     ? `${contactInfo.firstName || ""} ${contactInfo.lastName || ""}`.trim()
     : "Ej sparad";
@@ -717,12 +733,12 @@ export default function BookingFlow({
               );
             })}
           </div>
-          <div className="mt-3 flex items-center justify-between pt-2">
+          <div className="sticky bottom-0 left-0 right-0 z-20 mt-6 flex w-full items-center justify-between gap-3 border-t border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200 sm:mt-3 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none">
             <button
               type="button"
               onClick={handleBack}
               disabled={activeStepIndex === 0}
-              className="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Tillbaka
             </button>
@@ -730,7 +746,7 @@ export default function BookingFlow({
               type="button"
               onClick={handleNext}
               disabled={!canProceed}
-              className={`rounded-full px-5 py-2 text-sm font-semibold text-white transition ${
+              className={`rounded-full px-5 py-3 text-sm font-semibold text-white transition ${
                 canProceed
                   ? "bg-primary hover:bg-sky-500"
                   : "bg-slate-200 text-slate-500 cursor-not-allowed"
@@ -747,20 +763,26 @@ export default function BookingFlow({
           )}
         </div>
 
-        <aside className="space-y-6">
-          {showSummary ? (
-            <Card className="rounded-2xl border bg-white p-5 shadow-sm space-y-4 rounded-3xl bg-white/80">
-              <div className="space-y-2">
-                <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Sammanfattning</p>
-                <h3 className="text-lg font-semibold text-slate-900">Ditt val</h3>
-                <p className="text-[11px] uppercase tracking-[0.4em] text-slate-500">
-                  {user
-                    ? "Konto: sparas i Profil"
-                    : contactSaved
-                      ? "Gästinfo: sparad i Gäst leads"
-                      : "Gästinfo: sparas som separat post"}
-                </p>
-              </div>
+        <aside className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Sammanfattning</p>
+              <h3 className="text-lg font-semibold text-slate-900">Ditt val</h3>
+            </div>
+            <button
+              type="button"
+              onClick={toggleSummaryAccordion}
+              className="flex items-center gap-2 text-sm font-semibold text-primary transition hover:text-primary/80"
+            >
+              <span>{summaryVisible ? "Dölj sammanfattning" : "Visa sammanfattning"}</span>
+              <ChevronDown
+                className={`h-4 w-4 transition ${summaryVisible ? "rotate-180" : "rotate-0"}`}
+                aria-hidden
+              />
+            </button>
+          </div>
+          {summaryVisible ? (
+            <Card className="space-y-4 rounded-3xl bg-white/80 p-5 shadow-lg">
               <div className="space-y-2 text-sm text-slate-600">
                 <p>
                   <span className="font-semibold text-slate-900">Wash:</span>{" "}
@@ -810,30 +832,23 @@ export default function BookingFlow({
                   type="button"
                   onClick={handleConfirmBooking}
                   disabled={contactSaving}
-                  className="flex-1 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="flex-1 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {contactSaving ? "Sparar..." : "Bekräfta bokning"}
                 </button>
                 <button
                   type="button"
                   onClick={handleCancelSummary}
-                  className="flex-1 rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400"
+                  className="flex-1 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400"
                 >
                   Avbryt
                 </button>
               </div>
             </Card>
           ) : (
-            <Card className="rounded-2xl border bg-white p-5 shadow-sm space-y-4 rounded-3xl bg-white/80">
-              <div className="space-y-2">
-                <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Sammanfattning</p>
-                <h3 className="text-lg font-semibold text-slate-900">Ditt val</h3>
-                <p className="text-[11px] uppercase tracking-[0.4em] text-slate-500">
-                  Slutför stegen, klicka på ”Boka” och se din bekräftelse här.
-                </p>
-              </div>
+            <Card className="space-y-4 rounded-3xl bg-white/80 p-5 shadow-lg">
               <p className="text-sm text-slate-600">
-                När du fyllt i allt får du en översikt med bekräftelseknapp för att säkra din tid.
+                När du fyllt i stegen kan du öppna sammanfattningen, trycka på ”Boka” och få bekräftelsen direkt.
               </p>
             </Card>
           )}
