@@ -32,10 +32,38 @@ const WASH_OPTIONS = [
 ];
 
 const SCENT_OPTIONS = [
-  { id: "fresh-linen", label: "Fresh Linen", note: "Doften appliceras på hela tvätten", color: "from-sky-50 to-blue-100" },
-  { id: "citrus-clean", label: "Citrus Clean", note: "Doften appliceras på hela tvätten", color: "from-amber-50 to-amber-100" },
-  { id: "lavender-calm", label: "Lavender Calm", note: "Doften appliceras på hela tvätten", color: "from-purple-50 to-purple-100" },
-  { id: "doftfri", label: "Doftfri", note: "Doften appliceras på hela tvätten", color: "from-slate-50 to-slate-100" }
+  {
+    id: "fresh-linen",
+    label: "Fresh Linen",
+    note: "Ljus och ren känsla",
+    color: "from-sky-50 to-blue-100",
+    accent: "text-sky-700",
+    icon: "🌊"
+  },
+  {
+    id: "citrus-clean",
+    label: "Citrus Clean",
+    note: "Fräsch och pigg",
+    color: "from-amber-50 to-amber-100",
+    accent: "text-amber-700",
+    icon: "🍊"
+  },
+  {
+    id: "lavender-calm",
+    label: "Lavender Calm",
+    note: "Avslappnande doft",
+    color: "from-purple-50 to-purple-100",
+    accent: "text-purple-700",
+    icon: "💜"
+  },
+  {
+    id: "doftfri",
+    label: "Doftfri",
+    note: "Neutral känsla",
+    color: "from-slate-50 to-slate-100",
+    accent: "text-slate-800",
+    icon: "⚪"
+  }
 ];
 
 function addHours(date, hours) {
@@ -299,7 +327,7 @@ export default function BookingFlow({
             </div>
             <span className="text-xs font-medium text-slate-500">Doften appliceras på hela tvätten</span>
           </div>
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
             {SCENT_OPTIONS.map((option) => {
               const isActive = scent === option.id;
               const isNeutral = option.id === "doftfri";
@@ -311,23 +339,31 @@ export default function BookingFlow({
                     setScent(option.id);
                     setActiveStepIndex((prev) => Math.min(prev + 1, stepCount - 1));
                   }}
-                  className={`group flex min-h-[180px] flex-col justify-between rounded-[28px] border bg-gradient-to-br p-6 text-left text-slate-900 transition duration-300 ${
-                    isActive
-                      ? "border-primary/90 bg-primary/10 shadow-[0_10px_25px_rgba(59,130,246,0.25)]"
-                      : "border-slate-200 bg-gradient-to-br from-white to-slate-50 hover:border-primary/50 hover:shadow-lg"
-                  } ${option.color}`}
+                className={`group relative flex min-h-[140px] flex-col justify-between overflow-hidden rounded-[28px] border bg-gradient-to-br p-4 text-left text-slate-900 transition duration-200 transform-gpu ${
+                  isActive
+                    ? "border-primary/90 shadow-[0_15px_35px_rgba(15,118,232,0.25)] scale-[1.01]"
+                    : "border-slate-200 hover:border-primary/50 hover:scale-[1.005]"
+                } ${option.color}`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-lg font-semibold">{option.label}</p>
-                      <p className="text-xs text-slate-600">{option.note}</p>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1 text-sm leading-snug">
+                      <p className="flex items-center gap-2 text-lg font-semibold">
+                        <span className="text-2xl">{option.icon}</span>
+                        <span className="truncate">{option.label}</span>
+                      </p>
+                      <p className="text-xs text-slate-600 max-h-8 overflow-hidden">{option.note}</p>
                     </div>
                     {isActive && <CheckCircle2 className="h-5 w-5 text-primary" />}
                   </div>
-                  <div className="mt-4">
-                    <p className={`text-[11px] font-semibold uppercase tracking-[0.4em] ${isNeutral ? "text-slate-900" : "text-slate-500"}`}>
-                      {isNeutral ? "Doftfri" : "Doften appliceras på hela tvätten"}
-                    </p>
+                  <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.4em] text-slate-500">
+                    {isNeutral ? "Doftfri" : "Doften appliceras på hela tvätten"}
+                  </p>
+                  <div
+                    className={`pointer-events-none absolute right-4 bottom-4 rounded-full border border-white bg-white/90 p-1 transition-opacity ${
+                      isActive ? "opacity-100" : "opacity-0"
+                    }`}
+                  >
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
                   </div>
                 </button>
               );

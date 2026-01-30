@@ -9,7 +9,7 @@ import Card from "@/components/ui/card";
 
 export default function HomePage() {
   function handleScrollToBooking() {
-    const bookingSection = document.getElementById("booking-section");
+    const bookingSection = document.getElementById("boka-tvatt");
     if (bookingSection) {
       bookingSection.scrollIntoView({ behavior: "smooth" });
     }
