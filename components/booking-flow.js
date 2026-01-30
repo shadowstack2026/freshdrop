@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Input from "@/components/ui/input";
 import Card from "@/components/ui/card";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
@@ -63,6 +64,7 @@ export default function BookingFlow({
   user = null
 }) {
   const supabase = createClientComponentClient();
+  const router = useRouter();
   const profileHasBasics =
     Boolean(profile?.first_name) &&
     Boolean(profile?.last_name) &&
@@ -92,6 +94,9 @@ export default function BookingFlow({
   });
   const [bookingSuccess, setBookingSuccess] = useState("");
   const [showSummary, setShowSummary] = useState(false);
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [postalStatus, setPostalStatus] = useState("idle");
+  const postalTimerRef = useRef(null);
 
   useEffect(() => {
     if (showContactStep && profileHasBasics) {
@@ -106,7 +111,7 @@ export default function BookingFlow({
         email: user?.email || ""
       });
       setContactSaved(true);
-      setActiveStepIndex(1);
+    setActiveStepIndex(2);
     }
   }, [showContactStep, profileHasBasics]);
 
@@ -122,6 +127,14 @@ export default function BookingFlow({
       email: user?.email || prev.email
     }));
   }, [profile, user]);
+
+  useEffect(() => {
+    return () => {
+      if (postalTimerRef.current) {
+        clearTimeout(postalTimerRef.current);
+      }
+    };
+  }, []);
 
   const parsedWeight = parseFloat(weight);
   const price = useMemo(() => calculatePrice(parsedWeight), [parsedWeight]);
@@ -161,8 +174,36 @@ export default function BookingFlow({
     }));
   };
 
-  const stepCount = showContactStep ? 5 : 4;
-  const getBaseStepNumber = (index) => index + (showContactStep ? 2 : 1);
+  const handlePostalChange = (event) => {
+    handleContactChange("postalCode")(event);
+    const value = event.target.value;
+    const trimmed = value.trim();
+    if (postalTimerRef.current) {
+      clearTimeout(postalTimerRef.current);
+      postalTimerRef.current = null;
+    }
+    if (!trimmed) {
+      setPostalStatus("idle");
+      return;
+    }
+    if (POSTAL_CODE_REGEX.test(trimmed)) {
+      setPostalStatus("valid");
+      setContactError("");
+      postalTimerRef.current = setTimeout(() => {
+        if (activeStepIndex === 0) {
+          setActiveStepIndex((prev) => Math.min(prev + 1, stepCount - 1));
+        }
+        setPostalStatus("idle");
+        postalTimerRef.current = null;
+      }, 1000);
+      return;
+    }
+    setPostalStatus("invalid");
+  };
+
+  const stepCount = showContactStep ? 6 : 4;
+  const baseStepOffset = showContactStep ? 2 : 1;
+  const getBaseStepNumber = (index) => index + baseStepOffset;
   const baseSteps = [
     {
       id: "wash",
@@ -437,26 +478,54 @@ export default function BookingFlow({
     Boolean(contactInfo.firstName.trim()) &&
     Boolean(contactInfo.lastName.trim()) &&
     Boolean(contactInfo.address.trim()) &&
-    Boolean(contactInfo.city.trim()) &&
-    isPostalCodeValid;
+    Boolean(contactInfo.city.trim());
+
+  const cityCheckStep = {
+    id: "city-check",
+    title: "Kontroll om vi finns i din stad",
+    render: () => (
+      <div className="space-y-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Steg 0</p>
+          <h3 className="text-xl font-semibold text-slate-900">Kontroll om vi finns i din stad</h3>
+          <p className="text-sm text-slate-600">
+            Ange postnummer så kollar vi att vi levererar till din adress.
+          </p>
+        </div>
+        <Input
+          label="Postnummer"
+          value={contactInfo.postalCode}
+          onChange={handlePostalChange}
+          error={postalInvalid ? "Endast fem siffror godkänns" : undefined}
+          helpText="Postnummer används för zonkontroll och sparas automatiskt."
+          inputClassName={
+            postalStatus === "valid"
+              ? "border-emerald-400 focus:border-emerald-400 focus:ring-emerald-200"
+              : postalStatus === "invalid"
+                ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                : ""
+          }
+        />
+      </div>
+    ),
+    isComplete: () => isPostalCodeValid
+  };
 
   const contactStep = {
     id: "contact",
     title: "Information",
     render: () => (
       <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                Steg {activeStepIndex + 1}
-              </p>
-              <h3 className="text-xl font-semibold text-slate-900">Information</h3>
-              <p className="text-sm text-slate-600">
-                Ange kontaktuppgifter som vi sparar i {user ? "din profil" : "Gästlistan"}.
-              </p>
-            </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Steg 1</p>
+            <h3 className="text-xl font-semibold text-slate-900">Information</h3>
+            <p className="text-sm text-slate-600">
+              Ange kontaktuppgifter som vi sparar i {user ? "din profil" : "Gästlistan"}.
+            </p>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
           <Input
             label="Förnamn"
             value={contactInfo.firstName}
@@ -479,12 +548,6 @@ export default function BookingFlow({
             label="Adressrad 2 (frivillig)"
             value={contactInfo.address2}
             onChange={handleContactChange("address2")}
-          />
-          <Input
-            label="Postnummer"
-            value={contactInfo.postalCode}
-            onChange={handleContactChange("postalCode")}
-            error={postalInvalid ? "Endast fem siffror godkänns" : undefined}
           />
           <Input
             label="Stad"
@@ -510,10 +573,16 @@ export default function BookingFlow({
     isComplete: () => contactInputsValid
   };
 
-  const steps = showContactStep ? [contactStep, ...baseSteps] : baseSteps;
+  const steps = showContactStep ? [cityCheckStep, contactStep, ...baseSteps] : baseSteps;
   const totalSteps = steps.length;
   const currentStep = steps[activeStepIndex];
-  const progressPercent = Math.min(100, ((activeStepIndex + 1) / totalSteps) * 100);
+  const progressStepCount = showContactStep ? baseSteps.length + 1 : baseSteps.length;
+  const progressStepIndex = showContactStep
+    ? Math.min(Math.max(activeStepIndex, 0), progressStepCount)
+    : Math.min(activeStepIndex + 1, progressStepCount);
+  const progressPercent = Math.min(100, (progressStepIndex / progressStepCount) * 100);
+  const stepLabelNumber = showContactStep ? activeStepIndex : activeStepIndex + 1;
+  const stepLabelTotal = progressStepCount;
 
   const handlePersistContact = async ({ skipStepAdvance = false } = {}) => {
     if (!contactInputsValid) {
@@ -521,7 +590,7 @@ export default function BookingFlow({
       return;
     }
     setContactError("");
-    if (!isPostalCodeValid) {
+    if (showContactStep && !isPostalCodeValid) {
       setContactError("Postnummer måste vara fem siffror.");
       return;
     }
@@ -565,9 +634,11 @@ export default function BookingFlow({
 
     setContactSaved(true);
     setBookingSuccess("Tack! Din bokning är bekräftad och vi återkommer innan leverans.");
-    if (!skipStepAdvance) {
-      setActiveStepIndex((prev) => Math.min(prev + 1, totalSteps - 1));
+    if (skipStepAdvance) {
+      setShowConfirmationModal(true);
+      return;
     }
+    setActiveStepIndex((prev) => Math.min(prev + 1, totalSteps - 1));
   };
 
   const canProceed = currentStep.isComplete();
@@ -594,6 +665,11 @@ export default function BookingFlow({
     await handlePersistContact({ skipStepAdvance: true });
   };
 
+  const closeConfirmationModal = () => {
+    setShowConfirmationModal(false);
+    router.push("/dashboard");
+  };
+
   const handleBack = () => {
     setShowSummary(false);
     setBookingSuccess("");
@@ -610,7 +686,7 @@ export default function BookingFlow({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
-            Steg {activeStepIndex + 1} av {totalSteps}
+            Steg {stepLabelNumber} av {stepLabelTotal}
           </p>
           <h2 className="text-2xl font-semibold text-slate-900">Bygg din FreshDrop-upplevelse</h2>
         </div>
@@ -763,6 +839,21 @@ export default function BookingFlow({
           )}
         </aside>
       </div>
+      {showConfirmationModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md space-y-4 rounded-2xl bg-white p-6 text-center shadow-2xl">
+            <h3 className="text-xl font-semibold text-slate-900">Bekräftelse</h3>
+            <p className="text-sm text-slate-600">Bekräftelse finns i mail.</p>
+            <button
+              type="button"
+              onClick={closeConfirmationModal}
+              className="w-full rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-sky-500"
+            >
+              Stäng
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -1,4 +1,4 @@
-export default function Input({ label, id, required, type = "text", helpText, error, className = "", ...props }) {
+export default function Input({ label, id, required, type = "text", helpText, error, className = "", inputClassName = "", ...props }) {
   return (
     <div className={`space-y-1 ${className}`}>
       {label && (
@@ -11,7 +11,7 @@ export default function Input({ label, id, required, type = "text", helpText, er
         id={id}
         type={type}
         required={required}
-        className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+        className={`block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary ${inputClassName}`}
         {...props}
       />
       {helpText && !error && (

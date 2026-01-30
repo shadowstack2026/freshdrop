@@ -968,6 +968,10 @@ video {
 .border-white\/60 {
   border-color: rgb(255 255 255 / 0.6);
 }
+.border-red-500 {
+  --tw-border-opacity: 1;
+  border-color: rgb(239 68 68 / var(--tw-border-opacity, 1));
+}
 .bg-amber-100 {
   --tw-bg-opacity: 1;
   background-color: rgb(254 243 199 / var(--tw-bg-opacity, 1));
@@ -1047,6 +1051,9 @@ video {
 }
 .bg-white\/90 {
   background-color: rgb(255 255 255 / 0.9);
+}
+.bg-black\/50 {
+  background-color: rgb(0 0 0 / 0.5);
 }
 .bg-opacity-50 {
   --tw-bg-opacity: 0.5;
@@ -1776,6 +1783,16 @@ a:hover {
   border-color: rgb(56 189 248 / var(--tw-border-opacity, 1));
 }
 
+.focus\:border-emerald-400:focus {
+  --tw-border-opacity: 1;
+  border-color: rgb(52 211 153 / var(--tw-border-opacity, 1));
+}
+
+.focus\:border-red-500:focus {
+  --tw-border-opacity: 1;
+  border-color: rgb(239 68 68 / var(--tw-border-opacity, 1));
+}
+
 .focus\:outline-none:focus {
   outline: 2px solid transparent;
   outline-offset: 2px;
@@ -1813,6 +1830,16 @@ a:hover {
 
 .focus\:ring-white\/60:focus {
   --tw-ring-color: rgb(255 255 255 / 0.6);
+}
+
+.focus\:ring-emerald-200:focus {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(167 243 208 / var(--tw-ring-opacity, 1));
+}
+
+.focus\:ring-red-200:focus {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(254 202 202 / var(--tw-ring-opacity, 1));
 }
 
 .focus\:ring-offset-2:focus {
