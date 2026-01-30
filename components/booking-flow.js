@@ -733,12 +733,12 @@ export default function BookingFlow({
               );
             })}
           </div>
-          <div className="sticky bottom-0 left-0 right-0 z-20 mt-6 flex w-full items-center justify-between gap-3 border-t border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200 sm:mt-3 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none">
+          <div className="sticky bottom-0 left-0 right-0 z-20 mt-6 flex w-full flex-col gap-3 border-t border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200 sm:mt-3 sm:flex-row sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none">
             <button
               type="button"
               onClick={handleBack}
               disabled={activeStepIndex === 0}
-              className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Tillbaka
             </button>
@@ -746,7 +746,7 @@ export default function BookingFlow({
               type="button"
               onClick={handleNext}
               disabled={!canProceed}
-              className={`rounded-full px-5 py-3 text-sm font-semibold text-white transition ${
+              className={`w-full rounded-full px-5 py-3 text-sm font-semibold text-white transition ${
                 canProceed
                   ? "bg-primary hover:bg-sky-500"
                   : "bg-slate-200 text-slate-500 cursor-not-allowed"

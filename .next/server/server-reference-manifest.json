@@ -1,14 +1,5 @@
 {
-  "node": {
-    "869d06fefffd75cec446d7cc9eefa83303917acc": {
-      "workers": {
-        "app/account/page": "(rsc)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5Cfreshdrop%5C%5Capp%5C%5Caccount%5C%5Cpage.js%22%2C%5B%22%24%24ACTION_0%22%5D%5D%5D&__client_imported__=!"
-      },
-      "layer": {
-        "app/account/page": "rsc"
-      }
-    }
-  },
+  "node": {},
   "edge": {},
-  "encryptionKey": "ZjPCjGOKHU9vkrxJ5XKElMakUhnZw6PciPTdlpHcnXc="
+  "encryptionKey": "D+aJJHHgOXroOb3+C3Pl4eqBkxtmVCJay9E9LA4mPEA="
 }
