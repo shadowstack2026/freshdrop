@@ -27,12 +27,14 @@ export async function middleware(req) {
     return NextResponse.redirect(new URL("/hem", req.url));
   }
 
+  // If user is not logged in and tries to access a protected path, redirect to login
   if (!session && isProtected) {
     const redirectUrl = new URL("/login", req.url);
     redirectUrl.searchParams.set("redirectTo", pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
+  // Admin access control (remains unchanged)
   if (pathname.startsWith("/admin")) {
     const { data: profile } = await supabase
       .from("profiles")

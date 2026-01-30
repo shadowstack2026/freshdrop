@@ -6,7 +6,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card"; // Import Card component
-import { LogIn } from "lucide-react"; // Import icon
+import { LogIn, XCircle } from "lucide-react"; // Import icon
 import Link from "next/link";
 
 export const dynamic = 'force-dynamic';
@@ -27,7 +27,7 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -39,23 +39,36 @@ export default function LoginPage() {
       return;
     }
 
-    if (!data.user) {
-      setError("Inloggning misslyckades. Ingen användardata mottogs.");
+    // Verify session after sign-in attempt
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError) {
+      console.error("Supabase getSession error after signIn:", sessionError);
+      setError(sessionError.message || "Ett oväntat fel uppstod vid hämtning av sessionen.");
       setLoading(false);
       return;
     }
 
-    try {
-      await fetch("/api/auth/claim-orders", {
-        method: "POST",
-      });
-    } catch (err) {
-      console.error("Error claiming orders after login:", err);
-      // Ignorera fel här, dashboard laddar ändå.
+    if (session && session.user) {
+      // Claim orders if any
+      try {
+        await fetch("/api/auth/claim-orders", {
+          method: "POST",
+        });
+      } catch (err) {
+        console.error("Error claiming orders after login:", err);
+        // Ignorera fel här, dashboard laddar ändå.
+      }
+
+      router.push(redirectTo);
+      router.refresh();
+    } else {
+      // This case should ideally not happen if signInWithPassword was successful,
+      // but it's a fallback if session is somehow not established.
+      setError("Inloggning misslyckades. Ingen aktiv session kunde etableras.");
     }
 
-    router.push(redirectTo);
-    router.refresh();
+    setLoading(false);
   }
 
   return (

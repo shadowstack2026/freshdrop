@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { User, LogOut, Package, ChevronRight, Menu, X, CalendarDays, Droplets } from "lucide-react";
+import { User, LogOut, Package, ChevronRight, Menu, X, CalendarDays } from "lucide-react";
 import Card from "@/components/ui/card";
 import Button from "@/components/ui/button";
 
