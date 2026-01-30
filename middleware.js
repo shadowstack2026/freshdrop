@@ -1,7 +1,7 @@
 import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
 import { NextResponse } from "next/server";
 
-const protectedPaths = ["/dashboard", "/account", "/orders", "/admin"];
+const protectedPaths = ["/hem", "/profil", "/dashboard", "/account", "/orders", "/admin"];
 
 export async function middleware(req) {
   const res = NextResponse.next();
@@ -21,6 +21,11 @@ export async function middleware(req) {
   const isProtected = protectedPaths.some((path) =>
     pathname === path || pathname.startsWith(`${path}/`)
   );
+
+  // Redirect logged-in users from login/signup to /hem
+  if (session && (pathname === "/login" || pathname === "/signup")) {
+    return NextResponse.redirect(new URL("/hem", req.url));
+  }
 
   if (!session && isProtected) {
     const redirectUrl = new URL("/login", req.url);
@@ -43,6 +48,5 @@ export async function middleware(req) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/account/:path*", "/orders/:path*", "/admin/:path*"]
+  matcher: ["/hem/:path*", "/profil/:path*", "/dashboard/:path*", "/account/:path*", "/orders/:path*", "/admin/:path*", "/login", "/signup"]
 };
-
