@@ -128,8 +128,7 @@ export default function BookingFlow({
   const [postalStatus, setPostalStatus] = useState("idle");
   const postalTimerRef = useRef(null);
   const summaryRef = useRef(null);
-  const stepsContainerRef = useRef(null);
-  const [shouldScrollToStep, setShouldScrollToStep] = useState(false);
+  const wizardTopRef = useRef(null);
   const [confirmationChannel, setConfirmationChannel] = useState("email");
   const [confirmationEmail, setConfirmationEmail] = useState(user?.email || contactInfo.email);
   const [confirmationPhone, setConfirmationPhone] = useState(contactInfo.phone);
@@ -280,12 +279,12 @@ export default function BookingFlow({
                   onClick={() => {
                     setWashType(option.id);
                   }}
-                  className={`group relative flex flex-col gap-5 rounded-[32px] border border-slate-200 bg-white/80 p-5 text-left transition duration-300 sm:p-6 ${
+                  className={`group relative flex flex-col gap-4 rounded-[28px] border border-slate-200 bg-white/80 p-4 text-left transition duration-300 sm:p-5 ${
                     isSelected
                       ? "border-primary/80 bg-primary/10 shadow-[0_0_25px_rgba(56,189,248,0.25)]"
                       : "hover:border-primary/50 hover:shadow-lg"
                   }`}
-                  style={{ minHeight: "280px" }}
+                  style={{ minHeight: "240px" }}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -320,7 +319,7 @@ export default function BookingFlow({
                       </ul>
                     </div>
                   </div>
-                  <div className="mt-auto flex gap-3 text-[11px] font-semibold uppercase tracking-[0.2em]">
+                  <div className="mt-auto flex gap-3 text-[10px] font-semibold uppercase tracking-[0.3em] sm:text-[11px]">
                     <div className="flex-1 rounded-2xl bg-emerald-100/80 p-3 text-emerald-700">✓ Rätt plagg</div>
                     <div className="flex-1 rounded-2xl bg-red-100/80 p-3 text-red-600">✕ Fel plagg</div>
                   </div>
@@ -358,11 +357,11 @@ export default function BookingFlow({
                   onClick={() => {
                     setScent(option.id);
                   }}
-                className={`group relative flex min-h-[140px] flex-col justify-between overflow-hidden rounded-[28px] border bg-gradient-to-br p-4 text-left text-slate-900 transition duration-200 transform-gpu ${
-                  isActive
-                    ? "border-primary/90 shadow-[0_15px_35px_rgba(15,118,232,0.25)] scale-[1.01]"
-                    : "border-slate-200 hover:border-primary/50 hover:scale-[1.005]"
-                } ${option.color}`}
+                  className={`group relative flex min-h-[125px] flex-col justify-between overflow-hidden rounded-[28px] border bg-gradient-to-br p-3 text-left text-slate-900 transition duration-200 transform-gpu sm:p-4 ${
+                    isActive
+                      ? "border-primary/90 shadow-[0_15px_35px_rgba(15,118,232,0.25)] scale-[1.01]"
+                      : "border-slate-200 hover:border-primary/50 hover:scale-[1.005]"
+                  } ${option.color}`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1 text-sm leading-snug">
@@ -374,7 +373,7 @@ export default function BookingFlow({
                     </div>
                     {isActive && <CheckCircle2 className="h-5 w-5 text-primary" />}
                   </div>
-                  <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.4em] text-slate-500">
+                  <p className="mt-3 text-[9px] font-semibold uppercase tracking-[0.4em] text-slate-500 sm:text-[11px]">
                     {isNeutral ? "Doftfri" : "Doften appliceras på hela tvätten"}
                   </p>
                 </button>
@@ -697,6 +696,12 @@ export default function BookingFlow({
 
   const canProceed = currentStep.isComplete();
 
+  const scrollToWizardTop = () => {
+    requestAnimationFrame(() => {
+      wizardTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
   const handleNext = () => {
     setBookingSuccess("");
     setShowSummary(false);
@@ -705,23 +710,19 @@ export default function BookingFlow({
       setSummaryOpen(true);
       setShowSummary(true);
       setShouldScrollSummary(true);
+      scrollToWizardTop();
       return;
     }
     setActiveStepIndex((prev) => Math.min(prev + 1, totalSteps - 1));
-    setShouldScrollToStep(true);
+    scrollToWizardTop();
   };
-  useEffect(() => {
-    if (shouldScrollToStep && stepsContainerRef.current) {
-      stepsContainerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-      setShouldScrollToStep(false);
-    }
-  }, [shouldScrollToStep]);
 
 
   const handleCancelSummary = () => {
     setShowSummary(false);
     setBookingSuccess("");
     setActiveStepIndex(0);
+    scrollToWizardTop();
     setSummaryOpen(false);
   };
 
@@ -784,37 +785,71 @@ export default function BookingFlow({
     setBookingSuccess("");
     if (activeStepIndex === 0) return;
     setActiveStepIndex((prev) => Math.max(prev - 1, 0));
+    scrollToWizardTop();
   };
 
   const summaryVisible = showSummary || summaryOpen;
+  const showNavigationButtons = activeStepIndex > 0;
+  const renderNavigationButtons = (className) => (
+    <div className={className}>
+      <button
+        type="button"
+        onClick={handleBack}
+        disabled={activeStepIndex === 0}
+        className="w-full rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Tillbaka
+      </button>
+      <button
+        type="button"
+        onClick={handleNext}
+        disabled={!canProceed}
+        className={`w-full rounded-full px-5 py-3 text-sm font-semibold text-white transition ${
+          canProceed
+            ? "bg-primary hover:bg-sky-500"
+            : "bg-slate-200 text-slate-500 cursor-not-allowed"
+        }`}
+      >
+        {currentStep.id === "weight" ? "Boka" : "Nästa"}
+      </button>
+    </div>
+  );
   const summaryContactInfo = contactSaved
     ? `${contactInfo.firstName || ""} ${contactInfo.lastName || ""}`.trim()
     : "Ej sparad";
 
   return (
-    <section id="boka-tvatt" className="bg-white/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-slate-100">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <section
+      id="boka-tvatt"
+      className="bg-white/95 backdrop-blur-sm rounded-2xl p-5 sm:p-6 lg:p-8 shadow-xl border border-slate-100"
+    >
+      <div
+        ref={wizardTopRef}
+        className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between"
+      >
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+          <p className="text-[10px] uppercase tracking-[0.4em] text-slate-400 sm:text-xs">
             Steg {stepLabelNumber} av {stepLabelTotal}
           </p>
-          <h2 className="text-2xl font-semibold text-slate-900">Bygg din FreshDrop-upplevelse</h2>
+          <h2 className="text-2xl font-semibold text-slate-900 sm:text-[2.25rem]">
+            Bygg din FreshDrop-upplevelse
+          </h2>
         </div>
-        <div className="text-sm font-medium text-slate-600">
+        <div className="text-xs font-semibold text-slate-600 sm:text-sm">
           {price > 0 ? `Livepris: ${price} kr` : "Ange vikt för pris"}
         </div>
       </div>
 
-      <div className="mt-6 h-2 w-full rounded-full bg-slate-200">
+      <div className="mt-4 h-2 w-full rounded-full bg-slate-200 sm:mt-5">
         <div
           className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
           style={{ width: `${progressPercent}%` }}
         />
       </div>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
-        <div className="flex flex-col">
-          <div ref={stepsContainerRef} className="pb-6 lg:relative lg:min-h-[520px]">
+      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
+        <div className="flex flex-col gap-6 pb-12">
+          <div className="pb-6 lg:relative lg:min-h-[520px]">
             {steps.map((step, index) => {
               const isActive = index === activeStepIndex;
               return (
@@ -831,28 +866,16 @@ export default function BookingFlow({
               );
             })}
           </div>
-          <div className="mt-6 flex w-full flex-col gap-3 border-t border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200 sm:mt-3 sm:flex-row sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none">
-            <button
-              type="button"
-              onClick={handleBack}
-              disabled={activeStepIndex === 0}
-              className="w-full rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Tillbaka
-            </button>
-            <button
-              type="button"
-              onClick={handleNext}
-              disabled={!canProceed}
-              className={`w-full rounded-full px-5 py-3 text-sm font-semibold text-white transition ${
-                canProceed
-                  ? "bg-primary hover:bg-sky-500"
-                  : "bg-slate-200 text-slate-500 cursor-not-allowed"
-              }`}
-            >
-              {currentStep.id === "weight" ? "Boka" : "Nästa"}
-            </button>
-          </div>
+          {showNavigationButtons && (
+            <>
+              {renderNavigationButtons(
+                "sticky bottom-0 z-20 mt-6 flex w-full flex-col gap-3 border-t border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200 sm:mt-3 sm:flex-row sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none lg:hidden"
+              )}
+              {renderNavigationButtons(
+                "hidden w-full flex-col gap-3 border-t border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200 sm:mt-3 sm:flex-row sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none lg:flex lg:static lg:border-t-0 lg:bg-transparent lg:px-0 lg:py-0 lg:shadow-none"
+              )}
+            </>
+          )}
           {bookingSuccess && (
             <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-emerald-600 animate-pulse">
               <CheckCircle2 className="h-4 w-4" />
@@ -861,7 +884,10 @@ export default function BookingFlow({
           )}
         </div>
 
-        <aside ref={summaryRef} className="space-y-4">
+        <aside
+          ref={summaryRef}
+          className="space-y-4 lg:max-w-sm"
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Sammanfattning</p>
@@ -880,7 +906,7 @@ export default function BookingFlow({
             </button>
           </div>
           {summaryVisible ? (
-            <Card className="space-y-4 rounded-3xl bg-white/80 p-5 shadow-lg">
+            <Card className="space-y-3 rounded-3xl bg-white/80 p-4 shadow-lg sm:p-5">
               <div className="space-y-2 text-sm text-slate-600">
                 <p>
                   <span className="font-semibold text-slate-900">Wash:</span>{" "}
@@ -944,7 +970,7 @@ export default function BookingFlow({
               </div>
             </Card>
           ) : (
-            <Card className="space-y-4 rounded-3xl bg-white/80 p-5 shadow-lg">
+            <Card className="rounded-3xl bg-white/80 p-4 shadow-lg sm:p-5">
               <p className="text-sm text-slate-600">
                 När du fyllt i stegen kan du öppna sammanfattningen, trycka på ”Boka” och få bekräftelsen direkt.
               </p>
