@@ -128,6 +128,8 @@ export default function BookingFlow({
   const [postalStatus, setPostalStatus] = useState("idle");
   const postalTimerRef = useRef(null);
   const summaryRef = useRef(null);
+  const stepsContainerRef = useRef(null);
+  const [shouldScrollToStep, setShouldScrollToStep] = useState(false);
   const [confirmationChannel, setConfirmationChannel] = useState("email");
   const [confirmationEmail, setConfirmationEmail] = useState(user?.email || contactInfo.email);
   const [confirmationPhone, setConfirmationPhone] = useState(contactInfo.phone);
@@ -375,13 +377,6 @@ export default function BookingFlow({
                   <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.4em] text-slate-500">
                     {isNeutral ? "Doftfri" : "Doften appliceras på hela tvätten"}
                   </p>
-                  <div
-                    className={`pointer-events-none absolute right-4 bottom-4 rounded-full border border-white bg-white/90 p-1 transition-opacity ${
-                      isActive ? "opacity-100" : "opacity-0"
-                    }`}
-                  >
-                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                  </div>
                 </button>
               );
             })}
@@ -713,7 +708,15 @@ export default function BookingFlow({
       return;
     }
     setActiveStepIndex((prev) => Math.min(prev + 1, totalSteps - 1));
+    setShouldScrollToStep(true);
   };
+  useEffect(() => {
+    if (shouldScrollToStep && stepsContainerRef.current) {
+      stepsContainerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      setShouldScrollToStep(false);
+    }
+  }, [shouldScrollToStep]);
+
 
   const handleCancelSummary = () => {
     setShowSummary(false);
@@ -736,6 +739,7 @@ export default function BookingFlow({
   const closeConfirmationModal = () => {
     setShowConfirmationModal(false);
     setConfirmationError("");
+    router.replace("/dashboard");
   };
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -771,7 +775,7 @@ export default function BookingFlow({
       setConfirmationSending(false);
     }
     setShowConfirmationModal(false);
-    router.push("/dashboard");
+    router.replace("/dashboard");
   };
 
   const handleBack = () => {
@@ -810,7 +814,7 @@ export default function BookingFlow({
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
         <div className="flex flex-col">
-          <div className="pb-6 lg:relative lg:min-h-[520px]">
+          <div ref={stepsContainerRef} className="pb-6 lg:relative lg:min-h-[520px]">
             {steps.map((step, index) => {
               const isActive = index === activeStepIndex;
               return (
