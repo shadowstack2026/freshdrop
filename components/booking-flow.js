@@ -185,6 +185,19 @@ export default function BookingFlow({
     }
   }, [shouldScrollSummary]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const originalOverflow = document.body.style.overflow;
+    if (showConfirmationModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = originalOverflow;
+    }
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [showConfirmationModal]);
+
   const parsedWeight = parseFloat(weight);
   const price = useMemo(() => calculatePrice(parsedWeight), [parsedWeight]);
   const weightIsValid = Number.isFinite(parsedWeight) && parsedWeight > 0;
@@ -702,6 +715,12 @@ export default function BookingFlow({
     });
   };
 
+  const scrollSummaryIntoView = () => {
+    requestAnimationFrame(() => {
+      summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
   const handleNext = () => {
     setBookingSuccess("");
     setShowSummary(false);
@@ -710,7 +729,7 @@ export default function BookingFlow({
       setSummaryOpen(true);
       setShowSummary(true);
       setShouldScrollSummary(true);
-      scrollToWizardTop();
+      scrollSummaryIntoView();
       return;
     }
     setActiveStepIndex((prev) => Math.min(prev + 1, totalSteps - 1));
@@ -732,6 +751,7 @@ export default function BookingFlow({
   };
 
   const handleConfirmBooking = async () => {
+    scrollSummaryIntoView();
     setShowSummary(false);
     setSummaryOpen(false);
     await handlePersistContact({ skipStepAdvance: true });
