@@ -790,8 +790,8 @@ export default function BookingFlow({
 
   const summaryVisible = showSummary || summaryOpen;
   const showNavigationButtons = activeStepIndex > 0;
-  const renderNavigationButtons = (className) => (
-    <div className={className}>
+  const renderNavigationButtons = (className, style) => (
+    <div className={className} style={style}>
       <button
         type="button"
         onClick={handleBack}
@@ -821,7 +821,7 @@ export default function BookingFlow({
   return (
     <section
       id="boka-tvatt"
-      className="bg-white/95 backdrop-blur-sm rounded-2xl p-5 sm:p-6 lg:p-8 shadow-xl border border-slate-100"
+      className="mx-auto w-full max-w-[min(100%,960px)] bg-white/95 backdrop-blur-sm rounded-2xl p-5 sm:p-6 lg:p-8 shadow-xl border border-slate-100"
     >
       <div
         ref={wizardTopRef}
@@ -847,15 +847,15 @@ export default function BookingFlow({
         />
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
-        <div className="flex flex-col gap-6 pb-12">
+      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)] px-0 sm:px-0 lg:px-0">
+        <div className="flex flex-col gap-6 pb-[140px] sm:pb-12">
           <div className="pb-6 lg:relative lg:min-h-[520px]">
             {steps.map((step, index) => {
               const isActive = index === activeStepIndex;
               return (
                 <div
                   key={step.id}
-                  className={`overflow-hidden transition-[opacity,transform,max-height] duration-300 ease-out ${
+                  className={`overflow-hidden transition-[opacity,transform,max-height] duration-300 ease-out px-4 sm:px-0 ${
                     isActive
                       ? "opacity-100 translate-y-0 max-h-[2000px] pointer-events-auto mb-10 lg:z-10 lg:max-h-none lg:opacity-100 lg:translate-y-0"
                       : "opacity-0 translate-y-4 max-h-0 pointer-events-none lg:absolute lg:inset-0 lg:z-0 lg:opacity-0 lg:translate-y-4"
@@ -869,7 +869,10 @@ export default function BookingFlow({
           {showNavigationButtons && (
             <>
               {renderNavigationButtons(
-                "sticky bottom-0 z-20 mt-6 flex w-full flex-col gap-3 border-t border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200 sm:mt-3 sm:flex-row sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none lg:hidden"
+                "sticky bottom-0 z-20 mt-6 flex w-full flex-col gap-3 border-t border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200 sm:mt-3 sm:flex-row sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none lg:hidden",
+                {
+                  paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom))"
+                }
               )}
               {renderNavigationButtons(
                 "hidden w-full flex-col gap-3 border-t border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200 sm:mt-3 sm:flex-row sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none lg:flex lg:static lg:border-t-0 lg:bg-transparent lg:px-0 lg:py-0 lg:shadow-none"

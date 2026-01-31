@@ -809,6 +809,9 @@ video {
 .max-w-\[320px\] {
   max-width: 320px;
 }
+.max-w-\[min\(100\%\2c 960px\)\] {
+  max-width: min(100%, 960px);
+}
 .max-w-lg {
   max-width: 32rem;
 }
@@ -1374,14 +1377,14 @@ video {
   padding-top: 2rem;
   padding-bottom: 2rem;
 }
-.pb-12 {
-  padding-bottom: 3rem;
-}
 .pb-16 {
   padding-bottom: 4rem;
 }
 .pb-6 {
   padding-bottom: 1.5rem;
+}
+.pb-\[140px\] {
+  padding-bottom: 140px;
 }
 .pl-5 {
   padding-left: 1.25rem;
@@ -2047,6 +2050,10 @@ video {
   .sm\:py-0 {
     padding-top: 0px;
     padding-bottom: 0px;
+  }
+
+  .sm\:pb-12 {
+    padding-bottom: 3rem;
   }
 
   .sm\:text-left {
