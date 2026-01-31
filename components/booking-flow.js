@@ -124,8 +124,15 @@ export default function BookingFlow({
   const [showSummary, setShowSummary] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [shouldScrollSummary, setShouldScrollSummary] = useState(false);
   const [postalStatus, setPostalStatus] = useState("idle");
   const postalTimerRef = useRef(null);
+  const summaryRef = useRef(null);
+  const [confirmationChannel, setConfirmationChannel] = useState("email");
+  const [confirmationEmail, setConfirmationEmail] = useState(user?.email || contactInfo.email);
+  const [confirmationPhone, setConfirmationPhone] = useState(contactInfo.phone);
+  const [confirmationError, setConfirmationError] = useState("");
+  const [confirmationSending, setConfirmationSending] = useState(false);
 
   useEffect(() => {
     if (showContactStep && profileHasBasics) {
@@ -158,12 +165,24 @@ export default function BookingFlow({
   }, [profile, user]);
 
   useEffect(() => {
+    setConfirmationEmail(contactInfo.email || user?.email || "");
+    setConfirmationPhone(contactInfo.phone || "");
+  }, [contactInfo.email, contactInfo.phone, user?.email]);
+
+  useEffect(() => {
     return () => {
       if (postalTimerRef.current) {
         clearTimeout(postalTimerRef.current);
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (shouldScrollSummary && summaryRef.current) {
+      summaryRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      setShouldScrollSummary(false);
+    }
+  }, [shouldScrollSummary]);
 
   const parsedWeight = parseFloat(weight);
   const price = useMemo(() => calculatePrice(parsedWeight), [parsedWeight]);
@@ -690,6 +709,7 @@ export default function BookingFlow({
     if (activeStepIndex >= totalSteps - 1) {
       setSummaryOpen(true);
       setShowSummary(true);
+      setShouldScrollSummary(true);
       return;
     }
     setActiveStepIndex((prev) => Math.min(prev + 1, totalSteps - 1));
@@ -714,6 +734,42 @@ export default function BookingFlow({
   };
 
   const closeConfirmationModal = () => {
+    setShowConfirmationModal(false);
+    setConfirmationError("");
+  };
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  const validateConfirmationInput = () => {
+    if (confirmationChannel === "email") {
+      const cleanedEmail = (confirmationEmail || "").trim();
+      setConfirmationEmail(cleanedEmail);
+      if (!cleanedEmail || !emailRegex.test(cleanedEmail)) {
+        setConfirmationError("Ange en giltig e-postadress som vi kan nå dig på.");
+        return false;
+      }
+    } else {
+      const cleanedPhone = (confirmationPhone || "").trim();
+      setConfirmationPhone(cleanedPhone);
+      const digits = cleanedPhone.replace(/[^\d]/g, "");
+      if (digits.length < 8) {
+        setConfirmationError("Ange ett telefonnummer med minst åtta siffror.");
+        return false;
+      }
+    }
+    setConfirmationError("");
+    return true;
+  };
+
+  const handleConfirmationSubmit = async () => {
+    if (!validateConfirmationInput()) return;
+    setConfirmationSending(true);
+    try {
+      // Placeholder for future API call – keep modal handling consistent for now.
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    } finally {
+      setConfirmationSending(false);
+    }
     setShowConfirmationModal(false);
     router.push("/dashboard");
   };
@@ -754,13 +810,17 @@ export default function BookingFlow({
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
         <div className="flex flex-col">
-          <div className="space-y-10 pb-6">
+          <div className="pb-6 lg:relative lg:min-h-[520px]">
             {steps.map((step, index) => {
               const isActive = index === activeStepIndex;
               return (
                 <div
                   key={step.id}
-                  className={`transition-all duration-300 ease-out ${isActive ? "block opacity-100 translate-y-0" : "hidden opacity-0 -translate-y-4"}`}
+                  className={`overflow-hidden transition-[opacity,transform,max-height] duration-300 ease-out ${
+                    isActive
+                      ? "opacity-100 translate-y-0 max-h-[2000px] pointer-events-auto mb-10 lg:z-10 lg:max-h-none lg:opacity-100 lg:translate-y-0"
+                      : "opacity-0 translate-y-4 max-h-0 pointer-events-none lg:absolute lg:inset-0 lg:z-0 lg:opacity-0 lg:translate-y-4"
+                  } lg:absolute lg:inset-0 lg:overflow-visible`}
                 >
                   {step.render()}
                 </div>
@@ -797,7 +857,7 @@ export default function BookingFlow({
           )}
         </div>
 
-        <aside className="space-y-4">
+        <aside ref={summaryRef} className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Sammanfattning</p>
@@ -889,17 +949,139 @@ export default function BookingFlow({
         </aside>
       </div>
       {showConfirmationModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md space-y-4 rounded-2xl bg-white p-6 text-center shadow-2xl">
-            <h3 className="text-xl font-semibold text-slate-900">Bekräftelse</h3>
-            <p className="text-sm text-slate-600">Bekräftelse finns i mail.</p>
-            <button
-              type="button"
-              onClick={closeConfirmationModal}
-              className="w-full rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-sky-500"
-            >
-              Stäng
-            </button>
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 px-4 py-8 backdrop-blur-sm">
+          <div className="w-full max-w-lg transform rounded-[32px] bg-white p-6 shadow-2xl shadow-slate-900/40 transition duration-300 ease-out">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Klart</p>
+                <h3 className="text-2xl font-semibold text-slate-900">Bokning bekräftad ✅</h3>
+                <p className="text-sm text-slate-600">Tack! Du kan få bekräftelsen via SMS eller e-post.</p>
+              </div>
+              <button
+                type="button"
+                onClick={closeConfirmationModal}
+                className="rounded-full bg-slate-100 p-2 text-slate-600 transition hover:bg-slate-200"
+                aria-label="Stäng"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="mt-4 space-y-2 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-sm text-slate-600">
+              <p>
+                <span className="font-semibold text-slate-900">Tvätt:</span>{" "}
+                {WASH_OPTIONS.find((option) => option.id === washType)?.title}
+              </p>
+              <p>
+                <span className="font-semibold text-slate-900">Doft:</span>{" "}
+                {SCENT_OPTIONS.find((option) => option.id === scent)?.label}
+              </p>
+              <p>
+                <span className="font-semibold text-slate-900">Upphämtning:</span>{" "}
+                {pickupDate ? pickupDate : "Välj datum"} {selectedPickup ? `· ${selectedPickup.label}` : ""}
+              </p>
+              <p className="text-xs text-slate-500">
+                {selectedPickup ? `${selectedPickup.start}–${selectedPickup.end}` : ""}
+              </p>
+              <p>
+                <span className="font-semibold text-slate-900">Leverans:</span>{" "}
+                {deliveryDate ? deliveryDate : "Välj datum"} {selectedDelivery ? `· ${selectedDelivery.label}` : ""}
+              </p>
+              <p className="text-xs text-slate-500">
+                {selectedDelivery ? `${selectedDelivery.start}–${selectedDelivery.end}` : ""}
+              </p>
+              <p>
+                <span className="font-semibold text-slate-900">Vikt:</span>{" "}
+                {weight ? `${weight} kg` : "Ej angiven"} · {price > 0 ? `${price} kr` : "Pris ej klart"}
+              </p>
+            </div>
+            <div className="mt-6 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-400">
+                Hur vill du få bekräftelsen?
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  {
+                    id: "email",
+                    label: "E-post",
+                    helper: "Får bekräftelsen i inkorgen"
+                  },
+                  {
+                    id: "sms",
+                    label: "SMS",
+                    helper: "Får bekräftelsen som sms"
+                  }
+                ].map((option) => {
+                  const isActive = confirmationChannel === option.id;
+                  return (
+                    <label
+                      key={option.id}
+                      className={`flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 transition ${
+                        isActive ? "border-primary bg-primary/10 text-primary" : "border-slate-200 bg-white text-slate-600"
+                      }`}
+                    >
+                      <div>
+                        <p className="text-sm font-semibold">{option.label}</p>
+                        <p className="text-xs text-slate-500">{option.helper}</p>
+                      </div>
+                      <input
+                        type="radio"
+                        name="confirmation-channel"
+                        value={option.id}
+                        checked={confirmationChannel === option.id}
+                        onChange={() => {
+                          setConfirmationChannel(option.id);
+                          setConfirmationError("");
+                        }}
+                        className="h-4 w-4 accent-primary"
+                      />
+                    </label>
+                  );
+                })}
+              </div>
+              {confirmationChannel === "email" ? (
+                <Input
+                  label="E-postadress"
+                  id="confirmation-email"
+                  type="email"
+                  autoComplete="email"
+                  value={confirmationEmail}
+                  onChange={(event) => setConfirmationEmail(event.target.value)}
+                  placeholder="mejladress@exempel.se"
+                  required
+                  inputClassName="text-base"
+                />
+              ) : (
+                <Input
+                  label="Mobilnummer"
+                  id="confirmation-phone"
+                  type="tel"
+                  inputMode="tel"
+                  value={confirmationPhone}
+                  onChange={(event) => setConfirmationPhone(event.target.value)}
+                  placeholder="+46 70 000 00 00"
+                  required
+                  inputClassName="text-base"
+                />
+              )}
+              {confirmationError && <p className="text-sm text-red-500">{confirmationError}</p>}
+            </div>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={handleConfirmationSubmit}
+                disabled={confirmationSending}
+                className="flex-1 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {confirmationSending ? "Skickar..." : "OK"}
+              </button>
+              <button
+                type="button"
+                onClick={closeConfirmationModal}
+                className="flex-1 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400"
+              >
+                Avbryt
+              </button>
+            </div>
           </div>
         </div>
       )}
