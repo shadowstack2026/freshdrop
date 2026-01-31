@@ -414,80 +414,20 @@ export default function BookingFlow({
             </div>
           </div>
           <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-3 rounded-2xl border border-slate-100 bg-white/70 p-4 shadow-sm">
-              <p className="text-sm font-semibold text-slate-700">Upphämtning</p>
-              <label className="text-sm font-semibold text-slate-700">
-                Datum
-                <input
-                  type="date"
-                  className="mt-2 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  value={pickupDate}
-                  onChange={(e) => {
-                    setPickupDate(e.target.value);
-                  }}
-                />
-              </label>
-              <p className="text-sm font-semibold text-slate-700">Tid på dagen</p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {TIME_SLOTS.map((slot) => {
-                  const isActive = pickupSlot === slot.id;
-                  return (
-                    <button
-                      key={slot.id}
-                      type="button"
-                      onClick={() => {
-                        setPickupSlot(slot.id);
-                      }}
-                      className={`flex h-12 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition duration-200 ${
-                        isActive
-                          ? "border-primary bg-primary/10 text-primary shadow-lg shadow-primary/20"
-                          : "border-slate-200 bg-white text-slate-600 hover:border-primary/40 hover:shadow-sm"
-                      }`}
-                    >
-                      <span>{slot.emoji}</span>
-                      <span>{slot.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="space-y-3 rounded-2xl border border-slate-100 bg-white/70 p-4 shadow-sm">
-              <p className="text-sm font-semibold text-slate-700">Leverans</p>
-              <label className="text-sm font-semibold text-slate-700">
-                Datum
-                <input
-                  type="date"
-                  className="mt-2 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  value={deliveryDate}
-                  onChange={(e) => {
-                    setDeliveryDate(e.target.value);
-                  }}
-                />
-              </label>
-              <p className="text-sm font-semibold text-slate-700">Tid på dagen</p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {TIME_SLOTS.map((slot) => {
-                  const isActive = deliverySlot === slot.id;
-                  return (
-                    <button
-                      key={slot.id}
-                      type="button"
-                      onClick={() => {
-                        setDeliverySlot(slot.id);
-                      }}
-                      className={`flex h-12 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition duration-200 ${
-                        isActive
-                          ? "border-primary bg-primary/10 text-primary shadow-lg shadow-primary/20"
-                          : "border-slate-200 bg-white text-slate-600 hover:border-primary/40 hover:shadow-sm"
-                      }`}
-                    >
-                      <span>{slot.emoji}</span>
-                      <span>{slot.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <DateSelectionCard
+              title="Upphämtning"
+              dateValue={pickupDate}
+              onDateChange={(value) => setPickupDate(value)}
+              slotValue={pickupSlot}
+              onSlotChange={setPickupSlot}
+            />
+            <DateSelectionCard
+              title="Leverans"
+              dateValue={deliveryDate}
+              onDateChange={(value) => setDeliveryDate(value)}
+              slotValue={deliverySlot}
+              onSlotChange={setDeliverySlot}
+            />
           </div>
           <p className="text-sm text-slate-600">
             Leverans sker till din dörr – rent, vikt och klart inom 48 timmar efter upphämtning.
@@ -545,6 +485,48 @@ export default function BookingFlow({
     Boolean(contactInfo.lastName.trim()) &&
     Boolean(contactInfo.address.trim()) &&
     Boolean(contactInfo.city.trim());
+
+  const DateSelectionCard = ({ title, dateValue, onDateChange, slotValue, onSlotChange }) => {
+    const dateFieldId = `${title.toLowerCase().replace(/\s+/g, "-")}-date`;
+    return (
+      <Card className="space-y-3 border-slate-100 bg-white/70 p-4 shadow-sm">
+        <p className="text-sm font-semibold text-slate-700">{title}</p>
+        <label htmlFor={dateFieldId} className="block text-sm font-semibold text-slate-700">
+          Datum
+          <input
+            id={dateFieldId}
+            type="date"
+            className="mt-2 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            value={dateValue}
+            onChange={(event) => {
+              onDateChange(event.target.value);
+            }}
+          />
+        </label>
+        <p className="text-sm font-semibold text-slate-700">Tid på dagen</p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {TIME_SLOTS.map((slot) => {
+            const isActive = slotValue === slot.id;
+            return (
+              <button
+                key={slot.id}
+                type="button"
+                onClick={() => onSlotChange(slot.id)}
+                className={`flex h-12 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition duration-200 ${
+                  isActive
+                    ? "border-primary bg-primary/10 text-primary shadow-lg shadow-primary/20"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-primary/40 hover:shadow-sm"
+                }`}
+              >
+                <span>{slot.emoji}</span>
+                <span>{slot.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </Card>
+    );
+  };
 
   const cityCheckStep = {
     id: "city-check",
@@ -755,6 +737,7 @@ export default function BookingFlow({
     setShowSummary(false);
     setSummaryOpen(false);
     await handlePersistContact({ skipStepAdvance: true });
+    scrollToWizardTop();
   };
 
   const closeConfirmationModal = () => {
