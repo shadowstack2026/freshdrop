@@ -128,12 +128,12 @@ export default function NavBar() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur-md">
-      <nav className="container flex h-20 items-center justify-between gap-4">
+      <nav className="container flex flex-wrap items-center justify-between gap-4 py-3">
         <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-slate-900">
           <Droplets className="h-8 w-8 text-primary" />
           <span>FreshDrop</span>
         </Link>
-        <div className="flex flex-1 items-center justify-center gap-4 text-sm font-semibold text-slate-700 md:gap-6">
+        <div className="order-3 w-full flex items-center justify-center gap-3 text-sm font-semibold text-slate-700 sm:gap-4 md:order-2 md:w-auto md:gap-6">
           {sectionLinks.map((link) => (
             <button
               key={link.targetId}
@@ -145,7 +145,7 @@ export default function NavBar() {
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="order-2 flex items-center gap-2 md:order-3">
           <div className="relative">
             <button
               type="button"
