@@ -52,7 +52,7 @@ export default function HomePage() {
       </section>
 
       {/* How it Works Section */}
-      <HowItWorksSection />
+      <HowItWorksSection sectionId="hur-det-funkar" />
 
       <BookingFlow showContactStep />
 
@@ -60,7 +60,7 @@ export default function HomePage() {
       <Testimonials />
 
       {/* FAQ / Contact Section */}
-      <section className="bg-slate-50 border-t py-16 md:py-24">
+      <section id="fragor-kontakt" className="bg-slate-50 border-t py-16 md:py-24">
         <div className="container space-y-12">
           <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-center text-slate-900 mb-10">
             Frågor & Kontakt

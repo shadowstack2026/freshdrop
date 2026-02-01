@@ -1,33 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { Droplets, User, LogIn, LogOut, Menu, X } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { Droplets, User, LogIn, LogOut } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 
-// Public nav links for unauthenticated users
-const publicNavLinks = [
-  { href: "/", label: "Hem" },
-  { href: "/order/new", label: "Boka tvätt" },
+const sectionLinks = [
+  { label: "Hur det funkar", targetId: "hur-det-funkar" },
+  { label: "Boka tvätt", targetId: "boka-tvatt" },
+  { label: "Frågor & Kontakt", targetId: "fragor-kontakt" }
 ];
 
-// Logged-in nav links for authenticated users
-const loggedInNavLinks = [
-  { href: "/hem", label: "Hem" },
-  { href: "/order/new", label: "Boka tvätt" },
-  { href: "/dashboard", label: "Mina beställningar" },
+const authenticatedNavLinks = [
+  { label: "Mitt konto", href: "/account" },
+  { label: "Mina abonnemang", href: "/subscriptions" },
+  { label: "Mina bokningar", href: "/bookings" }
+];
+
+const guestNavLinks = [
+  { label: "Logga in / Skapa konto", href: "/login" }
 ];
 
 export default function NavBar() {
-  const pathname = usePathname();
   const router = useRouter();
   const supabase = supabaseBrowserClient;
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [showOverlay, setShowOverlay] = useState(false);
-  const touchStartX = useRef(0);
-  const touchEndX = useRef(0);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const buttonRef = useRef(null);
+  const highlightTimeouts = useRef(new Map());
+
   useEffect(() => {
     let mounted = true;
 
@@ -58,135 +61,137 @@ export default function NavBar() {
   }, [supabase]);
 
   useEffect(() => {
-    if (menuOpen) {
-      setShowOverlay(true);
-      return;
-    }
-    if (showOverlay && !menuOpen) {
-      const timer = setTimeout(() => setShowOverlay(false), 220);
-      return () => clearTimeout(timer);
-    }
-  }, [menuOpen, showOverlay]);
+    if (!profileOpen) return;
+
+    const handleClickOutside = (event) => {
+      if (
+        dropdownRef.current?.contains(event.target) ||
+        buttonRef.current?.contains(event.target)
+      ) {
+        return;
+      }
+      setProfileOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handleClickOutside);
+    return () => document.removeEventListener("pointerdown", handleClickOutside);
+  }, [profileOpen]);
 
   useEffect(() => {
-    if (typeof document === "undefined") return;
-    if (menuOpen) {
-      document.body.classList.add("nav-menu-open");
-    } else {
-      document.body.classList.remove("nav-menu-open");
-    }
-    return () => document.body.classList.remove("nav-menu-open");
-  }, [menuOpen]);
+    return () => {
+      highlightTimeouts.current.forEach((timer) => clearTimeout(timer));
+      highlightTimeouts.current.clear();
+    };
+  }, []);
 
-  async function handleLogout() {
+  const animateSectionHighlight = (section) => {
+    const highlightClass = "section-scroll-highlight";
+    const existingTimer = highlightTimeouts.current.get(section);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+      highlightTimeouts.current.delete(section);
+    }
+    section.classList.remove(highlightClass);
+    section.classList.add(highlightClass);
+    const timer = window.setTimeout(() => {
+      section.classList.remove(highlightClass);
+      highlightTimeouts.current.delete(section);
+    }, 1200);
+    highlightTimeouts.current.set(section, timer);
+  };
+
+  const scrollToSection = (targetId) => {
+    if (typeof document === "undefined") return false;
+    const section = document.getElementById(targetId);
+    if (!section) return false;
+
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+    animateSectionHighlight(section);
+    return true;
+  };
+
+  const handleSectionClick = (targetId) => {
+    if (scrollToSection(targetId)) {
+      setProfileOpen(false);
+    }
+  };
+
+  const handleLogout = async () => {
     await supabase.auth.signOut();
     setIsLoggedIn(false);
+    setProfileOpen(false);
     router.push("/");
-  }
+  };
+
+  const navButtonClasses =
+    "text-sm font-semibold text-slate-700 transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur-md">
-      <nav className="container flex h-20 items-center justify-between">
+      <nav className="container flex h-20 items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-slate-900">
           <Droplets className="h-8 w-8 text-primary" />
           <span>FreshDrop</span>
         </Link>
-        <button
-          onClick={() => setMenuOpen((prev) => !prev)}
-          aria-label={menuOpen ? "Stäng meny" : "Öppna meny"}
-          className="rounded-full border border-slate-200 bg-white p-3 text-slate-700 shadow-sm transition hover:border-slate-300"
-        >
-          {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
-      </nav>
-
-      {showOverlay && (
-        <>
-          <div
-            className={`fixed inset-0 z-40 bg-black/20 backdrop-blur-sm transition-opacity duration-200 ${
-              menuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-            }`}
-            onClick={() => menuOpen && setMenuOpen(false)}
-          />
-          {menuOpen && (
-            <div
-              className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-[320px] -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl transition duration-300"
-              onClick={(e) => e.stopPropagation()}
+        <div className="flex flex-1 items-center justify-center gap-4 text-sm font-semibold text-slate-700 md:gap-6">
+          {sectionLinks.map((link) => (
+            <button
+              key={link.targetId}
+              type="button"
+              onClick={() => handleSectionClick(link.targetId)}
+              className={navButtonClasses}
             >
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-xl font-semibold text-slate-900">
-                  <Droplets className="h-5 w-5 text-primary" />
-                  FreshDrop
-                </span>
-                <button onClick={() => setMenuOpen(false)} className="rounded-full p-1 text-slate-500">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <div className="mt-4 flex flex-col gap-3">
-                {(isLoggedIn ? loggedInNavLinks : publicNavLinks).map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center font-semibold text-slate-900 transition hover:border-primary hover:text-primary"
-                    onClick={() => setMenuOpen(false)}
+              {link.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <button
+              type="button"
+              ref={buttonRef}
+              onClick={() => setProfileOpen((prev) => !prev)}
+              aria-haspopup="menu"
+              aria-expanded={profileOpen}
+              className="rounded-full border border-slate-200 bg-white p-3 text-slate-700 shadow-sm transition hover:border-slate-300"
+            >
+              <User className="h-5 w-5" />
+            </button>
+            {profileOpen && (
+              <div
+                ref={dropdownRef}
+                className="absolute right-0 top-full z-50 mt-2 w-60 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur-sm"
+              >
+                <div className="space-y-1">
+                  {(isLoggedIn ? authenticatedNavLinks : guestNavLinks).map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:border-primary hover:text-primary"
+                      onClick={() => setProfileOpen(false)}
+                    >
+                      <span>{link.label}</span>
+                      {!isLoggedIn && <LogIn className="h-4 w-4 text-slate-400" />}
+                    </Link>
+                  ))}
+                </div>
+                {isLoggedIn && (
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="mt-2 w-full rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-500 transition hover:bg-red-100"
                   >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-              <div className="mt-4 space-y-2 text-sm">
-                {isLoggedIn ? (
-                  <>
-                    <Link
-                      href="/account"
-                      className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 font-semibold text-slate-900 transition hover:border-primary"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <span>Min profil</span>
-                      <User className="h-4 w-4 text-slate-400" />
-                    </Link>
-                    <button
-                      onClick={() => {
-                        setMenuOpen(false);
-                        handleLogout();
-                      }}
-                      className="w-full rounded-2xl border border-red-300 bg-red-50 px-4 py-3 font-semibold text-red-500 transition hover:bg-red-100"
-                    >
+                    <span className="flex items-center justify-center gap-2">
+                      <LogOut className="h-4 w-4" />
                       Logga ut
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Link
-                      href="/login"
-                      className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 font-semibold text-slate-900 transition hover:border-primary"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <span>Logga in</span>
-                      <LogIn className="h-4 w-4 text-slate-400" />
-                    </Link>
-                    <Link
-                      href="/signup"
-                      className="flex items-center justify-between rounded-2xl border border-primary bg-white px-4 py-3 font-semibold text-primary transition hover:bg-sky-50"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <span>Skapa konto</span>
-                      <User className="h-4 w-4 text-primary" />
-                    </Link>
-                  </>
+                    </span>
+                  </button>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={() => setMenuOpen(false)}
-                className="mt-4 w-full rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-primary"
-              >
-                Stäng
-              </button>
-            </div>
-          )}
-        </>
-      )}
+            )}
+          </div>
+        </div>
+      </nav>
     </header>
   );
 }

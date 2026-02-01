@@ -27,7 +27,7 @@ const steps = [
   }
 ];
 
-export default function HowItWorksSection() {
+export default function HowItWorksSection({ sectionId = "hur-det-funkar" }) {
   const [visibleSteps, setVisibleSteps] = useState([]);
   const stepRefs = useRef([]);
 
@@ -61,7 +61,10 @@ export default function HowItWorksSection() {
   }, []);
 
   return (
-    <section className="py-16 md:py-24 bg-gradient-to-b from-slate-50 to-sky-50 border-y border-slate-200">
+    <section
+      id={sectionId}
+      className="py-16 md:py-24 bg-gradient-to-b from-slate-50 to-sky-50 border-y border-slate-200"
+    >
       <div className="container space-y-10">
         <div className="space-y-3 text-center">
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-900">
