@@ -93,7 +93,48 @@ function addHours(date, hours) {
   return result;
 }
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const POSTAL_CODE_REGEX = /^\d{5}$/;
+
+const normalizePhoneDigits = (value) => value.replace(/[^\d]/g, "");
+
+const isValidSwedishPhone = (value) => {
+  const digits = normalizePhoneDigits(value);
+  if (!digits) return false;
+  const startsWithCountry = digits.startsWith("46");
+  const startsWithZero = digits.startsWith("0");
+  if (!startsWithCountry && !startsWithZero) return false;
+  if (digits.length < 8 || digits.length > 12) return false;
+  return true;
+};
+
+const fetchCityFromPostal = async (postalCode, { signal } = {}) => {
+  if (!POSTAL_CODE_REGEX.test(postalCode)) return "";
+  const response = await fetch(`https://api.postnummer.nu/postnummer/${postalCode}.json`, {
+    signal,
+    headers: { Accept: "application/json" }
+  });
+  if (!response.ok) return "";
+  const data = await response.json();
+  return data?.postnummer?.ort || "";
+};
+
+const searchAddresses = async (query, postalCode, { signal } = {}) => {
+  if (!query || query.trim().length < 2 || !POSTAL_CODE_REGEX.test(postalCode)) return [];
+  const encoded = encodeURIComponent(`${query} ${postalCode} Sverige`);
+  const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&countrycodes=se&q=${encoded}`;
+  const response = await fetch(url, {
+    signal,
+    headers: { Accept: "application/json", "Accept-Language": "sv-SE" }
+  });
+  if (!response.ok) return [];
+  const results = await response.json();
+  return (results || []).map((item) => ({
+    id: item.place_id,
+    address: item.display_name?.split(",")[0]?.trim() || item.name || "",
+    city: item.address?.city || item.address?.town || item.address?.village || ""
+  }));
+};
 
 export default function BookingFlow({
   showContactStep = false,
@@ -129,6 +170,14 @@ export default function BookingFlow({
     phone: profile?.phone || "",
     email: user?.email || ""
   });
+  const [cityAutoFilled, setCityAutoFilled] = useState(false);
+  const [contactTouched, setContactTouched] = useState(false);
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [addressDropdownOpen, setAddressDropdownOpen] = useState(false);
+  const addressRequestIdRef = useRef(0);
+  const addressBlurTimerRef = useRef(null);
+  const postalLookupIdRef = useRef(0);
   const [bookingSuccess, setBookingSuccess] = useState("");
   const [bookingCompletionError, setBookingCompletionError] = useState("");
   const [showSummary, setShowSummary] = useState(false);
@@ -140,6 +189,7 @@ export default function BookingFlow({
   const summaryRef = useRef(null);
   const wizardTopRef = useRef(null);
   const confirmationRef = useRef(null);
+  const confirmationModalRef = useRef(null);
   const [confirmationChannel, setConfirmationChannel] = useState("email");
   const [confirmationEmail, setConfirmationEmail] = useState(user?.email || contactInfo.email);
   const [confirmationPhone, setConfirmationPhone] = useState(contactInfo.phone);
@@ -182,9 +232,46 @@ export default function BookingFlow({
   }, [contactInfo.email, contactInfo.phone, user?.email]);
 
   useEffect(() => {
+    const query = contactInfo.address.trim();
+    const postalCode = contactInfo.postalCode.trim();
+    if (!query || query.length < 2 || !POSTAL_CODE_REGEX.test(postalCode)) {
+      setAddressSuggestions([]);
+      setAddressLoading(false);
+      return;
+    }
+
+    const requestId = addressRequestIdRef.current + 1;
+    addressRequestIdRef.current = requestId;
+    setAddressLoading(true);
+    const controller = new AbortController();
+
+    const timer = setTimeout(async () => {
+      try {
+        const results = await searchAddresses(query, postalCode, { signal: controller.signal });
+        if (addressRequestIdRef.current !== requestId) return;
+        setAddressSuggestions(results);
+      } catch (error) {
+        if (error?.name === "AbortError") return;
+      } finally {
+        if (addressRequestIdRef.current === requestId) {
+          setAddressLoading(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [contactInfo.address, contactInfo.postalCode]);
+
+  useEffect(() => {
     return () => {
       if (postalTimerRef.current) {
         clearTimeout(postalTimerRef.current);
+      }
+      if (addressBlurTimerRef.current) {
+        clearTimeout(addressBlurTimerRef.current);
       }
     };
   }, []);
@@ -201,6 +288,12 @@ export default function BookingFlow({
       confirmationRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [bookingSuccess]);
+
+  useEffect(() => {
+    if (showConfirmationModal && confirmationModalRef.current) {
+      confirmationModalRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [showConfirmationModal]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -243,6 +336,46 @@ export default function BookingFlow({
     }));
   };
 
+  const handleCityChange = (event) => {
+    setCityAutoFilled(false);
+    handleContactChange("city")(event);
+  };
+
+  const handlePhoneChange = (event) => {
+    setContactTouched(true);
+    handleContactChange("phone")(event);
+  };
+
+  const handleEmailChange = (event) => {
+    setContactTouched(true);
+    handleContactChange("email")(event);
+  };
+
+  const handleAddressChange = (event) => {
+    setContactSaved(false);
+    setContactError("");
+    setContactInfo((prev) => ({
+      ...prev,
+      address: event.target.value
+    }));
+    setAddressDropdownOpen(true);
+  };
+
+  const handleAddressSelect = (suggestion) => {
+    setContactSaved(false);
+    setContactError("");
+    setContactInfo((prev) => ({
+      ...prev,
+      address: suggestion.address,
+      city: suggestion.city ? suggestion.city : prev.city
+    }));
+    if (suggestion.city) {
+      setCityAutoFilled(true);
+    }
+    setAddressDropdownOpen(false);
+    setAddressSuggestions([]);
+  };
+
   const handlePostalChange = (event) => {
     handleContactChange("postalCode")(event);
     const value = event.target.value;
@@ -258,6 +391,18 @@ export default function BookingFlow({
     if (POSTAL_CODE_REGEX.test(trimmed)) {
       setPostalStatus("valid");
       setContactError("");
+      const requestId = postalLookupIdRef.current + 1;
+      postalLookupIdRef.current = requestId;
+      fetchCityFromPostal(trimmed)
+        .then((autoCity) => {
+          if (!autoCity) return;
+          if (postalLookupIdRef.current !== requestId) return;
+          if (cityAutoFilled || !contactInfo.city.trim()) {
+            setContactInfo((prev) => ({ ...prev, city: autoCity }));
+            setCityAutoFilled(true);
+          }
+        })
+        .catch(() => {});
       postalTimerRef.current = setTimeout(() => {
         if (activeStepIndex === 0) {
           setActiveStepIndex((prev) => Math.min(prev + 1, stepCount - 1));
@@ -495,11 +640,32 @@ export default function BookingFlow({
   const isPostalCodeValid = POSTAL_CODE_REGEX.test(postalCodeValue);
   const postalInvalid = Boolean(contactInfo.postalCode) && !isPostalCodeValid;
 
+  const trimmedPhone = (contactInfo.phone || "").trim();
+  const trimmedEmail = (contactInfo.email || "").trim();
+  const hasPhone = Boolean(trimmedPhone);
+  const hasEmail = Boolean(trimmedEmail);
+  const isPhoneValid = !hasPhone || isValidSwedishPhone(trimmedPhone);
+  const isEmailValid = !hasEmail || EMAIL_REGEX.test(trimmedEmail);
+  const contactMethodValid =
+    (hasPhone && isValidSwedishPhone(trimmedPhone)) || (hasEmail && EMAIL_REGEX.test(trimmedEmail));
+  const phoneError = hasPhone && !isValidSwedishPhone(trimmedPhone)
+    ? "Ange ett giltigt svenskt telefonnummer."
+    : undefined;
+  const emailError = hasEmail && !EMAIL_REGEX.test(trimmedEmail)
+    ? "Ange en giltig e-postadress."
+    : undefined;
+  const contactMethodError = !hasPhone && !hasEmail
+    ? "Ange telefon eller e-post."
+    : undefined;
+
   const contactInputsValid =
     Boolean(contactInfo.firstName.trim()) &&
     Boolean(contactInfo.lastName.trim()) &&
     Boolean(contactInfo.address.trim()) &&
-    Boolean(contactInfo.city.trim());
+    Boolean(contactInfo.city.trim()) &&
+    contactMethodValid &&
+    isPhoneValid &&
+    isEmailValid;
 
   const getMissingBookingFields = () => {
     const missing = [];
@@ -528,84 +694,118 @@ export default function BookingFlow({
   };
 
   const DateSelectionCard = ({ title, dateValue, onDateChange, slotValue, onSlotChange }) => {
-    const dateFieldId = `${title.toLowerCase().replace(/\s+/g, "-")}-date`;
-    const dateInputRef = useRef(null);
-    const autoSelectGuardRef = useRef(true);
-    const todayValue = useMemo(() => new Date().toISOString().split("T")[0], []);
-
-    const openPicker = () => {
-      const input = dateInputRef.current;
-      if (!input) return;
-      if (typeof input.showPicker === "function") {
-        input.showPicker();
-      } else {
-        input.click();
-      }
-    };
-
-    const handleDateChange = (value) => {
-      if (!dateValue && value === todayValue && autoSelectGuardRef.current) {
-        autoSelectGuardRef.current = false;
-        return;
-      }
-      autoSelectGuardRef.current = false;
-      onDateChange(value);
-    };
-
-    const handleQuickPick = () => {
+    const [viewDate, setViewDate] = useState(() => new Date());
+    const minDate = useMemo(() => {
       const base = new Date();
+      base.setHours(0, 0, 0, 0);
       base.setDate(base.getDate() + 1);
-      const nextDate = base.toISOString().split("T")[0];
-      autoSelectGuardRef.current = false;
-      onDateChange(nextDate);
-    };
+      return base;
+    }, []);
+
+    useEffect(() => {
+      if (!dateValue) return;
+      const selected = new Date(dateValue);
+      if (!Number.isNaN(selected.getTime())) {
+        setViewDate(new Date(selected.getFullYear(), selected.getMonth(), 1));
+      }
+    }, [dateValue]);
+
+    const selectedDate = dateValue ? new Date(dateValue) : null;
+    const startOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+    const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
+    const startWeekday = (startOfMonth.getDay() + 6) % 7;
+    const monthLabel = viewDate.toLocaleString("sv-SE", { month: "long", year: "numeric" });
+    const minMonth = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+    const isPrevDisabled =
+      viewDate.getFullYear() === minMonth.getFullYear() && viewDate.getMonth() === minMonth.getMonth();
+
+    const toISO = (date) => date.toISOString().split("T")[0];
+    const isSameDay = (a, b) =>
+      a &&
+      b &&
+      a.getFullYear() === b.getFullYear() &&
+      a.getMonth() === b.getMonth() &&
+      a.getDate() === b.getDate();
 
     return (
-      <Card className="space-y-3 border-slate-100 bg-white/70 p-4 shadow-sm">
+      <Card className="space-y-4 border-slate-100 bg-white/70 p-4 shadow-sm">
         <p className="text-sm font-semibold text-slate-700">{title}</p>
-        <label htmlFor={dateFieldId} className="block text-sm font-semibold text-slate-700">
-          Datum
-          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="rounded-2xl border border-slate-200 bg-white p-3">
+          <div className="flex items-center justify-between">
             <button
               type="button"
-              onClick={openPicker}
-              className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-700 transition hover:border-primary/50"
+              disabled={isPrevDisabled}
+              onClick={() =>
+                setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
+              }
+              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-semibold text-slate-600 transition hover:border-primary/40 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {dateValue || "Välj datum"}
+              ‹
             </button>
+            <p className="text-sm font-semibold text-slate-700 capitalize">{monthLabel}</p>
             <button
               type="button"
-              onClick={handleQuickPick}
-              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500 transition hover:border-primary/40 hover:text-slate-700"
+              onClick={() =>
+                setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
+              }
+              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-semibold text-slate-600 transition hover:border-primary/40"
             >
-              Nästa lediga datum
+              ›
             </button>
           </div>
-          <input
-            ref={dateInputRef}
-            id={dateFieldId}
-            type="date"
-            className="sr-only"
-            value={dateValue || ""}
-            onChange={(event) => {
-              handleDateChange(event.target.value);
-            }}
-          />
-        </label>
+          <div className="mt-3 grid grid-cols-7 gap-2 text-[11px] font-semibold text-slate-400">
+            {["M", "T", "O", "T", "F", "L", "S"].map((label) => (
+              <span key={label} className="text-center">
+                {label}
+              </span>
+            ))}
+          </div>
+          <div className="mt-2 grid grid-cols-7 gap-2">
+            {Array.from({ length: startWeekday }).map((_, index) => (
+              <span key={`empty-${index}`} />
+            ))}
+            {Array.from({ length: daysInMonth }).map((_, index) => {
+              const day = index + 1;
+              const dayDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
+              const isDisabled = dayDate < minDate;
+              const isSelected = isSameDay(dayDate, selectedDate);
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  disabled={isDisabled}
+                  onClick={() => onDateChange(toISO(dayDate))}
+                  className={`h-9 rounded-xl text-sm font-semibold transition ${
+                    isSelected
+                      ? "bg-primary text-white shadow-lg shadow-primary/20"
+                      : "bg-slate-50 text-slate-700 hover:bg-primary/10"
+                  } ${isDisabled ? "cursor-not-allowed opacity-40 hover:bg-slate-50" : ""}`}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-3 text-xs text-slate-500">
+            {dateValue ? `Valt datum: ${dateValue}` : "Välj datum för att fortsätta."}
+          </p>
+        </div>
         <p className="text-sm font-semibold text-slate-700">Tid på dagen</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {TIME_SLOTS.map((slot) => {
             const isActive = slotValue === slot.id;
+            const isDisabled = !dateValue;
             return (
               <button
                 key={slot.id}
                 type="button"
+                disabled={isDisabled}
                 onClick={() => onSlotChange(slot.id)}
                 className={`flex h-12 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition duration-200 ${
                   isActive
                     ? "border-primary bg-primary/10 text-primary shadow-lg shadow-primary/20"
                     : "border-slate-200 bg-white text-slate-600 hover:border-primary/40 hover:shadow-sm"
-                }`}
+                } ${isDisabled ? "cursor-not-allowed opacity-50 hover:shadow-none" : ""}`}
               >
                 <span>{slot.emoji}</span>
                 <span>{slot.label}</span>
@@ -675,12 +875,59 @@ export default function BookingFlow({
             onChange={handleContactChange("lastName")}
             required
           />
-          <Input
-            label="Adress"
-            value={contactInfo.address}
-            onChange={handleContactChange("address")}
-            required
-          />
+          <div className="relative space-y-1">
+            <label htmlFor="address-input" className="block text-xs font-medium text-slate-700">
+              Adress<span className="text-red-500"> *</span>
+            </label>
+            <input
+              id="address-input"
+              type="text"
+              value={contactInfo.address}
+              onChange={handleAddressChange}
+              onFocus={() => setAddressDropdownOpen(true)}
+              onBlur={() => {
+                if (addressBlurTimerRef.current) {
+                  clearTimeout(addressBlurTimerRef.current);
+                }
+                addressBlurTimerRef.current = setTimeout(() => {
+                  setAddressDropdownOpen(false);
+                }, 150);
+              }}
+              placeholder="Gata och nummer"
+              className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
+              required
+              autoComplete="street-address"
+            />
+            {addressDropdownOpen && (addressLoading || addressSuggestions.length > 0) && (
+              <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                {addressLoading ? (
+                  <div className="px-4 py-3 text-xs font-semibold text-slate-500">
+                    Söker adresser…
+                  </div>
+                ) : (
+                  <div className="max-h-48 overflow-y-auto py-2">
+                    {addressSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.id}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => handleAddressSelect(suggestion)}
+                        className="flex w-full flex-col gap-1 px-4 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                      >
+                        <span className="font-semibold text-slate-900">{suggestion.address}</span>
+                        <span className="text-xs text-slate-500">{suggestion.city}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {!POSTAL_CODE_REGEX.test(contactInfo.postalCode.trim()) && (
+              <p className="text-[11px] text-slate-500">
+                Fyll i postnummer i steg 0 för att få adressförslag.
+              </p>
+            )}
+          </div>
           <Input
             label="Adressrad 2 (frivillig)"
             value={contactInfo.address2}
@@ -689,21 +936,30 @@ export default function BookingFlow({
           <Input
             label="Stad"
             value={contactInfo.city}
-            onChange={handleContactChange("city")}
+            onChange={handleCityChange}
+            required
           />
           <Input
             label="Telefonnummer"
             value={contactInfo.phone}
-            onChange={handleContactChange("phone")}
+            onChange={handlePhoneChange}
+            error={phoneError}
+            placeholder="+46 70 000 00 00"
           />
           <Input
             label="E-post"
             value={contactInfo.email}
             readOnly={Boolean(user?.email)}
-            onChange={handleContactChange("email")}
+            onChange={handleEmailChange}
             helpText={Boolean(user?.email) ? "Låst från inloggningen" : undefined}
+            error={emailError}
           />
         </div>
+        {contactTouched && contactMethodError && (
+          <p className="text-xs font-semibold text-amber-600">
+            {contactMethodError}
+          </p>
+        )}
         {contactError && <p className="text-xs text-red-500">{contactError}</p>}
       </div>
     ),
@@ -712,12 +968,9 @@ export default function BookingFlow({
 
   const steps = showContactStep ? [cityCheckStep, contactStep, ...baseSteps] : baseSteps;
   const totalSteps = steps.length;
-  const isAtFinalStep = activeStepIndex === totalSteps - 1;
   const missingBookingFields = getMissingBookingFields();
-  const isBookingComplete = isAtFinalStep && missingBookingFields.length === 0;
-  const bookingHelperText = !isAtFinalStep
-    ? "Gå till sista steget för att kunna bekräfta."
-    : "Fyll i alla steg för att kunna bekräfta.";
+  const isBookingComplete = missingBookingFields.length === 0;
+  const bookingHelperText = "Fyll i alla steg för att kunna bekräfta.";
   const currentStep = steps[activeStepIndex];
   const progressStepCount = showContactStep ? baseSteps.length + 1 : baseSteps.length;
   const progressStepIndex = showContactStep
@@ -836,7 +1089,7 @@ export default function BookingFlow({
 
   const handleConfirmBooking = async () => {
     if (!isBookingComplete) {
-      setBookingCompletionError(bookingHelperText);
+      setBookingCompletionError("Du måste slutföra alla steg innan du kan bekräfta bokningen.");
       setShowSummary(true);
       setSummaryOpen(true);
       scrollSummaryIntoView();
@@ -856,13 +1109,11 @@ export default function BookingFlow({
     router.replace("/dashboard");
   };
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
   const validateConfirmationInput = () => {
     if (confirmationChannel === "email") {
       const cleanedEmail = (confirmationEmail || "").trim();
       setConfirmationEmail(cleanedEmail);
-      if (!cleanedEmail || !emailRegex.test(cleanedEmail)) {
+      if (!cleanedEmail || !EMAIL_REGEX.test(cleanedEmail)) {
         setConfirmationError("Ange en giltig e-postadress som vi kan nå dig på.");
         return false;
       }
@@ -931,6 +1182,13 @@ export default function BookingFlow({
   const summaryContactInfo = contactSaved
     ? `${contactInfo.firstName || ""} ${contactInfo.lastName || ""}`.trim()
     : "Ej sparad";
+  const summaryName = `${contactInfo.firstName || ""} ${contactInfo.lastName || ""}`.trim();
+  const summaryAddress = [contactInfo.address, contactInfo.city].filter(Boolean).join(", ");
+  const summaryContacts = [
+    trimmedPhone ? { label: "Tel", value: trimmedPhone } : null,
+    trimmedEmail ? { label: "E-post", value: trimmedEmail } : null
+  ].filter(Boolean);
+  const hasContactSummary = contactInputsValid || contactSaved;
 
   return (
     <section
@@ -1008,7 +1266,7 @@ export default function BookingFlow({
           ref={summaryRef}
           className="space-y-4 lg:max-w-sm"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3 sm:flex-nowrap">
             <div>
               <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Sammanfattning</p>
               <h3 className="text-lg font-semibold text-slate-900">Ditt val</h3>
@@ -1048,21 +1306,33 @@ export default function BookingFlow({
                   <>
                     <p>
                       <span className="font-semibold text-slate-900">Kontakt:</span>{" "}
-                      {summaryContactInfo || "Ej sparad"}
+                      {hasContactSummary ? summaryName || "–" : "Ej sparad"}
                     </p>
                     <p>
-                      <span className="font-semibold text-slate-900">Tel:</span>{" "}
-                      {contactInfo.phone || "–"}
+                      <span className="font-semibold text-slate-900">Adress:</span>{" "}
+                      {hasContactSummary ? summaryAddress || "–" : "–"}
                     </p>
-                    <p>
-                      <span className="font-semibold text-slate-900">Postnummer:</span>{" "}
-                      {contactInfo.postalCode || "–"}
-                    </p>
+                    {summaryContacts.length > 0 ? (
+                      summaryContacts.map((item) => (
+                        <p key={item.label}>
+                          <span className="font-semibold text-slate-900">{item.label}:</span>{" "}
+                          {item.value}
+                        </p>
+                      ))
+                    ) : (
+                      <p>
+                        <span className="font-semibold text-slate-900">Kontaktväg:</span> –
+                      </p>
+                    )}
                   </>
                 )}
                 <p>
                   <span className="font-semibold text-slate-900">Påse:</span>{" "}
                   {selectedBag ? selectedBag.title : "Ej vald"}
+                </p>
+                <p>
+                  <span className="font-semibold text-slate-900">Pris:</span>{" "}
+                  {price > 0 ? `${price} kr` : "–"}
                 </p>
               </div>
               <div className="space-y-2">
@@ -1110,8 +1380,11 @@ export default function BookingFlow({
         </aside>
       </div>
       {showConfirmationModal && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 px-4 py-8 backdrop-blur-sm">
-          <div className="w-full max-w-lg transform rounded-[32px] bg-white p-6 shadow-2xl shadow-slate-900/40 transition duration-300 ease-out">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 px-4 py-8 backdrop-blur-sm sm:items-center">
+          <div
+            ref={confirmationModalRef}
+            className="w-full max-w-lg transform rounded-[32px] bg-white p-6 shadow-2xl shadow-slate-900/40 transition duration-300 ease-out max-h-[85vh] overflow-y-auto scroll-mt-24"
+          >
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Klart</p>
