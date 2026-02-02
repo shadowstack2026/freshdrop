@@ -1,19 +1,77 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Droplets, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Testimonials from "@/components/testimonials";
 import HowItWorksSection from "@/components/how-it-works";
 import BookingFlow from "@/components/booking-flow";
 import Card from "@/components/ui/card";
 
+const bagPricing = [
+  {
+    title: "Liten påse",
+    price: "199 kr",
+    subtitle: "Perfekt för vardagsplagg och småtvätt."
+  },
+  {
+    title: "Mellan påse",
+    price: "299 kr",
+    subtitle: "Lagom för helgens blandade tvätt."
+  },
+  {
+    title: "Stor påse",
+    price: "399 kr",
+    subtitle: "För större tvätthögar eller familjen."
+  }
+];
+
+const subscriptionPricing = [
+  {
+    title: "Varannan vecka",
+    price: "499 kr",
+    bullets: ["Regelbunden hämtning", "Flexibel ändring", "Prioriterad service"]
+  },
+  {
+    title: "Varje vecka",
+    price: "899 kr",
+    bullets: ["Maximal bekvämlighet", "Först i kön", "Premiumsupport"]
+  }
+];
+
 export default function HomePage() {
+  const pricingCardRefs = useRef([]);
+  const [visiblePricingCards, setVisiblePricingCards] = useState([]);
+
   function handleScrollToBooking() {
     const bookingSection = document.getElementById("boka-tvatt");
     if (bookingSection) {
       bookingSection.scrollIntoView({ behavior: "smooth" });
     }
   }
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const index = Number(entry.target.dataset.pricingCard);
+          if (Number.isNaN(index)) return;
+          setVisiblePricingCards((current) => {
+            if (current.includes(index)) return current;
+            return [...current, index];
+          });
+        });
+      },
+      { threshold: 0.25 }
+    );
+
+    pricingCardRefs.current.forEach((card) => {
+      if (card) observer.observe(card);
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div>
@@ -38,21 +96,139 @@ export default function HomePage() {
               onClick={handleScrollToBooking}
               className="inline-flex items-center gap-2 rounded-full bg-white text-primary px-6 py-3 text-base font-medium shadow-lg hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-white/60 focus:ring-offset-2"
             >
-              Boka tvätt
+              Boka tvätt privatperson
               <ArrowRight className="h-5 w-5" />
             </button>
             <Link
-              href="/login"
+              href="/offert"
               className="inline-flex items-center gap-2 rounded-full border border-white/30 text-white px-6 py-3 text-base font-medium shadow-lg hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-white/60 focus:ring-offset-2"
             >
-              Logga in / Skapa konto
+              Boka tvätt via företag
             </Link>
           </div>
         </div>
       </section>
 
       {/* How it Works Section */}
-      <HowItWorksSection sectionId="hur-det-funkar" />
+      <HowItWorksSection sectionId="how-it-works" />
+
+      {/* Pricing Section */}
+      <section id="pricing" className="py-16 md:py-24 bg-white border-y border-slate-200">
+        <div className="container space-y-12">
+          <div className="space-y-3 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-400">
+              Priser & abonnemang
+            </p>
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-900">
+              Priser & abonnemang
+            </h2>
+            <p className="text-sm md:text-base text-slate-500 max-w-2xl mx-auto">
+              Välj det upplägg som passar din vardag. Alltid tydligt pris, alltid premiumkänsla.
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            <h3 className="text-xl md:text-2xl font-semibold text-slate-900 text-center">
+              Fast pris per påse (väldigt populärt)
+            </h3>
+            <div className="grid gap-6 md:grid-cols-3">
+              {bagPricing.map((item, index) => {
+                const isVisible = visiblePricingCards.includes(index);
+                return (
+                  <div
+                    key={item.title}
+                    ref={(el) => (pricingCardRefs.current[index] = el)}
+                    data-pricing-card={index}
+                    className={`group rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-sm transition duration-700 ease-out ${
+                      isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                    } hover:-translate-y-1 hover:shadow-xl`}
+                  >
+                    <div className="flex h-40 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-100 via-white to-slate-200 text-[10px] font-semibold uppercase tracking-[0.4em] text-slate-400">
+                      Bild kommer här
+                    </div>
+                    <div className="mt-5 flex items-center justify-between gap-4">
+                      <h4 className="text-lg font-semibold text-slate-900">{item.title}</h4>
+                      <span className="text-lg font-semibold text-primary">{item.price}</span>
+                    </div>
+                    <p className="mt-2 text-sm text-slate-600">{item.subtitle}</p>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-sm text-slate-600 text-center">
+              Vi skickar med påsarna till kunden vid beställning så att de får dem hemma.
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            <h3 className="text-xl md:text-2xl font-semibold text-slate-900 text-center">
+              Abonnemang
+            </h3>
+            <div className="grid gap-6 md:grid-cols-2">
+              {subscriptionPricing.map((item, index) => {
+                const cardIndex = bagPricing.length + index;
+                const isVisible = visiblePricingCards.includes(cardIndex);
+                return (
+                  <div
+                    key={item.title}
+                    ref={(el) => (pricingCardRefs.current[cardIndex] = el)}
+                    data-pricing-card={cardIndex}
+                    className={`transition duration-700 ease-out ${
+                      isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                    }`}
+                  >
+                    <Card className="rounded-3xl border-slate-200 bg-white/90 p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+                      <div className="flex items-center justify-between gap-4">
+                        <h4 className="text-lg font-semibold text-slate-900">{item.title}</h4>
+                        <span className="text-xl font-semibold text-primary">{item.price}</span>
+                      </div>
+                      <ul className="mt-4 space-y-2 text-sm text-slate-600">
+                        {item.bullets.map((bullet) => (
+                          <li key={bullet} className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-primary" />
+                            <span>{bullet}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <button
+                        type="button"
+                        className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500"
+                      >
+                        Välj abonnemang
+                      </button>
+                    </Card>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div
+            ref={(el) =>
+              (pricingCardRefs.current[bagPricing.length + subscriptionPricing.length] = el)
+            }
+            data-pricing-card={bagPricing.length + subscriptionPricing.length}
+            className={`transition duration-700 ease-out ${
+              visiblePricingCards.includes(bagPricing.length + subscriptionPricing.length)
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 translate-y-4"
+            }`}
+          >
+            <Link
+              href="/offert"
+              className="block rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-slate-100 p-6 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+            >
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Företag?</p>
+              <h4 className="mt-2 text-2xl font-semibold text-slate-900">
+                Klicka här för att få en offert
+              </h4>
+              <p className="mt-2 text-sm text-slate-600">
+                Vi skräddarsyr upplägg för kontor, hotell och servicebolag.
+              </p>
+            </Link>
+          </div>
+        </div>
+      </section>
 
       <BookingFlow showContactStep />
 

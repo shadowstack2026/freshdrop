@@ -6,10 +6,10 @@ import { Droplets, User, LogIn, LogOut } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 
-const sectionLinks = [
-  { label: "Hur det funkar", targetId: "hur-det-funkar" },
-  { label: "Boka tvätt", targetId: "boka-tvatt" },
-  { label: "Frågor & Kontakt", targetId: "fragor-kontakt" }
+const navLinks = [
+  { label: "Hur det funkar", targetId: "how-it-works", type: "scroll" },
+  { label: "Om oss", href: "/om-oss", type: "link" },
+  { label: "Priser & abonnemang", targetId: "pricing", type: "scroll" }
 ];
 
 const authenticatedNavLinks = [
@@ -134,16 +134,25 @@ export default function NavBar() {
           <span>FreshDrop</span>
         </Link>
         <div className="order-3 w-full flex items-center justify-center gap-3 text-sm font-semibold text-slate-700 sm:gap-4 md:order-2 md:w-auto md:gap-6">
-          {sectionLinks.map((link) => (
-            <button
-              key={link.targetId}
-              type="button"
-              onClick={() => handleSectionClick(link.targetId)}
-              className={navButtonClasses}
-            >
-              {link.label}
-            </button>
-          ))}
+          {navLinks.map((link) => {
+            if (link.type === "link") {
+              return (
+                <Link key={link.href} href={link.href} className={navButtonClasses}>
+                  {link.label}
+                </Link>
+              );
+            }
+            return (
+              <button
+                key={link.targetId}
+                type="button"
+                onClick={() => handleSectionClick(link.targetId)}
+                className={navButtonClasses}
+              >
+                {link.label}
+              </button>
+            );
+          })}
         </div>
         <div className="order-2 flex items-center gap-2 md:order-3">
           <div className="relative">

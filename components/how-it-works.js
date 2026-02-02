@@ -27,7 +27,7 @@ const steps = [
   }
 ];
 
-export default function HowItWorksSection({ sectionId = "hur-det-funkar" }) {
+export default function HowItWorksSection({ sectionId = "how-it-works" }) {
   const [visibleSteps, setVisibleSteps] = useState([]);
   const stepRefs = useRef([]);
 
