@@ -833,13 +833,19 @@ export default function BookingFlow({
 
     useEffect(() => {
       if (!dateValue) return;
-      const selected = new Date(dateValue);
+      const [year, month, day] = dateValue.split("-").map(Number);
+      const selected = new Date(year, month - 1, day);
       if (!Number.isNaN(selected.getTime())) {
         setViewDate(new Date(selected.getFullYear(), selected.getMonth(), 1));
       }
     }, [dateValue]);
 
-    const selectedDate = dateValue ? new Date(dateValue) : null;
+    const selectedDate = dateValue
+      ? (() => {
+          const [year, month, day] = dateValue.split("-").map(Number);
+          return new Date(year, month - 1, day);
+        })()
+      : null;
     const startOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
     const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
     const startWeekday = (startOfMonth.getDay() + 6) % 7;
@@ -848,7 +854,12 @@ export default function BookingFlow({
     const isPrevDisabled =
       viewDate.getFullYear() === minMonth.getFullYear() && viewDate.getMonth() === minMonth.getMonth();
 
-    const toISO = (date) => date.toISOString().split("T")[0];
+    const toISO = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
     const isSameDay = (a, b) =>
       a &&
       b &&
@@ -1239,7 +1250,6 @@ export default function BookingFlow({
   const closeConfirmationModal = () => {
     setShowConfirmationModal(false);
     setConfirmationError("");
-    router.replace("/tack");
   };
 
   const validateConfirmationInput = () => {
@@ -1385,13 +1395,9 @@ export default function BookingFlow({
             </>
           )}
           {bookingSuccess && (
-            <p
-              ref={confirmationRef}
-              className="mt-2 flex scroll-mt-24 items-center gap-2 text-sm font-semibold text-emerald-600 animate-pulse"
-            >
-              <CheckCircle2 className="h-4 w-4" />
+            <span ref={confirmationRef} className="sr-only">
               {bookingSuccess}
-            </p>
+            </span>
           )}
         </div>
 
