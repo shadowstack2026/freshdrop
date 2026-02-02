@@ -4,6 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Input from "@/components/ui/input";
 import Card from "@/components/ui/card";
+import {
+  ALLOWED_POSTAL_CODES,
+  normalizePostalCode,
+  POSTAL_CODE_CITY_MAP
+} from "@/lib/allowed-postal-codes";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { CheckCircle2, ChevronDown, XCircle } from "lucide-react";
 
@@ -95,6 +100,46 @@ function addHours(date, hours) {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const POSTAL_CODE_REGEX = /^\d{5}$/;
+const SERVICE_AREA_CITIES = [
+  "Mölle",
+  "Arild",
+  "Jonstorp",
+  "Lerberget",
+  "Viken",
+  "Höganäs",
+  "Nyhamnsläge",
+  "Farhult",
+  "Utvälinge",
+  "Ängelholm",
+  "Vejbystrand",
+  "Strövelstorp",
+  "Hjärnarp",
+  "Össjö",
+  "Kvidinge",
+  "Åstorp",
+  "Hyllinge",
+  "Helsingborg",
+  "Påarp",
+  "Ramlösa",
+  "Vallåkra",
+  "Rydebäck",
+  "Gantofta",
+  "Bjuv",
+  "Billesholm",
+  "Klippan",
+  "Östra Ljungby",
+  "Riseberga",
+  "Gråmanstorp",
+  "Svalöv",
+  "Teckomatorp",
+  "Billeberga",
+  "Kågeröd",
+  "Landskrona",
+  "Häljarp",
+  "Asmundtorp"
+];
+const normalizeCity = (value) => value.trim().normalize("NFKC").toLocaleLowerCase("sv-SE");
+const SERVICE_AREA_SET = new Set(SERVICE_AREA_CITIES.map(normalizeCity));
 
 const normalizePhoneDigits = (value) => value.replace(/[^\d]/g, "");
 
@@ -109,30 +154,29 @@ const isValidSwedishPhone = (value) => {
 };
 
 const fetchCityFromPostal = async (postalCode, { signal } = {}) => {
-  if (!POSTAL_CODE_REGEX.test(postalCode)) return "";
-  const response = await fetch(`https://api.postnummer.nu/postnummer/${postalCode}.json`, {
-    signal,
-    headers: { Accept: "application/json" }
-  });
-  if (!response.ok) return "";
+  if (!POSTAL_CODE_REGEX.test(postalCode)) return null;
+  const response = await fetch(`/api/postnummer?code=${postalCode}`, { signal });
+  if (!response.ok) return null;
   const data = await response.json();
-  return data?.postnummer?.ort || "";
+  return {
+    city: data?.city || "",
+    municipality: data?.municipality || ""
+  };
 };
 
 const searchAddresses = async (query, postalCode, { signal } = {}) => {
   if (!query || query.trim().length < 2 || !POSTAL_CODE_REGEX.test(postalCode)) return [];
-  const encoded = encodeURIComponent(`${query} ${postalCode} Sverige`);
-  const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&countrycodes=se&q=${encoded}`;
-  const response = await fetch(url, {
-    signal,
-    headers: { Accept: "application/json", "Accept-Language": "sv-SE" }
-  });
+  const encodedQuery = encodeURIComponent(query.trim());
+  const response = await fetch(
+    `/api/address-search?query=${encodedQuery}&postalCode=${postalCode}`,
+    { signal }
+  );
   if (!response.ok) return [];
   const results = await response.json();
   return (results || []).map((item) => ({
-    id: item.place_id,
-    address: item.display_name?.split(",")[0]?.trim() || item.name || "",
-    city: item.address?.city || item.address?.town || item.address?.village || ""
+    id: item.id,
+    address: item.address,
+    city: item.city
   }));
 };
 
@@ -178,6 +222,14 @@ export default function BookingFlow({
   const addressRequestIdRef = useRef(0);
   const addressBlurTimerRef = useRef(null);
   const postalLookupIdRef = useRef(0);
+  const postalLookupAbortRef = useRef(null);
+  const postalCacheRef = useRef(new Map());
+  const [postalError, setPostalError] = useState("");
+  const [postalLookup, setPostalLookup] = useState({
+    city: "",
+    municipality: "",
+    allowed: false
+  });
   const [bookingSuccess, setBookingSuccess] = useState("");
   const [bookingCompletionError, setBookingCompletionError] = useState("");
   const [showSummary, setShowSummary] = useState(false);
@@ -233,7 +285,7 @@ export default function BookingFlow({
 
   useEffect(() => {
     const query = contactInfo.address.trim();
-    const postalCode = contactInfo.postalCode.trim();
+    const postalCode = normalizePostalCode(contactInfo.postalCode);
     if (!query || query.length < 2 || !POSTAL_CODE_REGEX.test(postalCode)) {
       setAddressSuggestions([]);
       setAddressLoading(false);
@@ -273,6 +325,9 @@ export default function BookingFlow({
       if (addressBlurTimerRef.current) {
         clearTimeout(addressBlurTimerRef.current);
       }
+      if (postalLookupAbortRef.current) {
+        postalLookupAbortRef.current.abort();
+      }
     };
   }, []);
 
@@ -291,7 +346,9 @@ export default function BookingFlow({
 
   useEffect(() => {
     if (showConfirmationModal && confirmationModalRef.current) {
-      confirmationModalRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      requestAnimationFrame(() => {
+        confirmationModalRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
     }
   }, [showConfirmationModal]);
 
@@ -326,6 +383,24 @@ export default function BookingFlow({
       minute: "2-digit"
     });
   }, [pickupDate, selectedPickup]);
+
+  const minDeliveryDate = useMemo(() => {
+    if (!pickupDate) return null;
+    const base = new Date(`${pickupDate}T00:00:00`);
+    if (Number.isNaN(base.getTime())) return null;
+    base.setDate(base.getDate() + 1);
+    return base;
+  }, [pickupDate]);
+
+  useEffect(() => {
+    if (!pickupDate || !deliveryDate) return;
+    const minDate = minDeliveryDate;
+    const current = new Date(`${deliveryDate}T00:00:00`);
+    if (minDate && current < minDate) {
+      setDeliveryDate("");
+      setDeliverySlot(TIME_SLOTS[0].id);
+    }
+  }, [pickupDate, deliveryDate, minDeliveryDate]);
 
   const handleContactChange = (field) => (event) => {
     setContactSaved(false);
@@ -380,29 +455,34 @@ export default function BookingFlow({
     handleContactChange("postalCode")(event);
     const value = event.target.value;
     const trimmed = value.trim();
+    const normalized = normalizePostalCode(trimmed);
     if (postalTimerRef.current) {
       clearTimeout(postalTimerRef.current);
       postalTimerRef.current = null;
     }
-    if (!trimmed) {
+    setPostalError("");
+    setPostalLookup({ city: "", municipality: "", allowed: false });
+    if (!normalized) {
       setPostalStatus("idle");
       return;
     }
-    if (POSTAL_CODE_REGEX.test(trimmed)) {
-      setPostalStatus("valid");
+    if (POSTAL_CODE_REGEX.test(normalized)) {
+      if (!ALLOWED_POSTAL_CODES.has(normalized)) {
+        setPostalStatus("invalid");
+        setPostalError("Tyvärr levererar vi inte till detta område ännu.");
+        return;
+      }
+      setPostalStatus("loading");
       setContactError("");
-      const requestId = postalLookupIdRef.current + 1;
-      postalLookupIdRef.current = requestId;
-      fetchCityFromPostal(trimmed)
-        .then((autoCity) => {
-          if (!autoCity) return;
-          if (postalLookupIdRef.current !== requestId) return;
-          if (cityAutoFilled || !contactInfo.city.trim()) {
-            setContactInfo((prev) => ({ ...prev, city: autoCity }));
-            setCityAutoFilled(true);
-          }
-        })
-        .catch(() => {});
+      setPostalLookup((prev) => ({
+        ...prev,
+        allowed: true
+      }));
+      const mappedCity = POSTAL_CODE_CITY_MAP.get(normalized);
+      if (mappedCity && (cityAutoFilled || !contactInfo.city.trim())) {
+        setContactInfo((prev) => ({ ...prev, city: mappedCity }));
+        setCityAutoFilled(true);
+      }
       postalTimerRef.current = setTimeout(() => {
         if (activeStepIndex === 0) {
           setActiveStepIndex((prev) => Math.min(prev + 1, stepCount - 1));
@@ -410,9 +490,44 @@ export default function BookingFlow({
         setPostalStatus("idle");
         postalTimerRef.current = null;
       }, 1000);
+
+      const cached = postalCacheRef.current.get(normalized);
+      const applyLookup = (result) => {
+        if (!result?.city) {
+          return;
+        }
+        setPostalLookup({ city: result.city, municipality: result.municipality || "", allowed: true });
+        if (cityAutoFilled || !contactInfo.city.trim()) {
+          setContactInfo((prev) => ({ ...prev, city: result.city }));
+          setCityAutoFilled(true);
+        }
+      };
+
+      if (cached) {
+        applyLookup(cached);
+      } else {
+        const requestId = postalLookupIdRef.current + 1;
+        postalLookupIdRef.current = requestId;
+        if (postalLookupAbortRef.current) {
+          postalLookupAbortRef.current.abort();
+        }
+        const controller = new AbortController();
+        postalLookupAbortRef.current = controller;
+        fetchCityFromPostal(normalized, { signal: controller.signal })
+          .then((result) => {
+            if (postalLookupIdRef.current !== requestId) return;
+            postalCacheRef.current.set(normalized, result);
+            applyLookup(result);
+          })
+          .catch((error) => {
+            if (error?.name === "AbortError") return;
+            if (postalLookupIdRef.current !== requestId) return;
+          });
+      }
       return;
     }
     setPostalStatus("invalid");
+    setPostalError("Endast fem siffror godkänns.");
   };
 
   const stepCount = showContactStep ? 6 : 4;
@@ -579,6 +694,7 @@ export default function BookingFlow({
               onDateChange={(value) => setDeliveryDate(value)}
               slotValue={deliverySlot}
               onSlotChange={setDeliverySlot}
+              minDateOverride={minDeliveryDate}
             />
           </div>
           <p className="text-sm text-slate-600">
@@ -636,9 +752,12 @@ export default function BookingFlow({
     }
   ];
 
-  const postalCodeValue = contactInfo.postalCode.trim();
-  const isPostalCodeValid = POSTAL_CODE_REGEX.test(postalCodeValue);
-  const postalInvalid = Boolean(contactInfo.postalCode) && !isPostalCodeValid;
+  const postalCodeValue = normalizePostalCode(contactInfo.postalCode);
+  const isPostalCodeFormatValid = POSTAL_CODE_REGEX.test(postalCodeValue);
+  const isPostalCodeAllowed = isPostalCodeFormatValid && ALLOWED_POSTAL_CODES.has(postalCodeValue);
+  const isServiceAreaValid = isPostalCodeAllowed && postalLookup.allowed;
+  const postalInvalid =
+    Boolean(contactInfo.postalCode) && (!isPostalCodeFormatValid || postalStatus === "invalid");
 
   const trimmedPhone = (contactInfo.phone || "").trim();
   const trimmedEmail = (contactInfo.email || "").trim();
@@ -669,7 +788,7 @@ export default function BookingFlow({
 
   const getMissingBookingFields = () => {
     const missing = [];
-    if (showContactStep && !isPostalCodeValid) {
+    if (showContactStep && !isServiceAreaValid) {
       missing.push("postnummer");
     }
     if (showContactStep && !contactInputsValid) {
@@ -693,14 +812,24 @@ export default function BookingFlow({
     return missing;
   };
 
-  const DateSelectionCard = ({ title, dateValue, onDateChange, slotValue, onSlotChange }) => {
+  const DateSelectionCard = ({
+    title,
+    dateValue,
+    onDateChange,
+    slotValue,
+    onSlotChange,
+    minDateOverride = null
+  }) => {
     const [viewDate, setViewDate] = useState(() => new Date());
     const minDate = useMemo(() => {
+      if (minDateOverride instanceof Date) {
+        return minDateOverride;
+      }
       const base = new Date();
       base.setHours(0, 0, 0, 0);
       base.setDate(base.getDate() + 1);
       return base;
-    }, []);
+    }, [minDateOverride]);
 
     useEffect(() => {
       if (!dateValue) return;
@@ -754,8 +883,8 @@ export default function BookingFlow({
             </button>
           </div>
           <div className="mt-3 grid grid-cols-7 gap-2 text-[11px] font-semibold text-slate-400">
-            {["M", "T", "O", "T", "F", "L", "S"].map((label) => (
-              <span key={label} className="text-center">
+            {["M", "T", "O", "T", "F", "L", "S"].map((label, index) => (
+              <span key={`${label}-${index}`} className="text-center">
                 {label}
               </span>
             ))}
@@ -833,8 +962,12 @@ export default function BookingFlow({
           label="Postnummer"
           value={contactInfo.postalCode}
           onChange={handlePostalChange}
-          error={postalInvalid ? "Endast fem siffror godkänns" : undefined}
-          helpText="Postnummer används för zonkontroll och sparas automatiskt."
+          error={postalError || (postalInvalid ? "Endast fem siffror godkänns." : undefined)}
+          helpText={
+            postalStatus === "loading"
+              ? "Verifierar postnummer..."
+              : "Postnummer används för zonkontroll och sparas automatiskt."
+          }
           inputClassName={
             postalStatus === "valid"
               ? "border-emerald-400 focus:border-emerald-400 focus:ring-emerald-200"
@@ -845,7 +978,7 @@ export default function BookingFlow({
         />
       </div>
     ),
-    isComplete: () => isPostalCodeValid
+    isComplete: () => isServiceAreaValid
   };
 
   const contactStep = {
@@ -992,8 +1125,8 @@ export default function BookingFlow({
       return;
     }
     setContactError("");
-    if (showContactStep && !isPostalCodeValid) {
-      setContactError("Postnummer måste vara fem siffror.");
+    if (showContactStep && !isServiceAreaValid) {
+      setContactError("Postnummer måste vara giltigt för leverans.");
       return;
     }
 
@@ -1106,7 +1239,7 @@ export default function BookingFlow({
   const closeConfirmationModal = () => {
     setShowConfirmationModal(false);
     setConfirmationError("");
-    router.replace("/dashboard");
+    router.replace("/tack");
   };
 
   const validateConfirmationInput = () => {
@@ -1140,7 +1273,7 @@ export default function BookingFlow({
       setConfirmationSending(false);
     }
     setShowConfirmationModal(false);
-    router.replace("/dashboard");
+    router.replace("/tack");
   };
 
   const handleBack = () => {
@@ -1383,7 +1516,7 @@ export default function BookingFlow({
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 px-4 py-8 backdrop-blur-sm sm:items-center">
           <div
             ref={confirmationModalRef}
-            className="w-full max-w-lg transform rounded-[32px] bg-white p-6 shadow-2xl shadow-slate-900/40 transition duration-300 ease-out max-h-[85vh] overflow-y-auto scroll-mt-24"
+            className="w-full max-w-md transform rounded-[28px] bg-white p-5 shadow-2xl shadow-slate-900/40 transition duration-300 ease-out max-h-[80vh] overflow-y-auto scroll-mt-24 sm:max-w-lg sm:rounded-[32px] sm:p-6"
           >
             <div className="flex items-start justify-between">
               <div>

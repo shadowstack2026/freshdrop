@@ -1,4 +1,7 @@
 {
   "/dashboard/page": "app/dashboard/page.js",
-  "/page": "app/page.js"
+  "/api/postnummer/route": "app/api/postnummer/route.js",
+  "/api/address-search/route": "app/api/address-search/route.js",
+  "/page": "app/page.js",
+  "/tack/page": "app/tack/page.js"
 }
