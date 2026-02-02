@@ -66,22 +66,31 @@ const SCENT_OPTIONS = [
   }
 ];
 
+const BAG_OPTIONS = [
+  {
+    id: "small",
+    title: "Liten påse",
+    price: 199,
+    subtitle: "Perfekt för vardagsplagg och småtvätt."
+  },
+  {
+    id: "medium",
+    title: "Mellan påse",
+    price: 299,
+    subtitle: "Lagom för helgens blandade tvätt."
+  },
+  {
+    id: "large",
+    title: "Stor påse",
+    price: 399,
+    subtitle: "För större tvätthögar eller familjen."
+  }
+];
+
 function addHours(date, hours) {
   const result = new Date(date);
   result.setHours(result.getHours() + hours);
   return result;
-}
-
-function calculatePrice(weight) {
-  if (!weight || weight <= 0) return 0;
-  if (weight < 5) {
-    return Math.round(weight * 69);
-  }
-  if (weight <= 10) {
-    const ratio = (weight - 5) / 5;
-    return Math.round(200 + ratio * 200);
-  }
-  return Math.round(400 + (weight - 10) * 69);
 }
 
 const POSTAL_CODE_REGEX = /^\d{5}$/;
@@ -102,7 +111,7 @@ export default function BookingFlow({
   const [activeStepIndex, setActiveStepIndex] = useState(showContactStep ? 0 : 0);
   const [washType, setWashType] = useState(WASH_OPTIONS[0].id);
   const [scent, setScent] = useState(SCENT_OPTIONS[0].id);
-  const [weight, setWeight] = useState("");
+  const [bagSize, setBagSize] = useState("");
   const [pickupDate, setPickupDate] = useState("");
   const [pickupSlot, setPickupSlot] = useState(TIME_SLOTS[0].id);
   const [deliveryDate, setDeliveryDate] = useState("");
@@ -121,6 +130,7 @@ export default function BookingFlow({
     email: user?.email || ""
   });
   const [bookingSuccess, setBookingSuccess] = useState("");
+  const [bookingCompletionError, setBookingCompletionError] = useState("");
   const [showSummary, setShowSummary] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -129,6 +139,7 @@ export default function BookingFlow({
   const postalTimerRef = useRef(null);
   const summaryRef = useRef(null);
   const wizardTopRef = useRef(null);
+  const confirmationRef = useRef(null);
   const [confirmationChannel, setConfirmationChannel] = useState("email");
   const [confirmationEmail, setConfirmationEmail] = useState(user?.email || contactInfo.email);
   const [confirmationPhone, setConfirmationPhone] = useState(contactInfo.phone);
@@ -186,6 +197,12 @@ export default function BookingFlow({
   }, [shouldScrollSummary]);
 
   useEffect(() => {
+    if (bookingSuccess && confirmationRef.current) {
+      confirmationRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [bookingSuccess]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const originalOverflow = document.body.style.overflow;
     if (showConfirmationModal) {
@@ -198,9 +215,8 @@ export default function BookingFlow({
     };
   }, [showConfirmationModal]);
 
-  const parsedWeight = parseFloat(weight);
-  const price = useMemo(() => calculatePrice(parsedWeight), [parsedWeight]);
-  const weightIsValid = Number.isFinite(parsedWeight) && parsedWeight > 0;
+  const selectedBag = BAG_OPTIONS.find((option) => option.id === bagSize);
+  const price = useMemo(() => selectedBag?.price ?? 0, [selectedBag]);
 
   const selectedPickup = TIME_SLOTS.find((slot) => slot.id === pickupSlot);
   const selectedDelivery = TIME_SLOTS.find((slot) => slot.id === deliverySlot);
@@ -217,15 +233,6 @@ export default function BookingFlow({
       minute: "2-digit"
     });
   }, [pickupDate, selectedPickup]);
-
-  const handleWeightChange = (value) => {
-    const floatValue = parseFloat(value);
-    if (!value) {
-      setWeight("");
-    } else if (!Number.isNaN(floatValue)) {
-      setWeight(value);
-    }
-  };
 
   const handleContactChange = (field) => (event) => {
     setContactSaved(false);
@@ -437,8 +444,8 @@ export default function BookingFlow({
       isComplete: () => Boolean(pickupDate && pickupSlot && deliveryDate && deliverySlot)
     },
     {
-      id: "weight",
-      title: "Uppskattad vikt",
+      id: "bag-size",
+      title: "Välj påse",
       render: () => (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -446,33 +453,41 @@ export default function BookingFlow({
               <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
                 Steg {getBaseStepNumber(3)}
               </p>
-              <h3 className="text-xl font-semibold text-slate-900">Uppskattad vikt</h3>
+              <h3 className="text-xl font-semibold text-slate-900">Välj påse</h3>
               <p className="text-sm text-slate-600">
-                Berätta hur mycket tvätt du planerar att lämna så räknar vi ett pris åt dig.
+                Välj den påse som passar din tvättmängd bäst.
               </p>
             </div>
           </div>
-          <div className="space-y-2">
-            <Input
-              id="weight-step"
-              label="Vikt (kg)"
-              type="number"
-              min="0"
-              step="0.1"
-              value={weight}
-              onChange={(event) => handleWeightChange(event.target.value)}
-              placeholder="Ex: 5.0"
-            />
-            <p className="text-xs text-slate-500">
-              Pris:{" "}
-              <span className="font-semibold text-slate-900">
-                {price > 0 ? `${price} kr` : "Välj vikt"}
-              </span>
-            </p>
+          <div className="grid gap-4 md:grid-cols-3">
+            {BAG_OPTIONS.map((option) => {
+              const isSelected = bagSize === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setBagSize(option.id)}
+                  className={`group flex h-full flex-col items-start gap-3 rounded-[28px] border bg-white/90 p-4 text-left transition duration-200 ${
+                    isSelected
+                      ? "border-primary bg-primary/10 shadow-[0_20px_35px_rgba(56,189,248,0.25)]"
+                      : "border-slate-200 hover:border-primary/50 hover:shadow-lg"
+                  }`}
+                >
+                  <div className="flex w-full items-center justify-between gap-3">
+                    <p className="text-lg font-semibold text-slate-900">{option.title}</p>
+                    <span className="text-lg font-semibold text-primary">{option.price} kr</span>
+                  </div>
+                  <p className="text-sm text-slate-600">{option.subtitle}</p>
+                  <div className="mt-auto text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                    {isSelected ? "Vald" : "Välj påse"}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       ),
-      isComplete: () => weightIsValid
+      isComplete: () => Boolean(bagSize)
     }
   ];
 
@@ -486,20 +501,94 @@ export default function BookingFlow({
     Boolean(contactInfo.address.trim()) &&
     Boolean(contactInfo.city.trim());
 
+  const getMissingBookingFields = () => {
+    const missing = [];
+    if (showContactStep && !isPostalCodeValid) {
+      missing.push("postnummer");
+    }
+    if (showContactStep && !contactInputsValid) {
+      missing.push("kontaktuppgifter");
+    }
+    if (!washType) {
+      missing.push("tvättyp");
+    }
+    if (!scent) {
+      missing.push("doftval");
+    }
+    if (!pickupDate || !pickupSlot) {
+      missing.push("upphämtning");
+    }
+    if (!deliveryDate || !deliverySlot) {
+      missing.push("leverans");
+    }
+    if (!bagSize) {
+      missing.push("påse");
+    }
+    return missing;
+  };
+
   const DateSelectionCard = ({ title, dateValue, onDateChange, slotValue, onSlotChange }) => {
     const dateFieldId = `${title.toLowerCase().replace(/\s+/g, "-")}-date`;
+    const dateInputRef = useRef(null);
+    const autoSelectGuardRef = useRef(true);
+    const todayValue = useMemo(() => new Date().toISOString().split("T")[0], []);
+
+    const openPicker = () => {
+      const input = dateInputRef.current;
+      if (!input) return;
+      if (typeof input.showPicker === "function") {
+        input.showPicker();
+      } else {
+        input.click();
+      }
+    };
+
+    const handleDateChange = (value) => {
+      if (!dateValue && value === todayValue && autoSelectGuardRef.current) {
+        autoSelectGuardRef.current = false;
+        return;
+      }
+      autoSelectGuardRef.current = false;
+      onDateChange(value);
+    };
+
+    const handleQuickPick = () => {
+      const base = new Date();
+      base.setDate(base.getDate() + 1);
+      const nextDate = base.toISOString().split("T")[0];
+      autoSelectGuardRef.current = false;
+      onDateChange(nextDate);
+    };
+
     return (
       <Card className="space-y-3 border-slate-100 bg-white/70 p-4 shadow-sm">
         <p className="text-sm font-semibold text-slate-700">{title}</p>
         <label htmlFor={dateFieldId} className="block text-sm font-semibold text-slate-700">
           Datum
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={openPicker}
+              className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-700 transition hover:border-primary/50"
+            >
+              {dateValue || "Välj datum"}
+            </button>
+            <button
+              type="button"
+              onClick={handleQuickPick}
+              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500 transition hover:border-primary/40 hover:text-slate-700"
+            >
+              Nästa lediga datum
+            </button>
+          </div>
           <input
+            ref={dateInputRef}
             id={dateFieldId}
             type="date"
-            className="mt-2 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            value={dateValue}
+            className="sr-only"
+            value={dateValue || ""}
             onChange={(event) => {
-              onDateChange(event.target.value);
+              handleDateChange(event.target.value);
             }}
           />
         </label>
@@ -623,6 +712,12 @@ export default function BookingFlow({
 
   const steps = showContactStep ? [cityCheckStep, contactStep, ...baseSteps] : baseSteps;
   const totalSteps = steps.length;
+  const isAtFinalStep = activeStepIndex === totalSteps - 1;
+  const missingBookingFields = getMissingBookingFields();
+  const isBookingComplete = isAtFinalStep && missingBookingFields.length === 0;
+  const bookingHelperText = !isAtFinalStep
+    ? "Gå till sista steget för att kunna bekräfta."
+    : "Fyll i alla steg för att kunna bekräfta.";
   const currentStep = steps[activeStepIndex];
   const progressStepCount = showContactStep ? baseSteps.length + 1 : baseSteps.length;
   const progressStepIndex = showContactStep
@@ -631,6 +726,12 @@ export default function BookingFlow({
   const progressPercent = Math.min(100, (progressStepIndex / progressStepCount) * 100);
   const stepLabelNumber = showContactStep ? activeStepIndex : activeStepIndex + 1;
   const stepLabelTotal = progressStepCount;
+
+  useEffect(() => {
+    if (isBookingComplete) {
+      setBookingCompletionError("");
+    }
+  }, [isBookingComplete]);
 
   const handlePersistContact = async ({ skipStepAdvance = false } = {}) => {
     if (!contactInputsValid) {
@@ -706,6 +807,7 @@ export default function BookingFlow({
   const handleNext = () => {
     setBookingSuccess("");
     setShowSummary(false);
+    setBookingCompletionError("");
     if (!canProceed) return;
     if (activeStepIndex >= totalSteps - 1) {
       setSummaryOpen(true);
@@ -733,6 +835,14 @@ export default function BookingFlow({
   };
 
   const handleConfirmBooking = async () => {
+    if (!isBookingComplete) {
+      setBookingCompletionError(bookingHelperText);
+      setShowSummary(true);
+      setSummaryOpen(true);
+      scrollSummaryIntoView();
+      return;
+    }
+    setBookingCompletionError("");
     scrollSummaryIntoView();
     setShowSummary(false);
     setSummaryOpen(false);
@@ -786,6 +896,7 @@ export default function BookingFlow({
     setShowSummary(false);
     setSummaryOpen(false);
     setBookingSuccess("");
+    setBookingCompletionError("");
     if (activeStepIndex === 0) return;
     setActiveStepIndex((prev) => Math.max(prev - 1, 0));
     scrollToWizardTop();
@@ -794,7 +905,7 @@ export default function BookingFlow({
   const summaryVisible = showSummary || summaryOpen;
   const showNavigationButtons = activeStepIndex > 0;
   const renderNavigationButtons = (className, style) => (
-    <div className={className} style={style}>
+    <div className={`relative z-30 ${className}`} style={style}>
       <button
         type="button"
         onClick={handleBack}
@@ -813,7 +924,7 @@ export default function BookingFlow({
             : "bg-slate-200 text-slate-500 cursor-not-allowed"
         }`}
       >
-        {currentStep.id === "weight" ? "Boka" : "Nästa"}
+        {currentStep.id === "bag-size" ? "Boka" : "Nästa"}
       </button>
     </div>
   );
@@ -839,7 +950,7 @@ export default function BookingFlow({
           </h2>
         </div>
         <div className="text-xs font-semibold text-slate-600 sm:text-sm">
-          {price > 0 ? `Livepris: ${price} kr` : "Ange vikt för pris"}
+          {price > 0 ? `Livepris: ${price} kr` : "Välj påse för pris"}
         </div>
       </div>
 
@@ -851,7 +962,7 @@ export default function BookingFlow({
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)] px-0 sm:px-0 lg:px-0">
-        <div className="flex flex-col gap-6 pb-[140px] sm:pb-12">
+        <div className="relative z-10 flex flex-col gap-6 pb-[140px] sm:pb-12">
           <div className="pb-6 lg:relative lg:min-h-[520px]">
             {steps.map((step, index) => {
               const isActive = index === activeStepIndex;
@@ -883,7 +994,10 @@ export default function BookingFlow({
             </>
           )}
           {bookingSuccess && (
-            <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-emerald-600 animate-pulse">
+            <p
+              ref={confirmationRef}
+              className="mt-2 flex scroll-mt-24 items-center gap-2 text-sm font-semibold text-emerald-600 animate-pulse"
+            >
               <CheckCircle2 className="h-4 w-4" />
               {bookingSuccess}
             </p>
@@ -947,8 +1061,8 @@ export default function BookingFlow({
                   </>
                 )}
                 <p>
-                  <span className="font-semibold text-slate-900">Vikt:</span>{" "}
-                  {weight ? `${weight} kg` : "Ej angiven"}
+                  <span className="font-semibold text-slate-900">Påse:</span>{" "}
+                  {selectedBag ? selectedBag.title : "Ej vald"}
                 </p>
               </div>
               <div className="space-y-2">
@@ -957,12 +1071,23 @@ export default function BookingFlow({
                   {deliveryEstimate || "Välj upphämtningstid för exakt datum"}
                 </p>
               </div>
+              {bookingCompletionError ? (
+                <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-700">
+                  {bookingCompletionError}
+                </p>
+              ) : (
+                !isBookingComplete && (
+                  <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-500">
+                    {bookingHelperText}
+                  </p>
+                )
+              )}
               <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                 <button
                   type="button"
                   onClick={handleConfirmBooking}
-                  disabled={contactSaving}
-                  className="flex-1 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                  disabled={contactSaving || !isBookingComplete}
+                  className="flex-1 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
                 >
                   {contactSaving ? "Sparar..." : "Bekräfta bokning"}
                 </button>
@@ -1026,8 +1151,8 @@ export default function BookingFlow({
                 {selectedDelivery ? `${selectedDelivery.start}–${selectedDelivery.end}` : ""}
               </p>
               <p>
-                <span className="font-semibold text-slate-900">Vikt:</span>{" "}
-                {weight ? `${weight} kg` : "Ej angiven"} · {price > 0 ? `${price} kr` : "Pris ej klart"}
+                <span className="font-semibold text-slate-900">Påse:</span>{" "}
+                {selectedBag ? selectedBag.title : "Ej vald"} · {price > 0 ? `${price} kr` : "Pris ej klart"}
               </p>
             </div>
             <div className="mt-6 space-y-3">
