@@ -1,11 +1,14 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createServerActionClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
 async function updateProfile(formData) {
   "use server";
 
-  const supabase = createSupabaseServerClient();
+  const supabase = createServerActionClient({ cookies });
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -15,27 +18,26 @@ async function updateProfile(formData) {
   }
 
   const payload = {
-    email: formData.get("email"),
+    id: user.id,
+    email: user.email,
     full_name: formData.get("full_name"),
     phone: formData.get("phone"),
     address_line1: formData.get("address_line1"),
     address_line2: formData.get("address_line2"),
     postal_code: formData.get("postal_code"),
-    city: formData.get("city")
+    city: formData.get("city"),
+    updated_at: new Date().toISOString()
   };
 
   const { error } = await supabase
     .from("profiles")
-    .update({
-      ...payload,
-      updated_at: new Date().toISOString()
-    })
-    .eq("id", user.id);
+    .upsert(payload, { onConflict: "id" });
 
   if (error) {
     return { error: "Kunde inte uppdatera profilen." };
   }
 
+  revalidatePath("/account");
   return { success: true };
 }
 

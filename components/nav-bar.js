@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Droplets, User, LogIn, LogOut } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { supabaseBrowserClient } from "@/lib/supabase/client";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 const navLinks = [
   { label: "Hur det funkar", targetId: "how-it-works", type: "scroll" },
@@ -24,7 +24,7 @@ const guestNavLinks = [
 
 export default function NavBar() {
   const router = useRouter();
-  const supabase = supabaseBrowserClient;
+  const supabase = createClientComponentClient();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const dropdownRef = useRef(null);

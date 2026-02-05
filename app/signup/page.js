@@ -111,8 +111,6 @@ export default function SignUpPage() {
       id: data.user.id,
       email: signupEmail,
       full_name: fullName,
-      first_name: firstName.trim(),
-      last_name: lastName.trim(),
       phone: normalizedPhone,
       address_line1: address1.trim(),
       postal_code: normalizedPostal,
@@ -120,7 +118,10 @@ export default function SignUpPage() {
     });
 
     if (profileError) {
-      setSignupError("Konto skapades men profilen kunde inte sparas. Försök logga in.");
+      setSignupError(
+        profileError.message ||
+          "Konto skapades men profilen kunde inte sparas. Försök logga in."
+      );
       setLoading(false);
       return;
     }

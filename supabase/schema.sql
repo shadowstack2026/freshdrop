@@ -17,6 +17,21 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.profiles p
+    where p.id = auth.uid()
+      and p.role = 'admin'
+  );
+$$;
+
 create policy "Användare kan läsa sin profil"
   on public.profiles
   for select
@@ -27,14 +42,15 @@ create policy "Användare kan uppdatera sin profil"
   for update
   using (auth.uid() = id);
 
+create policy "Användare kan skapa sin profil"
+  on public.profiles
+  for insert
+  with check (auth.uid() = id);
+
 create policy "Admin kan läsa alla profiler"
   on public.profiles
   for select
-  using (exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid() and p.role = 'admin'
-  ));
+  using (public.is_admin());
 
 -- ORDERS
 create table if not exists public.orders (
@@ -80,11 +96,7 @@ create policy "Användare kan läsa sina egna orders"
 create policy "Admin kan läsa alla orders"
   on public.orders
   for select
-  using (exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid() and p.role = 'admin'
-  ));
+  using (public.is_admin());
 
 -- Alla (även gäster) får skapa orders
 create policy "Alla kan skapa orders"
@@ -102,11 +114,7 @@ create policy "Alla kan skapa orders"
 create policy "Admin kan uppdatera alla orders"
   on public.orders
   for update
-  using (exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid() and p.role = 'admin'
-  ));
+  using (public.is_admin());
 
 -- Inloggad användare kan uppdatera sina egna orders (t.ex. betalningsstatus via success-sida)
 create policy "Användare kan uppdatera sina egna orders"

@@ -180,6 +180,13 @@ const searchAddresses = async (query, postalCode, { signal } = {}) => {
   }));
 };
 
+const parseFullName = (fullName = "") => {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { firstName: "", lastName: "" };
+  if (parts.length === 1) return { firstName: parts[0], lastName: "" };
+  return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
+};
+
 export default function BookingFlow({
   showContactStep = false,
   profile = null,
@@ -187,10 +194,10 @@ export default function BookingFlow({
 }) {
   const supabase = createClientComponentClient();
   const router = useRouter();
+  const nameParts = parseFullName(profile?.full_name || "");
   const profileHasBasics =
-    Boolean(profile?.first_name) &&
-    Boolean(profile?.last_name) &&
-    Boolean(profile?.address) &&
+    Boolean(profile?.full_name) &&
+    Boolean(profile?.address_line1) &&
     Boolean(profile?.postal_code);
 
   const [activeStepIndex, setActiveStepIndex] = useState(showContactStep ? 0 : 0);
@@ -205,8 +212,8 @@ export default function BookingFlow({
   const [contactError, setContactError] = useState("");
   const [contactSaving, setContactSaving] = useState(false);
   const [contactInfo, setContactInfo] = useState({
-    firstName: profile?.first_name || "",
-    lastName: profile?.last_name || "",
+    firstName: nameParts.firstName,
+    lastName: nameParts.lastName,
     address: profile?.address_line1 || "",
     address2: profile?.address_line2 || "",
     postalCode: profile?.postal_code || "",
@@ -250,9 +257,10 @@ export default function BookingFlow({
 
   useEffect(() => {
     if (showContactStep && profileHasBasics) {
+      const nextNameParts = parseFullName(profile?.full_name || "");
       setContactInfo({
-        firstName: profile?.first_name || "",
-        lastName: profile?.last_name || "",
+        firstName: nextNameParts.firstName,
+        lastName: nextNameParts.lastName,
         address: profile?.address_line1 || "",
         address2: profile?.address_line2 || "",
         postalCode: profile?.postal_code || "",
@@ -266,9 +274,10 @@ export default function BookingFlow({
   }, [showContactStep, profileHasBasics]);
 
   useEffect(() => {
+    const nextNameParts = parseFullName(profile?.full_name || "");
     setContactInfo((prev) => ({
-      firstName: profile?.first_name || prev.firstName,
-      lastName: profile?.last_name || prev.lastName,
+      firstName: nextNameParts.firstName || prev.firstName,
+      lastName: nextNameParts.lastName || prev.lastName,
       address: profile?.address_line1 || prev.address,
       address2: profile?.address_line2 || prev.address2,
       postalCode: profile?.postal_code || prev.postalCode,
@@ -1147,8 +1156,6 @@ export default function BookingFlow({
     if (user) {
       const payload = {
         id: profile?.id || user?.id,
-        first_name: contactInfo.firstName,
-        last_name: contactInfo.lastName,
         address_line1: contactInfo.address,
         address_line2: contactInfo.address2,
         postal_code: postalCodeValue,

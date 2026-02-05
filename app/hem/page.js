@@ -32,13 +32,21 @@ export default function HomePage() {
       if (user) {
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
-          .select("first_name, last_name, phone, address_line1, address_line2, postal_code, city")
+          .select("*")
           .eq("id", user.id)
           .single();
+
         if (profileError && profileError.code !== "PGRST116") { // PGRST116 means no rows found
           console.error("Error fetching profile:", profileError);
         } else if (profileData) {
-          setProfile(profileData);
+          setProfile({
+            full_name: profileData.full_name || "",
+            phone: profileData.phone || "",
+            address_line1: profileData.address_line1 || "",
+            address_line2: profileData.address_line2 || "",
+            postal_code: profileData.postal_code || "",
+            city: profileData.city || ""
+          });
         }
       }
       setLoading(false);
@@ -72,36 +80,19 @@ export default function HomePage() {
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-[0.4em] text-primary/90">FreshDrop</p>
           <h1 className="text-3xl font-semibold text-primary md:text-4xl">
-            Välkommen {profile ? profile.first_name || "tillbaka" : "tillbaka"}!
+            Välkommen {profile ? profile.full_name || "tillbaka" : "tillbaka"}!
           </h1>
           <p className="max-w-xl text-sm text-primary/80 leading-relaxed md:text-base">
             Planera dina hämtningar, se dina tjänster och följ din bokning i ett mobilanpassat flöde.
           </p>
         </div>
-        <div className="relative">
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="flex items-center gap-2 rounded-full border border-primary/40 bg-white/10 px-4 py-2 text-primary shadow-md transition hover:bg-white/20"
-          >
-            <User className="h-5 w-5" />
-            <span>{profile ? `${profile.first_name || "Användare"}` : "Min profil"}</span>
-            {isMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-          </button>
-
-          {isMenuOpen && (
-            <Card className="absolute right-0 mt-2 w-48 space-y-2 bg-white p-2 shadow-lg rounded-2xl text-sm text-slate-700">
-              <Link href="/profil" className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-800 transition hover:bg-slate-100">
-                <User className="h-4 w-4" /> Min profil
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="flex w-full items-center justify-start gap-2 rounded-xl px-3 py-2 text-red-500 transition hover:bg-red-50"
-              >
-                <LogOut className="h-4 w-4" /> Logga ut
-              </button>
-            </Card>
-          )}
-        </div>
+        <button
+          onClick={handleLogout}
+          className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-white/10 px-4 py-2 text-primary shadow-md transition hover:bg-white/20"
+        >
+          <LogOut className="h-4 w-4" />
+          Logga ut
+        </button>
       </header>
 
       <main className="container space-y-10 pb-16 pt-4">
@@ -154,7 +145,7 @@ export default function HomePage() {
               <Card className="bg-white/90 p-4 text-slate-900">
                 <p className="text-xs uppercase tracking-[0.4em] text-slate-500">Namn</p>
                 <p className="mt-1 text-lg font-semibold">
-                  {profile.first_name} {profile.last_name}
+                  {profile.full_name || "Ej angivet"}
                 </p>
                 <p className="text-sm text-slate-500">Profil sparad</p>
               </Card>

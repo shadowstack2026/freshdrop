@@ -15,8 +15,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState({
-    first_name: "",
-    last_name: "",
+    full_name: "",
     phone: "",
     address_line1: "",
     address_line2: "",
@@ -40,7 +39,7 @@ export default function ProfilePage() {
 
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("first_name, last_name, phone, address_line1, address_line2, postal_code, city")
+        .select("*")
         .eq("id", user.id)
         .single();
 
@@ -48,7 +47,14 @@ export default function ProfilePage() {
         console.error("Error fetching profile:", profileError);
         setError("Kunde inte ladda profildata.");
       } else if (profileData) {
-        setProfile(profileData);
+        setProfile({
+          full_name: profileData.full_name || "",
+          phone: profileData.phone || "",
+          address_line1: profileData.address_line1 || "",
+          address_line2: profileData.address_line2 || "",
+          postal_code: profileData.postal_code || "",
+          city: profileData.city || ""
+        });
       }
       setLoading(false);
     }
@@ -61,16 +67,16 @@ export default function ProfilePage() {
     setError("");
     setSuccessMessage("");
 
-    if (!user) {
+    const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+    if (userError || !authUser) {
+      console.error("Error fetching user:", userError);
       setError("Du måste vara inloggad för att spara profilen.");
       setLoading(false);
       return;
     }
 
-    const updates = {
-      id: user.id,
-      first_name: profile.first_name,
-      last_name: profile.last_name,
+    const payload = {
+      full_name: profile.full_name,
       phone: profile.phone,
       address_line1: profile.address_line1,
       address_line2: profile.address_line2,
@@ -78,12 +84,27 @@ export default function ProfilePage() {
       city: profile.city
     };
 
-    const { error: updateError } = await supabase.from("profiles").upsert(updates);
+    console.log("payload", payload);
+
+    const { data: updatedProfile, error: updateError } = await supabase
+      .from("profiles")
+      .update(payload)
+      .eq("id", authUser.id)
+      .select()
+      .single();
 
     if (updateError) {
-      console.error("Error updating profile:", updateError);
+      console.log("save error", updateError);
       setError(updateError.message || "Kunde inte uppdatera profilen.");
     } else {
+      setProfile({
+        full_name: updatedProfile?.full_name || "",
+        phone: updatedProfile?.phone || "",
+        address_line1: updatedProfile?.address_line1 || "",
+        address_line2: updatedProfile?.address_line2 || "",
+        postal_code: updatedProfile?.postal_code || "",
+        city: updatedProfile?.city || ""
+      });
       setSuccessMessage("Profilen uppdaterades framgångsrikt!");
       setIsEditing(false);
     }
@@ -118,22 +139,13 @@ export default function ProfilePage() {
           )}
 
           <form onSubmit={handleSaveProfile} className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                id="firstName"
-                label="Förnamn"
-                value={profile.first_name}
-                onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
-                disabled={!isEditing}
-              />
-              <Input
-                id="lastName"
-                label="Efternamn"
-                value={profile.last_name}
-                onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
-                disabled={!isEditing}
-              />
-            </div>
+            <Input
+              id="fullName"
+              label="Namn"
+              value={profile.full_name}
+              onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
+              disabled={!isEditing}
+            />
             <Input
               id="email"
               label="E-post"
