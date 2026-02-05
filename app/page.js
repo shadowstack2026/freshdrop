@@ -30,18 +30,31 @@ const subscriptionPricing = [
   {
     title: "Varannan vecka",
     price: "499 kr",
-    bullets: ["Regelbunden hämtning", "Flexibel ändring", "Prioriterad service"]
+    bullets: ["Regelbunden hämtning", "Flexibel ändring", "Prioriterad service"],
+    details: [
+      "Abonnemang 1 – FreshDrop Standard (varannan vecka)",
+      "Så funkar det:",
+      "Varannan vecka får du en bekymmersfri tvättdag med FreshDrop. Varje upphämtning omfattar en stor FreshDrop-påse (ca 10–12 kg), där du fritt kan blanda vardagstvätt och grovtvätt i samma påse. Det finns inga särskilda begränsningar per plagg – så länge allt ryms i en påse per hämtning.",
+      "Har du mer tvätt än vad som ryms i påsen? Då kan du enkelt boka en extra tvätt till ordinarie pris."
+    ]
   },
   {
     title: "Varje vecka",
     price: "899 kr",
-    bullets: ["Maximal bekvämlighet", "Först i kön", "Premiumsupport"]
+    bullets: ["Maximal bekvämlighet", "Först i kön", "Premiumsupport"],
+    details: [
+      "Abonnemang 2 – FreshDrop Premium (varje vecka)",
+      "Så funkar det:",
+      "Med FreshDrop Premium får du en smidig, återkommande tvättlösning varje vecka. Varje upphämtning omfattar en stor FreshDrop-påse (ca 10–12 kg), där du fritt kan blanda vardagstvätt och grovtvätt i samma påse. Det finns inga särskilda begränsningar per plagg – så länge allt ryms i en påse per hämtning.",
+      "Har du mer tvätt än vad som ryms i påsen? Då kan du enkelt boka en extra tvätt till ordinarie pris."
+    ]
   }
 ];
 
 export default function HomePage() {
   const pricingCardRefs = useRef([]);
   const [visiblePricingCards, setVisiblePricingCards] = useState([]);
+  const [openSubscription, setOpenSubscription] = useState(null);
 
   function handleScrollToBooking() {
     const bookingSection = document.getElementById("boka-tvatt");
@@ -168,6 +181,7 @@ export default function HomePage() {
               {subscriptionPricing.map((item, index) => {
                 const cardIndex = bagPricing.length + index;
                 const isVisible = visiblePricingCards.includes(cardIndex);
+                const isOpen = openSubscription === index;
                 return (
                   <div
                     key={item.title}
@@ -190,6 +204,31 @@ export default function HomePage() {
                           </li>
                         ))}
                       </ul>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setOpenSubscription((prev) => (prev === index ? null : index))
+                        }
+                        className="mt-5 inline-flex items-center gap-2 rounded-full bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700 transition hover:bg-sky-100"
+                      >
+                        {isOpen ? "Läs mer ↓" : "Läs mer →"}
+                      </button>
+                      <div
+                        className={`overflow-hidden transition-all duration-500 ease-out ${
+                          isOpen ? "max-h-[520px] opacity-100 mt-4" : "max-h-0 opacity-0"
+                        }`}
+                      >
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-600 space-y-3">
+                          {item.details.map((line, detailIndex) => (
+                            <p
+                              key={`${item.title}-detail-${detailIndex}`}
+                              className={detailIndex === 0 ? "font-semibold text-slate-900" : ""}
+                            >
+                              {line}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
                       <button
                         type="button"
                         className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500"

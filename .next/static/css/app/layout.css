@@ -799,6 +799,9 @@ video {
 .max-h-\[80vh\] {
   max-height: 80vh;
 }
+.max-h-\[520px\] {
+  max-height: 520px;
+}
 .min-h-\[125px\] {
   min-height: 125px;
 }
@@ -1220,6 +1223,9 @@ video {
 }
 .bg-white\/95 {
   background-color: rgb(255 255 255 / 0.95);
+}
+.bg-slate-50\/80 {
+  background-color: rgb(248 250 252 / 0.8);
 }
 .bg-opacity-50 {
   --tw-bg-opacity: 0.5;
@@ -1800,6 +1806,9 @@ video {
 .duration-700 {
   transition-duration: 700ms;
 }
+.duration-500 {
+  transition-duration: 500ms;
+}
 .ease-out {
   transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
 }
@@ -1965,6 +1974,11 @@ video {
 
 .hover\:bg-primary\/10:hover {
   background-color: rgb(56 189 248 / 0.1);
+}
+
+.hover\:bg-sky-100:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(224 242 254 / var(--tw-bg-opacity, 1));
 }
 
 .hover\:text-primary:hover {
