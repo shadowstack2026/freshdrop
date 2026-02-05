@@ -1,259 +1,303 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import PasswordInput from "@/components/password-input";
 import Card from "@/components/ui/card";
-import { CheckCircle2, XCircle, MapPin, Search } from "lucide-react";
+import {
+  ALLOWED_POSTAL_CODES,
+  normalizePostalCode,
+  POSTAL_CODE_CITY_MAP
+} from "@/lib/allowed-postal-codes";
 
-// Central lista/konfig för godkända postnummer
-const ALLOWED_POSTCODES = new Set([
-  "11122", // Exempelpostnummer
-  "12233",
-  "12345",
-  "54321",
-]);
-
-function validatePostalCodeLogic(postalCode) {
-  const normalizedPostalCode = postalCode.replace(/\s/g, '');
-  return /^[0-9]{5}$/.test(normalizedPostalCode) && ALLOWED_POSTCODES.has(normalizedPostalCode);
-}
-
-export const dynamic = 'force-dynamic';
+const NAME_REGEX = /^[A-Za-zÅÄÖåäö\s-]+$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^(\+46|0)7\d{8}$/;
+const POSTAL_REGEX = /^\d{5}$/;
 
 export default function SignUpPage() {
   const supabase = createClientComponentClient();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirectTo") || "/hem";
 
   const [postalCode, setPostalCode] = useState("");
-  const [isPostalCodeValid, setIsPostalCodeValid] = useState(null); // null: no check, true: valid, false: invalid
-  const [postalCodeMessage, setPostalCodeMessage] = useState("");
-  const postalCodeInputRef = useRef(null);
+  const [postalTouched, setPostalTouched] = useState(false);
 
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [address1, setAddress1] = useState("");
+  const [city, setCity] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [signupError, setSignupError] = useState("");
+
   const [loading, setLoading] = useState(false);
-  const [showVerificationModal, setShowVerificationModal] = useState(false); // Keep for email verification if needed
+  const [signupError, setSignupError] = useState("");
 
-  // Automatic postcode validation on change
+  const normalizedPostal = normalizePostalCode(postalCode);
+  const postalFormatValid = POSTAL_REGEX.test(normalizedPostal);
+  const postalAllowed = postalFormatValid && ALLOWED_POSTAL_CODES.has(normalizedPostal);
+
   useEffect(() => {
-    if (postalCode.length === 5) {
-      const normalized = postalCode.replace(/\s/g, '');
-      if (!/^[0-9]{5}$/.test(normalized)) {
-        setIsPostalCodeValid(false);
-        setPostalCodeMessage("Ange ett giltigt postnummer (5 siffror).");
-      } else if (ALLOWED_POSTCODES.has(normalized)) {
-        setIsPostalCodeValid(true);
-        setPostalCodeMessage("Vi finns i ditt område! Du kan nu skapa konto.");
-      } else {
-        setIsPostalCodeValid(false);
-        setPostalCodeMessage("Ej i ert område. Detta postnummer stöds ej.");
+    if (postalAllowed) {
+      const mappedCity = POSTAL_CODE_CITY_MAP.get(normalizedPostal);
+      if (mappedCity && !city.trim()) {
+        setCity(mappedCity);
       }
-    } else if (postalCode.length > 5) {
-      setIsPostalCodeValid(false);
-      setPostalCodeMessage("Postnumret får bara innehålla 5 siffror.");
-    } else {
-      setIsPostalCodeValid(null);
-      setPostalCodeMessage("");
     }
-  }, [postalCode]);
+  }, [postalAllowed, normalizedPostal, city]);
 
-  async function handleSignupSubmit(e) {
-    e.preventDefault();
-    setSignupError("");
+  const showPostalError = postalTouched && (!postalFormatValid || !postalAllowed);
+  const postalErrorMessage = !postalFormatValid
+    ? "Ange ett giltigt postnummer (5 siffror)."
+    : "Detta postnummer stöds ej";
+
+  const isNameValid = (value) => NAME_REGEX.test(value.trim());
+  const hasLetter = (value) => /[A-Za-zÅÄÖåäö]/.test(value);
+
+  const normalizedPhone = phone.replace(/\s+/g, "");
+  const hasPhone = Boolean(normalizedPhone);
+  const hasEmail = Boolean(email.trim());
+  const phoneValid = !hasPhone || PHONE_REGEX.test(normalizedPhone);
+  const emailValid = !hasEmail || EMAIL_REGEX.test(email.trim());
+  const contactMethodValid = (hasPhone && phoneValid) || (hasEmail && emailValid);
+  const addressValid = address1.trim().length >= 5 && hasLetter(address1);
+  const cityValid = isNameValid(city);
+
+  const firstNameValid = isNameValid(firstName);
+  const lastNameValid = isNameValid(lastName);
+  const passwordValid = password.length >= 8;
+  const passwordsMatch = password === confirmPassword;
+
+  const canShowForm = postalAllowed;
+
+  const canSubmit =
+    canShowForm &&
+    firstNameValid &&
+    lastNameValid &&
+    contactMethodValid &&
+    addressValid &&
+    cityValid &&
+    passwordValid &&
+    passwordsMatch;
+
+  const formBlockClasses = `transition-all duration-300 ease-out ${
+    canShowForm ? "max-h-[2000px] opacity-100 mt-8" : "max-h-0 opacity-0"
+  }`;
+
+  const handleSignupSubmit = async (event) => {
+    event.preventDefault();
+    if (!canSubmit) return;
     setLoading(true);
-    setShowVerificationModal(false);
+    setSignupError("");
 
-    if (password !== confirmPassword) {
-      setSignupError("Lösenorden matchar inte.");
-      setLoading(false);
-      return;
-    }
-
-    // Check if postal code is valid before attempting signup
-    if (isPostalCodeValid !== true) {
-      setSignupError("Vänligen ange ett giltigt postnummer först.");
-      setLoading(false);
-      return;
-    }
-
+    const signupEmail = email.trim() || `phone-${normalizedPhone}@freshdrop.local`;
     const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
+      email: signupEmail,
+      password
     });
 
-    if (signUpError) {
-      console.error("Supabase signUp error:", signUpError);
-      setSignupError(signUpError.message || "Kunde inte skapa konto. Försök igen.");
+    if (signUpError || !data?.user) {
+      setSignupError(signUpError?.message || "Kunde inte skapa konto. Försök igen.");
       setLoading(false);
       return;
     }
 
-    if (!data.user) {
-      setSignupError("Kunde inte skapa konto. Ingen användardata mottogs.");
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+    const { error: profileError } = await supabase.from("profiles").upsert({
+      id: data.user.id,
+      email: signupEmail,
+      full_name: fullName,
+      first_name: firstName.trim(),
+      last_name: lastName.trim(),
+      phone: normalizedPhone,
+      address_line1: address1.trim(),
+      postal_code: normalizedPostal,
+      city: city.trim()
+    });
+
+    if (profileError) {
+      setSignupError("Konto skapades men profilen kunde inte sparas. Försök logga in.");
       setLoading(false);
       return;
     }
 
-    if (data.session) {
-      const { error: profileError } = await supabase.from("profiles").upsert({
-        id: data.user.id,
-        email,
-        full_name: fullName,
-        first_name: fullName.split(' ')[0] || '',
-        last_name: fullName.split(' ').slice(1).join(' ') || '',
-        postal_code: postalCode.replace(/\s/g, ''), // Save normalized postal code
-      });
-
-      if (profileError) {
-        console.error("Supabase profile upsert error:", profileError);
-        setSignupError("Konto skapades men profilen kunde inte sparas. Försök logga in.");
-        setLoading(false);
-        router.push(redirectTo);
-        router.refresh();
-        return;
-      }
-
-      try {
-        await fetch("/api/auth/claim-orders", {
-          method: "POST",
-        });
-      } catch (err) {
-        console.error("Error claiming orders:", err);
-      }
-
-      router.push(redirectTo);
-      router.refresh();
-    } else {
-      setShowVerificationModal(true);
+    try {
+      await fetch("/api/auth/claim-orders", { method: "POST" });
+    } catch (error) {
+      // Ignore claim errors for now.
     }
 
+    router.replace("/hem");
     setLoading(false);
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-light to-primary-dark flex items-center justify-center py-12 px-4">
-      <div className="w-full max-w-md">
-        <h1 className="text-4xl font-extrabold text-center text-sky-300 mb-10 drop-shadow-lg">Skapa ditt FreshDrop-konto</h1>
-
-        <Card className="p-8 space-y-6 shadow-2xl border-none bg-white/90 backdrop-blur-sm rounded-3xl">
-          <div className="flex flex-col items-center gap-5 text-center">
-            {isPostalCodeValid === true && <CheckCircle2 className="h-16 w-16 text-emerald-500 animate-bounce-in" />}
-            {isPostalCodeValid === false && <XCircle className="h-16 w-16 text-red-500 animate-shake" />}
-            {isPostalCodeValid === null && <MapPin className="h-16 w-16 text-primary animate-pulse" />}
-            
-            <h2 className="text-3xl font-bold text-slate-800">
-              {isPostalCodeValid === true
-                ? "Område bekräftat!"
-                : "Börja din beställning"}
-            </h2>
-            <p className="text-lg text-slate-600 max-w-sm leading-relaxed">
-              {isPostalCodeValid === true
-                ? "Fyll i dina uppgifter för att skapa ditt konto."
-                : "Verifiera ditt postnummer för att se om FreshDrop finns i ditt område."}
+    <div className="bg-slate-50">
+      <div className="container py-12 md:py-16">
+        <Card className="rounded-3xl border-slate-200 bg-white/95 p-6 shadow-lg sm:p-8">
+          <div className="space-y-3 text-center">
+            <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">
+              Vi ska se om denna tjänst finns i din stad
+            </h1>
+            <p className="text-sm text-slate-500">
+              Fyll i postnummer så kontrollerar vi leveransområde innan du skapar konto.
             </p>
           </div>
 
-          <div className="relative">
+          <div className="mt-6 space-y-4">
             <Input
-              ref={postalCodeInputRef}
-              id="postalCode"
+              id="signup-postal"
               label="Postnummer"
-              type="text"
-              required
               value={postalCode}
-              onChange={(e) => setPostalCode(e.target.value)}
-              className="w-full text-lg pl-5 pr-12 py-3 rounded-xl border-2 focus:border-primary-dark transition-all duration-300"
-              placeholder="T.ex. 12345"
-              error={isPostalCodeValid === false && postalCodeMessage}
+              onChange={(event) => {
+                setPostalTouched(true);
+                setPostalCode(event.target.value);
+              }}
+              placeholder="T.ex. 25244"
+              error={showPostalError ? postalErrorMessage : undefined}
+              helpText="Postnummer används för zonkontroll och sparas automatiskt."
+              inputClassName="text-base"
             />
-            <span className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-              {isPostalCodeValid === true && <CheckCircle2 className="h-6 w-6 text-emerald-500" />}
-              {isPostalCodeValid === false && <XCircle className="h-6 w-6 text-red-500" />}
-              {isPostalCodeValid === null && postalCode.length > 0 && <Search className="h-6 w-6 text-slate-400 animate-pulse-fast" />}
-            </span>
+
+            {postalFormatValid && !postalAllowed && postalTouched && (
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <p className="font-semibold">Ej i ert område</p>
+                <p>Detta postnummer stöds ej</p>
+              </div>
+            )}
+
+            {postalAllowed && (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                <p className="font-semibold">Postnummer godkänt</p>
+                <p>Vi finns i ditt område. Fortsätt med dina uppgifter.</p>
+              </div>
+            )}
           </div>
 
-          {isPostalCodeValid === true && ( // Conditionally render signup form
-            <form onSubmit={handleSignupSubmit} className="space-y-5 animate-fade-in-up mt-8 border-t border-slate-200 pt-6">
+          <form onSubmit={handleSignupSubmit} className={formBlockClasses}>
+            <div className="mt-8 space-y-4 border-t border-slate-200 pt-6">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  id="firstName"
+                  label="Förnamn"
+                  value={firstName}
+                  onChange={(event) => setFirstName(event.target.value)}
+                  required
+                  error={firstName && !firstNameValid ? "Ange ett giltigt förnamn." : undefined}
+                />
+                <Input
+                  id="lastName"
+                  label="Efternamn"
+                  value={lastName}
+                  onChange={(event) => setLastName(event.target.value)}
+                  required
+                  error={lastName && !lastNameValid ? "Ange ett giltigt efternamn." : undefined}
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  id="phone"
+                  label="Telefonnummer"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  required={false}
+                  placeholder="07XXXXXXXX"
+                  error={
+                    phone && !phoneValid
+                      ? "Ange ett svenskt mobilnummer (07... eller +46...)"
+                      : undefined
+                  }
+                />
+                <Input
+                  id="email"
+                  label="E-post"
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  required={false}
+                  error={email && !emailValid ? "Ange en giltig e-postadress." : undefined}
+                />
+              </div>
+              {!contactMethodValid && (phone || email) && (
+                <p className="text-xs text-amber-600">
+                  Ange minst en kontaktväg: telefon eller e-post.
+                </p>
+              )}
+              {!hasPhone && !hasEmail && (
+                <p className="text-xs text-amber-600">
+                  Ange minst en kontaktväg: telefon eller e-post.
+                </p>
+              )}
               <Input
-                id="fullName"
-                label="Namn"
+                id="address1"
+                label="Gatuadress"
+                value={address1}
+                onChange={(event) => setAddress1(event.target.value)}
                 required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                error={
+                  address1 && !addressValid
+                    ? "Ange en adress med minst 5 tecken."
+                    : undefined
+                }
               />
-              <Input
-                id="email"
-                label="E-post"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <PasswordInput
-                id="password"
-                label="Lösenord"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <PasswordInput
-                id="confirmPassword"
-                label="Bekräfta lösenord"
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input
+                  id="city"
+                  label="Stad"
+                  value={city}
+                  onChange={(event) => setCity(event.target.value)}
+                  required
+                  error={city && !cityValid ? "Ange en giltig stad." : undefined}
+                />
+                <Input
+                  id="postalCodeLocked"
+                  label="Postnummer"
+                  value={normalizedPostal}
+                  readOnly
+                  inputClassName="bg-slate-50 text-slate-500"
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <PasswordInput
+                  id="password"
+                  label="Lösenord"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                />
+                <PasswordInput
+                  id="confirmPassword"
+                  label="Bekräfta lösenord"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  required
+                />
+              </div>
+              {password && !passwordValid && (
+                <p className="text-xs text-amber-600">Lösenordet måste vara minst 8 tecken.</p>
+              )}
+              {confirmPassword && !passwordsMatch && (
+                <p className="text-xs text-red-500">Lösenorden matchar inte.</p>
+              )}
               {signupError && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl flex items-center gap-3 animate-fade-in">
-                  <XCircle className="h-5 w-5" />
-                  <p className="text-sm font-medium">{signupError}</p>
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {signupError}
                 </div>
               )}
               <Button
                 type="submit"
-                disabled={loading}
-                className="w-full bg-primary text-white hover:bg-sky-500 focus:ring-primary/80 py-3 text-base font-semibold transition-all duration-300 rounded-xl shadow-md hover:shadow-lg"
+                disabled={!canSubmit || loading}
+                className="w-full rounded-full bg-primary px-5 py-3 text-base font-semibold text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
               >
                 {loading ? "Skapar konto..." : "Skapa konto"}
               </Button>
-            </form>
-          )}
-
-          {isPostalCodeValid === false && postalCode.length === 5 && (
-            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center gap-2 animate-fade-in mt-6">
-              <XCircle className="h-5 w-5" />
-              <p className="text-sm font-medium">{postalCodeMessage}</p>
             </div>
-          )}
+          </form>
         </Card>
-
-        {/* Email verification modal (retained if needed for Supabase config) */}
-        {/* <Modal
-          isOpen={showVerificationModal}
-          onClose={() => setShowVerificationModal(false)}
-          title="Verifiera din e-post"
-        >
-          <p className="text-sm text-slate-700 mb-4">
-            Ett verifieringsmejl har skickats till <span className="font-medium">{email}</span>.
-            Vänligen klicka på länken i mejlet för att aktivera ditt konto.
-          </p>
-          <Button
-            onClick={() => setShowVerificationModal(false)}
-            className="w-full bg-primary text-white hover:bg-sky-400"
-          >
-            Stäng
-          </Button>
-        </Modal> */}
       </div>
     </div>
   );

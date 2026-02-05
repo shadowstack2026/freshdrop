@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
-import { User, Mail, Phone, Home, MapPin, City, Save, Edit, XCircle } from "lucide-react";
+import { Save, Edit, XCircle, CheckCircle2 } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
@@ -18,9 +18,10 @@ export default function ProfilePage() {
     first_name: "",
     last_name: "",
     phone: "",
-    address: "",
+    address_line1: "",
+    address_line2: "",
     postal_code: "",
-    city: "",
+    city: ""
   });
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -39,7 +40,7 @@ export default function ProfilePage() {
 
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("first_name, last_name, phone, address, postal_code, city")
+        .select("first_name, last_name, phone, address_line1, address_line2, postal_code, city")
         .eq("id", user.id)
         .single();
 
@@ -71,9 +72,10 @@ export default function ProfilePage() {
       first_name: profile.first_name,
       last_name: profile.last_name,
       phone: profile.phone,
-      address: profile.address,
+      address_line1: profile.address_line1,
+      address_line2: profile.address_line2,
       postal_code: profile.postal_code,
-      city: profile.city,
+      city: profile.city
     };
 
     const { error: updateError } = await supabase.from("profiles").upsert(updates);
@@ -139,7 +141,6 @@ export default function ProfilePage() {
               value={user?.email || ""}
               disabled
               className="opacity-70"
-              icon={<Mail className="h-5 w-5" />}
             />
             <Input
               id="phone"
@@ -148,15 +149,20 @@ export default function ProfilePage() {
               value={profile.phone}
               onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
               disabled={!isEditing}
-              icon={<Phone className="h-5 w-5" />}
             />
             <Input
               id="address"
               label="Adress"
-              value={profile.address}
-              onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+              value={profile.address_line1}
+              onChange={(e) => setProfile({ ...profile, address_line1: e.target.value })}
               disabled={!isEditing}
-              icon={<Home className="h-5 w-5" />}
+            />
+            <Input
+              id="addressLine2"
+              label="Adressrad 2"
+              value={profile.address_line2 || ""}
+              onChange={(e) => setProfile({ ...profile, address_line2: e.target.value })}
+              disabled={!isEditing}
             />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
@@ -165,7 +171,6 @@ export default function ProfilePage() {
                 value={profile.postal_code}
                 onChange={(e) => setProfile({ ...profile, postal_code: e.target.value })}
                 disabled={!isEditing}
-                icon={<MapPin className="h-5 w-5" />}
               />
               <Input
                 id="city"
@@ -173,7 +178,6 @@ export default function ProfilePage() {
                 value={profile.city}
                 onChange={(e) => setProfile({ ...profile, city: e.target.value })}
                 disabled={!isEditing}
-                icon={<City className="h-5 w-5" />}
               />
             </div>
 

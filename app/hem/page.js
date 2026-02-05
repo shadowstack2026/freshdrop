@@ -7,6 +7,7 @@ import Link from "next/link";
 import { User, LogOut, Package, ChevronRight, Menu, X, CalendarDays } from "lucide-react";
 import Card from "@/components/ui/card";
 import BookingFlow from "@/components/booking-flow";
+import Testimonials from "@/components/testimonials";
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +30,11 @@ export default function HomePage() {
       setUser(user);
 
       if (user) {
-        const { data: profileData, error: profileError } = await supabase.from("profiles").select("first_name, last_name, phone, address, postal_code, city").eq("id", user.id).single();
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("first_name, last_name, phone, address_line1, address_line2, postal_code, city")
+          .eq("id", user.id)
+          .single();
         if (profileError && profileError.code !== "PGRST116") { // PGRST116 means no rows found
           console.error("Error fetching profile:", profileError);
         } else if (profileData) {
@@ -62,21 +67,21 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-light to-primary-dark text-slate-900">
-      <header className="container flex flex-col gap-4 px-0 py-6 sm:flex-row sm:items-center sm:justify-between">
+    <div className="min-h-screen bg-gradient-to-br from-primary-light to-primary-dark text-slate-100">
+      <header className="container flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/10 px-4 py-6 shadow-sm backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
-          <p className="text-xs uppercase tracking-[0.4em] text-white/70">FreshDrop</p>
-          <h1 className="text-3xl font-semibold text-white md:text-4xl">
+          <p className="text-xs uppercase tracking-[0.4em] text-primary/90">FreshDrop</p>
+          <h1 className="text-3xl font-semibold text-primary md:text-4xl">
             Välkommen {profile ? profile.first_name || "tillbaka" : "tillbaka"}!
           </h1>
-          <p className="max-w-xl text-sm text-white/80 leading-relaxed md:text-base">
+          <p className="max-w-xl text-sm text-primary/80 leading-relaxed md:text-base">
             Planera dina hämtningar, se dina tjänster och följ din bokning i ett mobilanpassat flöde.
           </p>
         </div>
         <div className="relative">
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-4 py-2 text-white shadow-md transition hover:bg-white/20"
+            className="flex items-center gap-2 rounded-full border border-primary/40 bg-white/10 px-4 py-2 text-primary shadow-md transition hover:bg-white/20"
           >
             <User className="h-5 w-5" />
             <span>{profile ? `${profile.first_name || "Användare"}` : "Min profil"}</span>
@@ -160,8 +165,13 @@ export default function HomePage() {
               </Card>
               <Card className="bg-white/90 p-4 text-slate-900">
                 <p className="text-xs uppercase tracking-[0.4em] text-slate-500">Adress</p>
-                <p className="mt-1 text-lg font-semibold">{profile.address || "Ej angivet"}</p>
-                <p className="text-sm text-slate-500">{profile.city || "-"}, {profile.postal_code || "-"}</p>
+                <p className="mt-1 text-lg font-semibold">
+                  {profile.address_line1 || "Ej angivet"}
+                </p>
+                <p className="text-sm text-slate-500">
+                  {profile.address_line2 || ""} {profile.address_line2 ? "·" : ""}
+                  {profile.city || "-"}, {profile.postal_code || "-"}
+                </p>
               </Card>
             </div>
           </section>

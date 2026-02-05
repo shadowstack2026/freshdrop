@@ -69,10 +69,38 @@ export async function POST(req) {
   pickup.setHours(hours, minutes, 0, 0);
   const deliveryEstimate = new Date(pickup.getTime() + 48 * 60 * 60 * 1000);
 
+  let guestLeadId = null;
+
+  if (!user) {
+    const { data: guestLead, error: guestError } = await supabase
+      .from("guest_leads")
+      .insert({
+        email: body.email,
+        full_name: body.name,
+        phone: body.phone,
+        address_line1: body.address_line1,
+        address_line2: body.address_line2 || null,
+        postal_code: body.postal_code,
+        city: body.city
+      })
+      .select("id")
+      .single();
+
+    if (guestError || !guestLead) {
+      return NextResponse.json(
+        { message: "Kunde inte spara gästinfo." },
+        { status: 500 }
+      );
+    }
+
+    guestLeadId = guestLead.id;
+  }
+
   const { data: order, error } = await supabase
     .from("orders")
     .insert({
       user_id: user?.id || null,
+      guest_lead_id: user ? null : guestLeadId,
       customer_email: body.email,
       customer_name: body.name,
       customer_phone: body.phone,

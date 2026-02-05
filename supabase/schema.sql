@@ -40,6 +40,7 @@ create policy "Admin kan läsa alla profiler"
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references public.profiles (id),
+  guest_lead_id uuid references public.guest_leads (id),
   customer_email text not null,
   customer_name text not null,
   customer_phone text,
@@ -59,6 +60,13 @@ create table if not exists public.orders (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.orders
+  add constraint orders_single_owner
+  check (
+    (user_id is not null and guest_lead_id is null) or
+    (user_id is null and guest_lead_id is not null)
+  );
 
 alter table public.orders enable row level security;
 
@@ -82,7 +90,13 @@ create policy "Admin kan läsa alla orders"
 create policy "Alla kan skapa orders"
   on public.orders
   for insert
-  with check (customer_email is not null);
+  with check (
+    customer_email is not null
+    and (
+      (user_id = auth.uid() and guest_lead_id is null)
+      or (user_id is null and guest_lead_id is not null)
+    )
+  );
 
 -- Admin kan uppdatera alla orders
 create policy "Admin kan uppdatera alla orders"

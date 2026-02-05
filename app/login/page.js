@@ -17,10 +17,16 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") || "/hem";
 
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const normalizedPhone = identifier.replace(/\s+/g, "");
+  const isPhoneIdentifier = /^(\+46|0)7\d{8}$/.test(normalizedPhone);
+  const loginEmail = isPhoneIdentifier
+    ? `phone-${normalizedPhone}@freshdrop.local`
+    : identifier.trim();
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -28,7 +34,7 @@ export default function LoginPage() {
     setLoading(true);
 
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
+      email: loginEmail,
       password,
     });
 
@@ -87,12 +93,13 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5 animate-fade-in-up mt-8">
             <Input
-              id="email"
-              label="E-post"
-              type="email"
+              id="identifier"
+              label="E-post eller telefonnummer"
+              type="text"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="mejl@exempel.se eller 07..."
               className="w-full text-lg pl-5 pr-5 py-3 rounded-xl border-2 focus:border-primary-dark transition-all duration-300"
             />
             <Input

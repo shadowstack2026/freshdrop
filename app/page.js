@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CheckCircle2, X } from "lucide-react";
 import Testimonials from "@/components/testimonials";
 import HowItWorksSection from "@/components/how-it-works";
 import BookingFlow from "@/components/booking-flow";
 import Card from "@/components/ui/card";
+import { supabaseBrowserClient } from "@/lib/supabase/client";
 
 const bagPricing = [
   {
@@ -55,6 +56,9 @@ export default function HomePage() {
   const pricingCardRefs = useRef([]);
   const [visiblePricingCards, setVisiblePricingCards] = useState([]);
   const [openSubscription, setOpenSubscription] = useState(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [selectedSubscription, setSelectedSubscription] = useState(null);
+  const supabase = supabaseBrowserClient;
 
   function handleScrollToBooking() {
     const bookingSection = document.getElementById("boka-tvatt");
@@ -85,6 +89,33 @@ export default function HomePage() {
 
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (!authModalOpen) return;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setAuthModalOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [authModalOpen]);
+
+  const handleSubscriptionSelect = async (index) => {
+    const {
+      data: { session }
+    } = await supabase.auth.getSession();
+    if (!session?.user) {
+      setAuthModalOpen(true);
+      return;
+    }
+    setSelectedSubscription(index);
+  };
 
   return (
     <div>
@@ -232,8 +263,9 @@ export default function HomePage() {
                       <button
                         type="button"
                         className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500"
+                        onClick={() => handleSubscriptionSelect(index)}
                       >
-                        Välj abonnemang
+                        {selectedSubscription === index ? "Valt abonnemang" : "Välj abonnemang"}
                       </button>
                     </Card>
                   </div>
@@ -330,6 +362,73 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {authModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 py-8 backdrop-blur-sm"
+          onClick={() => setAuthModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl shadow-slate-900/30 transition-all duration-300 ease-out animate-fade-slide-up"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-400">
+                  Abonnemang
+                </p>
+                <h3 className="text-2xl font-semibold text-slate-900">Abonnemang kräver konto</h3>
+                <p className="text-sm text-slate-600">
+                  För att kunna använda ett abonnemang behöver du ett konto. Det gör allt
+                  mycket enklare att hålla koll på din tvätt.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAuthModalOpen(false)}
+                className="rounded-full bg-slate-100 p-2 text-slate-600 transition hover:bg-slate-200"
+                aria-label="Stäng"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <ul className="mt-4 space-y-2 text-sm text-slate-600">
+              {[
+                "Se alla bokningar & historik",
+                "Ändra tider och hantera abonnemang",
+                "Sparad adress & snabbare bokning",
+                "Få kvitton och bekräftelser samlat"
+              ].map((item) => (
+                <li key={item} className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/signup"
+                className="flex-1 rounded-full bg-sky-100 px-5 py-3 text-center text-sm font-semibold text-sky-800 transition hover:bg-sky-200"
+              >
+                Skapa konto
+              </Link>
+              <button
+                type="button"
+                onClick={() => setAuthModalOpen(false)}
+                className="flex-1 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400"
+              >
+                Stäng
+              </button>
+            </div>
+            <p className="mt-4 text-center text-xs text-slate-500">
+              Har du redan konto?{" "}
+              <Link href="/login" className="font-semibold text-primary hover:text-primary/80">
+                Logga in
+              </Link>
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
