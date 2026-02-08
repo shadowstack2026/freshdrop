@@ -248,6 +248,8 @@ export default function BookingFlow({
   const summaryRef = useRef(null);
   const wizardTopRef = useRef(null);
   const confirmationModalRef = useRef(null);
+  const confirmationScrollYRef = useRef(0);
+  const confirmationWasOpenRef = useRef(false);
   const [confirmationChannel, setConfirmationChannel] = useState("email");
   const [confirmationEmail, setConfirmationEmail] = useState(user?.email || contactInfo.email);
   const [confirmationPhone, setConfirmationPhone] = useState(contactInfo.phone);
@@ -368,12 +370,20 @@ export default function BookingFlow({
     if (typeof window === "undefined") return;
     const originalOverflow = document.body.style.overflow;
     if (showConfirmationModal) {
+      confirmationScrollYRef.current = window.scrollY;
+      confirmationWasOpenRef.current = true;
       document.body.style.overflow = "hidden";
-    } else {
+    } else if (confirmationWasOpenRef.current) {
       document.body.style.overflow = originalOverflow;
+      window.scrollTo(0, confirmationScrollYRef.current || 0);
+      confirmationWasOpenRef.current = false;
     }
     return () => {
       document.body.style.overflow = originalOverflow;
+      if (confirmationWasOpenRef.current) {
+        window.scrollTo(0, confirmationScrollYRef.current || 0);
+        confirmationWasOpenRef.current = false;
+      }
     };
   }, [showConfirmationModal]);
 
