@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 
-export default function Modal({ isOpen, onClose, title, children }) {
+export default function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
+  overlayClassName = "",
+  panelClassName = "",
+  closeOnBackdrop = true
+}) {
   const [isBrowser, setIsBrowser] = useState(false);
 
   useEffect(() => {
@@ -15,8 +23,14 @@ export default function Modal({ isOpen, onClose, title, children }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="relative w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
+    <div
+      className={`fixed inset-0 z-[999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm ${overlayClassName}`}
+      onClick={closeOnBackdrop ? onClose : undefined}
+    >
+      <div
+        className={`relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl ${panelClassName}`}
+        onClick={(event) => event.stopPropagation()}
+      >
         <button
           onClick={onClose}
           className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"

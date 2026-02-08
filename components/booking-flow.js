@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Input from "@/components/ui/input";
 import Card from "@/components/ui/card";
+import Modal from "@/components/ui/modal";
 import {
   ALLOWED_POSTAL_CODES,
   normalizePostalCode,
@@ -1536,159 +1537,157 @@ export default function BookingFlow({
           )}
         </aside>
       </div>
-      {showConfirmationModal && (
+      <Modal
+        isOpen={showConfirmationModal}
+        onClose={closeConfirmationModal}
+        overlayClassName="items-end sm:items-center px-4 py-6 sm:py-8"
+        panelClassName="max-h-[85vh] overflow-y-auto rounded-t-[28px] p-5 sm:rounded-[32px] sm:p-6"
+      >
         <div
-          className="fixed inset-0 z-[999] flex items-end justify-center overflow-y-auto bg-black/60 px-4 py-6 backdrop-blur-sm sm:items-center sm:py-8"
-          onClick={closeConfirmationModal}
+          ref={confirmationModalRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="booking-confirmation-title"
+          tabIndex={-1}
         >
-          <div
-            ref={confirmationModalRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="booking-confirmation-title"
-            tabIndex={-1}
-            onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-md transform rounded-t-[28px] bg-white p-5 shadow-2xl shadow-slate-900/40 transition duration-300 ease-out max-h-[85vh] overflow-y-auto sm:max-w-lg sm:rounded-[32px] sm:p-6"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Klart</p>
-                <h3
-                  id="booking-confirmation-title"
-                  className="text-2xl font-semibold text-slate-900"
-                >
-                  Bokning bekräftad ✅
-                </h3>
-                <p className="text-sm text-slate-600">Tack! Du kan få bekräftelsen via SMS eller e-post.</p>
-              </div>
-              <button
-                type="button"
-                onClick={closeConfirmationModal}
-                className="rounded-full bg-slate-100 p-2 text-slate-600 transition hover:bg-slate-200"
-                aria-label="Stäng"
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Klart</p>
+              <h3
+                id="booking-confirmation-title"
+                className="text-2xl font-semibold text-slate-900"
               >
-                ✕
-              </button>
+                Bokning bekräftad ✅
+              </h3>
+              <p className="text-sm text-slate-600">Tack! Du kan få bekräftelsen via SMS eller e-post.</p>
             </div>
-            <div className="mt-4 space-y-2 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-sm text-slate-600">
-              <p>
-                <span className="font-semibold text-slate-900">Tvätt:</span>{" "}
-                {WASH_OPTIONS.find((option) => option.id === washType)?.title}
-              </p>
-              <p>
-                <span className="font-semibold text-slate-900">Doft:</span>{" "}
-                {SCENT_OPTIONS.find((option) => option.id === scent)?.label}
-              </p>
-              <p>
-                <span className="font-semibold text-slate-900">Upphämtning:</span>{" "}
-                {pickupDate ? pickupDate : "Välj datum"} {selectedPickup ? `· ${selectedPickup.label}` : ""}
-              </p>
-              <p className="text-xs text-slate-500">
-                {selectedPickup ? `${selectedPickup.start}–${selectedPickup.end}` : ""}
-              </p>
-              <p>
-                <span className="font-semibold text-slate-900">Leverans:</span>{" "}
-                {deliveryDate ? deliveryDate : "Välj datum"} {selectedDelivery ? `· ${selectedDelivery.label}` : ""}
-              </p>
-              <p className="text-xs text-slate-500">
-                {selectedDelivery ? `${selectedDelivery.start}–${selectedDelivery.end}` : ""}
-              </p>
-              <p>
-                <span className="font-semibold text-slate-900">Påse:</span>{" "}
-                {selectedBag ? selectedBag.title : "Ej vald"} · {price > 0 ? `${price} kr` : "Pris ej klart"}
-              </p>
+            <button
+              type="button"
+              onClick={closeConfirmationModal}
+              className="rounded-full bg-slate-100 p-2 text-slate-600 transition hover:bg-slate-200"
+              aria-label="Stäng"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="mt-4 space-y-2 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-sm text-slate-600">
+            <p>
+              <span className="font-semibold text-slate-900">Tvätt:</span>{" "}
+              {WASH_OPTIONS.find((option) => option.id === washType)?.title}
+            </p>
+            <p>
+              <span className="font-semibold text-slate-900">Doft:</span>{" "}
+              {SCENT_OPTIONS.find((option) => option.id === scent)?.label}
+            </p>
+            <p>
+              <span className="font-semibold text-slate-900">Upphämtning:</span>{" "}
+              {pickupDate ? pickupDate : "Välj datum"} {selectedPickup ? `· ${selectedPickup.label}` : ""}
+            </p>
+            <p className="text-xs text-slate-500">
+              {selectedPickup ? `${selectedPickup.start}–${selectedPickup.end}` : ""}
+            </p>
+            <p>
+              <span className="font-semibold text-slate-900">Leverans:</span>{" "}
+              {deliveryDate ? deliveryDate : "Välj datum"} {selectedDelivery ? `· ${selectedDelivery.label}` : ""}
+            </p>
+            <p className="text-xs text-slate-500">
+              {selectedDelivery ? `${selectedDelivery.start}–${selectedDelivery.end}` : ""}
+            </p>
+            <p>
+              <span className="font-semibold text-slate-900">Påse:</span>{" "}
+              {selectedBag ? selectedBag.title : "Ej vald"} · {price > 0 ? `${price} kr` : "Pris ej klart"}
+            </p>
+          </div>
+          <div className="mt-6 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-400">
+              Hur vill du få bekräftelsen?
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                {
+                  id: "email",
+                  label: "E-post",
+                  helper: "Får bekräftelsen i inkorgen"
+                },
+                {
+                  id: "sms",
+                  label: "SMS",
+                  helper: "Får bekräftelsen som sms"
+                }
+              ].map((option) => {
+                const isActive = confirmationChannel === option.id;
+                return (
+                  <label
+                    key={option.id}
+                    className={`flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 transition ${
+                      isActive ? "border-primary bg-primary/10 text-primary" : "border-slate-200 bg-white text-slate-600"
+                    }`}
+                  >
+                    <div>
+                      <p className="text-sm font-semibold">{option.label}</p>
+                      <p className="text-xs text-slate-500">{option.helper}</p>
+                    </div>
+                    <input
+                      type="radio"
+                      name="confirmation-channel"
+                      value={option.id}
+                      checked={confirmationChannel === option.id}
+                      onChange={() => {
+                        setConfirmationChannel(option.id);
+                        setConfirmationError("");
+                      }}
+                      className="h-4 w-4 accent-primary"
+                    />
+                  </label>
+                );
+              })}
             </div>
-            <div className="mt-6 space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-400">
-                Hur vill du få bekräftelsen?
-              </p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {[
-                  {
-                    id: "email",
-                    label: "E-post",
-                    helper: "Får bekräftelsen i inkorgen"
-                  },
-                  {
-                    id: "sms",
-                    label: "SMS",
-                    helper: "Får bekräftelsen som sms"
-                  }
-                ].map((option) => {
-                  const isActive = confirmationChannel === option.id;
-                  return (
-                    <label
-                      key={option.id}
-                      className={`flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 transition ${
-                        isActive ? "border-primary bg-primary/10 text-primary" : "border-slate-200 bg-white text-slate-600"
-                      }`}
-                    >
-                      <div>
-                        <p className="text-sm font-semibold">{option.label}</p>
-                        <p className="text-xs text-slate-500">{option.helper}</p>
-                      </div>
-                      <input
-                        type="radio"
-                        name="confirmation-channel"
-                        value={option.id}
-                        checked={confirmationChannel === option.id}
-                        onChange={() => {
-                          setConfirmationChannel(option.id);
-                          setConfirmationError("");
-                        }}
-                        className="h-4 w-4 accent-primary"
-                      />
-                    </label>
-                  );
-                })}
-              </div>
-              {confirmationChannel === "email" ? (
-                <Input
-                  label="E-postadress"
-                  id="confirmation-email"
-                  type="email"
-                  autoComplete="email"
-                  value={confirmationEmail}
-                  onChange={(event) => setConfirmationEmail(event.target.value)}
-                  placeholder="mejladress@exempel.se"
-                  required
-                  inputClassName="text-base"
-                />
-              ) : (
-                <Input
-                  label="Mobilnummer"
-                  id="confirmation-phone"
-                  type="tel"
-                  inputMode="tel"
-                  value={confirmationPhone}
-                  onChange={(event) => setConfirmationPhone(event.target.value)}
-                  placeholder="+46 70 000 00 00"
-                  required
-                  inputClassName="text-base"
-                />
-              )}
-              {confirmationError && <p className="text-sm text-red-500">{confirmationError}</p>}
-            </div>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={handleConfirmationSubmit}
-                disabled={confirmationSending}
-                className="flex-1 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {confirmationSending ? "Skickar..." : "OK"}
-              </button>
-              <button
-                type="button"
-                onClick={closeConfirmationModal}
-                className="flex-1 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400"
-              >
-                Avbryt
-              </button>
-            </div>
+            {confirmationChannel === "email" ? (
+              <Input
+                label="E-postadress"
+                id="confirmation-email"
+                type="email"
+                autoComplete="email"
+                value={confirmationEmail}
+                onChange={(event) => setConfirmationEmail(event.target.value)}
+                placeholder="mejladress@exempel.se"
+                required
+                inputClassName="text-base"
+              />
+            ) : (
+              <Input
+                label="Mobilnummer"
+                id="confirmation-phone"
+                type="tel"
+                inputMode="tel"
+                value={confirmationPhone}
+                onChange={(event) => setConfirmationPhone(event.target.value)}
+                placeholder="+46 70 000 00 00"
+                required
+                inputClassName="text-base"
+              />
+            )}
+            {confirmationError && <p className="text-sm text-red-500">{confirmationError}</p>}
+          </div>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={handleConfirmationSubmit}
+              disabled={confirmationSending}
+              className="flex-1 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {confirmationSending ? "Skickar..." : "OK"}
+            </button>
+            <button
+              type="button"
+              onClick={closeConfirmationModal}
+              className="flex-1 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400"
+            >
+              Avbryt
+            </button>
           </div>
         </div>
-      )}
+      </Modal>
     </section>
   );
 }
