@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 export default function Modal({
@@ -32,7 +33,7 @@ export default function Modal({
     return null;
   }
 
-  return (
+  return createPortal(
     <div
       className={`fixed inset-0 z-[999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm ${overlayClassName}`}
       onClick={closeOnBackdrop ? onClose : undefined}
@@ -57,6 +58,7 @@ export default function Modal({
         )}
         <div>{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
