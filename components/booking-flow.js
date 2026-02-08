@@ -351,6 +351,8 @@ export default function BookingFlow({
 
   useEffect(() => {
     if (!showConfirmationModal) return;
+    let cancelled = false;
+    let focusTimer;
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
         setShowConfirmationModal(false);
@@ -358,13 +360,24 @@ export default function BookingFlow({
       }
     };
     window.addEventListener("keydown", handleKeyDown);
-    const focusTimer = window.setTimeout(() => {
-      confirmationModalRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      confirmationModalRef.current?.focus();
-    }, 0);
+    const tryFocusModal = (attempt = 0) => {
+      if (cancelled) return;
+      if (confirmationModalRef.current) {
+        confirmationModalRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        confirmationModalRef.current.focus();
+        return;
+      }
+      if (attempt < 5) {
+        focusTimer = window.setTimeout(() => tryFocusModal(attempt + 1), 50);
+      }
+    };
+    focusTimer = window.setTimeout(() => tryFocusModal(0), 0);
     return () => {
+      cancelled = true;
       window.removeEventListener("keydown", handleKeyDown);
-      window.clearTimeout(focusTimer);
+      if (focusTimer) {
+        window.clearTimeout(focusTimer);
+      }
     };
   }, [showConfirmationModal]);
 
