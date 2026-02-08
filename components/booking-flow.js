@@ -359,6 +359,7 @@ export default function BookingFlow({
     };
     window.addEventListener("keydown", handleKeyDown);
     const focusTimer = window.setTimeout(() => {
+      confirmationModalRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       confirmationModalRef.current?.focus();
     }, 0);
     return () => {
