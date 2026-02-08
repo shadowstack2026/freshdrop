@@ -247,7 +247,6 @@ export default function BookingFlow({
   const postalTimerRef = useRef(null);
   const summaryRef = useRef(null);
   const wizardTopRef = useRef(null);
-  const confirmationRef = useRef(null);
   const confirmationModalRef = useRef(null);
   const [confirmationChannel, setConfirmationChannel] = useState("email");
   const [confirmationEmail, setConfirmationEmail] = useState(user?.email || contactInfo.email);
@@ -348,17 +347,21 @@ export default function BookingFlow({
   }, [shouldScrollSummary]);
 
   useEffect(() => {
-    if (bookingSuccess && confirmationRef.current) {
-      confirmationRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, [bookingSuccess]);
-
-  useEffect(() => {
-    if (showConfirmationModal && confirmationModalRef.current) {
-      requestAnimationFrame(() => {
-        confirmationModalRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      });
-    }
+    if (!showConfirmationModal) return;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setShowConfirmationModal(false);
+        setConfirmationError("");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    const focusTimer = window.setTimeout(() => {
+      confirmationModalRef.current?.focus();
+    }, 0);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.clearTimeout(focusTimer);
+    };
   }, [showConfirmationModal]);
 
   useEffect(() => {
@@ -1247,11 +1250,9 @@ export default function BookingFlow({
       return;
     }
     setBookingCompletionError("");
-    scrollSummaryIntoView();
     setShowSummary(false);
     setSummaryOpen(false);
     await handlePersistContact({ skipStepAdvance: true });
-    scrollToWizardTop();
   };
 
   const closeConfirmationModal = () => {
@@ -1402,7 +1403,7 @@ export default function BookingFlow({
             </>
           )}
           {bookingSuccess && (
-            <span ref={confirmationRef} className="sr-only">
+            <span role="status" className="sr-only">
               {bookingSuccess}
             </span>
           )}
@@ -1526,15 +1527,28 @@ export default function BookingFlow({
         </aside>
       </div>
       {showConfirmationModal && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 px-4 py-8 backdrop-blur-sm sm:items-center">
+        <div
+          className="fixed inset-0 z-[999] flex items-end justify-center overflow-y-auto bg-black/60 px-4 py-6 backdrop-blur-sm sm:items-center sm:py-8"
+          onClick={closeConfirmationModal}
+        >
           <div
             ref={confirmationModalRef}
-            className="w-full max-w-md transform rounded-[28px] bg-white p-5 shadow-2xl shadow-slate-900/40 transition duration-300 ease-out max-h-[80vh] overflow-y-auto scroll-mt-24 sm:max-w-lg sm:rounded-[32px] sm:p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="booking-confirmation-title"
+            tabIndex={-1}
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-md transform rounded-t-[28px] bg-white p-5 shadow-2xl shadow-slate-900/40 transition duration-300 ease-out max-h-[85vh] overflow-y-auto sm:max-w-lg sm:rounded-[32px] sm:p-6"
           >
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Klart</p>
-                <h3 className="text-2xl font-semibold text-slate-900">Bokning bekräftad ✅</h3>
+                <h3
+                  id="booking-confirmation-title"
+                  className="text-2xl font-semibold text-slate-900"
+                >
+                  Bokning bekräftad ✅
+                </h3>
                 <p className="text-sm text-slate-600">Tack! Du kan få bekräftelsen via SMS eller e-post.</p>
               </div>
               <button
