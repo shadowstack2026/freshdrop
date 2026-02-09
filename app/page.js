@@ -165,7 +165,9 @@ export default function HomePage() {
               Priser & abonnemang
             </p>
             <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-900">
-              Priser & abonnemang
+              <span className="bg-gradient-to-r from-slate-800 via-slate-900 to-teal-800 bg-clip-text text-transparent">
+                Priser & abonnemang
+              </span>
             </h2>
             <p className="text-sm md:text-base text-slate-500 max-w-2xl mx-auto">
               Välj det upplägg som passar din vardag. Alltid tydligt pris, alltid premiumkänsla.
