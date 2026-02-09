@@ -11,7 +11,7 @@ import {
   POSTAL_CODE_CITY_MAP
 } from "@/lib/allowed-postal-codes";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { CheckCircle2, ChevronDown, MapPin, XCircle } from "lucide-react";
+import { CheckCircle2, MapPin, XCircle } from "lucide-react";
 
 const TIME_SLOTS = [
   { id: "morning", label: "Morgon", emoji: "🌅", start: "08:00", end: "11:00" },
@@ -1446,25 +1446,19 @@ export default function BookingFlow({
           ref={summaryRef}
           className="space-y-4 lg:max-w-sm"
         >
-          <div className="flex flex-wrap items-center justify-between gap-3 sm:flex-nowrap">
-            <div>
-              <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Sammanfattning</p>
-              <h3 className="text-lg font-semibold text-slate-900">Ditt val</h3>
-            </div>
-            <button
-              type="button"
-              onClick={toggleSummaryAccordion}
-              className="flex items-center gap-2 text-sm font-semibold text-primary transition hover:text-primary/80"
-            >
-              <span>{summaryVisible ? "Dölj sammanfattning" : "Visa sammanfattning"}</span>
-              <ChevronDown
-                className={`h-4 w-4 transition ${summaryVisible ? "rotate-180" : "rotate-0"}`}
-                aria-hidden
-              />
-            </button>
+          <div>
+            <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Sammanfattning</p>
+            <h3 className="text-lg font-semibold text-slate-900">Ditt val</h3>
           </div>
           {summaryVisible ? (
             <Card className="space-y-3 rounded-3xl bg-white/80 p-4 shadow-lg sm:p-5">
+              <button
+                type="button"
+                onClick={toggleSummaryAccordion}
+                className="w-full min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 active:bg-slate-200 touch-manipulation"
+              >
+                Dölj sammanfattning
+              </button>
               <div className="space-y-2 text-sm text-slate-600">
                 <p>
                   <span className="font-semibold text-slate-900">Wash:</span>{" "}
@@ -1558,7 +1552,7 @@ export default function BookingFlow({
               <button
                 type="button"
                 onClick={toggleSummaryAccordion}
-                className="mt-4 w-full rounded-xl bg-sky-100 py-2.5 text-sm font-semibold text-sky-700 transition hover:bg-sky-200"
+                className="mt-4 w-full min-h-[44px] rounded-xl bg-sky-100 py-2.5 text-sm font-semibold text-sky-700 transition hover:bg-sky-200 active:bg-sky-300 touch-manipulation"
               >
                 Visa sammanfattning
               </button>
