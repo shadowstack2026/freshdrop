@@ -35,11 +35,21 @@ const config = {
         "testimonial-slide-in-prev": {
           "0%": { opacity: "0.6", transform: "translateX(-12px)" },
           "100%": { opacity: "1", transform: "translateX(0)" }
+        },
+        "step-enter-next": {
+          "0%": { opacity: "0", transform: "translateX(20px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" }
+        },
+        "step-enter-prev": {
+          "0%": { opacity: "0", transform: "translateX(-20px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" }
         }
       },
       animation: {
         "testimonial-slide": "testimonial-slide-in 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
-        "testimonial-slide-prev": "testimonial-slide-in-prev 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)"
+        "testimonial-slide-prev": "testimonial-slide-in-prev 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+        "step-enter-next": "step-enter-next 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+        "step-enter-prev": "step-enter-prev 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)"
       }
     }
   },

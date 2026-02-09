@@ -11,7 +11,7 @@ import {
   POSTAL_CODE_CITY_MAP
 } from "@/lib/allowed-postal-codes";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { CheckCircle2, ChevronDown, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronDown, MapPin, XCircle } from "lucide-react";
 
 const TIME_SLOTS = [
   { id: "morning", label: "Morgon", emoji: "🌅", start: "08:00", end: "11:00" },
@@ -244,6 +244,7 @@ export default function BookingFlow({
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [shouldScrollSummary, setShouldScrollSummary] = useState(false);
+  const [stepDirection, setStepDirection] = useState(1); // 1 = next, -1 = prev
   const [postalStatus, setPostalStatus] = useState("idle");
   const postalTimerRef = useRef(null);
   const summaryRef = useRef(null);
@@ -504,6 +505,7 @@ export default function BookingFlow({
       }
       postalTimerRef.current = setTimeout(() => {
         if (activeStepIndex === 0) {
+          setStepDirection(1);
           setActiveStepIndex((prev) => Math.min(prev + 1, stepCount - 1));
         }
         setPostalStatus("idle");
@@ -980,33 +982,40 @@ export default function BookingFlow({
     id: "city-check",
     title: "Kontroll om vi finns i din stad",
     render: () => (
-      <div className="space-y-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Steg 0</p>
-          <h3 className="text-xl font-semibold text-slate-900">Kontroll om vi finns i din stad</h3>
-          <p className="text-sm text-slate-600">
-            Ange postnummer så kollar vi att vi levererar till din adress.
-          </p>
+      <Card className="overflow-hidden border-slate-100 bg-gradient-to-br from-sky-50/80 to-white p-5 shadow-sm sm:p-6">
+        <div className="flex gap-4">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-600">
+            <MapPin className="h-6 w-6" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1 space-y-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-600">Steg 0</p>
+              <h3 className="mt-1 text-xl font-semibold text-slate-900">Kontroll om vi finns i din stad</h3>
+              <p className="mt-1 text-sm text-slate-600">
+                Ange postnummer så kollar vi att vi levererar till din adress.
+              </p>
+            </div>
+            <Input
+              label="Postnummer"
+              value={contactInfo.postalCode}
+              onChange={handlePostalChange}
+              error={postalError || (postalInvalid ? "Endast fem siffror godkänns." : undefined)}
+              helpText={
+                postalStatus === "loading"
+                  ? "Verifierar postnummer..."
+                  : "Postnummer används för zonkontroll och sparas automatiskt."
+              }
+              inputClassName={
+                postalStatus === "valid"
+                  ? "border-emerald-400 focus:border-emerald-400 focus:ring-emerald-200"
+                  : postalStatus === "invalid"
+                    ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                    : ""
+              }
+            />
+          </div>
         </div>
-        <Input
-          label="Postnummer"
-          value={contactInfo.postalCode}
-          onChange={handlePostalChange}
-          error={postalError || (postalInvalid ? "Endast fem siffror godkänns." : undefined)}
-          helpText={
-            postalStatus === "loading"
-              ? "Verifierar postnummer..."
-              : "Postnummer används för zonkontroll och sparas automatiskt."
-          }
-          inputClassName={
-            postalStatus === "valid"
-              ? "border-emerald-400 focus:border-emerald-400 focus:ring-emerald-200"
-              : postalStatus === "invalid"
-                ? "border-red-500 focus:border-red-500 focus:ring-red-200"
-                : ""
-          }
-        />
-      </div>
+      </Card>
     ),
     isComplete: () => isServiceAreaValid
   };
@@ -1230,6 +1239,7 @@ export default function BookingFlow({
       scrollSummaryIntoView();
       return;
     }
+    setStepDirection(1);
     setActiveStepIndex((prev) => Math.min(prev + 1, totalSteps - 1));
     scrollToWizardTop();
   };
@@ -1307,6 +1317,7 @@ export default function BookingFlow({
     setBookingSuccess("");
     setBookingCompletionError("");
     if (activeStepIndex === 0) return;
+    setStepDirection(-1);
     setActiveStepIndex((prev) => Math.max(prev - 1, 0));
     scrollToWizardTop();
   };
@@ -1358,21 +1369,29 @@ export default function BookingFlow({
         className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between"
       >
         <div>
-          <p className="text-[10px] uppercase tracking-[0.4em] text-slate-400 sm:text-xs">
+          <span className="inline-flex items-center rounded-full bg-sky-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.35em] text-sky-600 sm:text-xs">
             Steg {stepLabelNumber} av {stepLabelTotal}
-          </p>
-          <h2 className="text-2xl font-semibold text-slate-900 sm:text-[2.25rem]">
-            Bygg din FreshDrop-upplevelse
+          </span>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 sm:text-[2.25rem]">
+            <span className="bg-gradient-to-r from-slate-800 to-slate-900 bg-clip-text text-transparent">
+              Bygg din FreshDrop-upplevelse
+            </span>
           </h2>
         </div>
         <div className="text-xs font-semibold text-slate-600 sm:text-sm">
-          {price > 0 ? `Livepris: ${price} kr` : "Välj påse för pris"}
+          {price > 0 ? (
+            <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-emerald-700">
+              Livepris: {price} kr
+            </span>
+          ) : (
+            "Välj påse för pris"
+          )}
         </div>
       </div>
 
-      <div className="mt-4 h-2 w-full rounded-full bg-slate-200 sm:mt-5">
+      <div className="mt-5 h-2.5 w-full overflow-hidden rounded-full bg-slate-100 sm:mt-6">
         <div
-          className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
+          className="h-full rounded-full bg-gradient-to-r from-sky-400 to-primary shadow-[0_0_12px_rgba(56,189,248,0.4)] transition-[width] duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]"
           style={{ width: `${progressPercent}%` }}
         />
       </div>
@@ -1391,7 +1410,14 @@ export default function BookingFlow({
                       : "opacity-0 translate-y-4 max-h-0 pointer-events-none lg:absolute lg:inset-0 lg:z-0 lg:opacity-0 lg:translate-y-4"
                   } lg:absolute lg:inset-0 lg:overflow-visible`}
                 >
-                  {step.render()}
+                  {isActive && (
+                    <div
+                      key={activeStepIndex}
+                      className={stepDirection === 1 ? "animate-step-enter-next" : "animate-step-enter-prev"}
+                    >
+                      {step.render()}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -1525,10 +1551,17 @@ export default function BookingFlow({
               </div>
             </Card>
           ) : (
-            <Card className="rounded-3xl bg-white/80 p-4 shadow-lg sm:p-5">
-              <p className="text-sm text-slate-600">
-                När du fyllt i stegen kan du öppna sammanfattningen, trycka på ”Boka” och få bekräftelsen direkt.
+            <Card className="rounded-3xl border-slate-100 bg-gradient-to-b from-sky-50/50 to-white p-5 shadow-sm sm:p-6">
+              <p className="text-sm leading-relaxed text-slate-600">
+                När du fyllt i stegen kan du öppna sammanfattningen, trycka på &quot;Boka&quot; och få bekräftelsen direkt.
               </p>
+              <button
+                type="button"
+                onClick={toggleSummaryAccordion}
+                className="mt-4 w-full rounded-xl bg-sky-100 py-2.5 text-sm font-semibold text-sky-700 transition hover:bg-sky-200"
+              >
+                Visa sammanfattning
+              </button>
             </Card>
           )}
         </aside>
