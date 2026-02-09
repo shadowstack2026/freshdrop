@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Droplets, User, LogIn, LogOut } from "lucide-react";
+import { User, LogIn, LogOut } from "lucide-react";
+import Logo from "@/components/logo";
 import { useEffect, useRef, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
@@ -129,10 +130,7 @@ export default function NavBar() {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur-md">
       <nav className="container flex flex-wrap items-center justify-between gap-4 py-3">
-        <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-          <Droplets className="h-8 w-8 text-primary" />
-          <span>FreshDrop</span>
-        </Link>
+        <Logo href="/" showText={false} logoSize={56} />
         <div className="order-3 w-full flex items-center justify-center gap-3 text-sm font-semibold text-slate-700 sm:gap-4 md:order-2 md:w-auto md:gap-6">
           {navLinks.map((link) => {
             if (link.type === "link") {

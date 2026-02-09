@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, X } from "lucide-react";
+import { ArrowRight, CheckCircle2, X, HelpCircle, Plus, Minus } from "lucide-react";
 import Testimonials from "@/components/testimonials";
 import HowItWorksSection from "@/components/how-it-works";
 import BookingFlow from "@/components/booking-flow";
+import FaqSection from "@/components/faq-section";
 import Card from "@/components/ui/card";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -164,7 +165,9 @@ export default function HomePage() {
               Priser & abonnemang
             </p>
             <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-900">
-              Priser & abonnemang
+              <span className="bg-gradient-to-r from-slate-800 via-slate-900 to-teal-800 bg-clip-text text-transparent">
+                Priser & abonnemang
+              </span>
             </h2>
             <p className="text-sm md:text-base text-slate-500 max-w-2xl mx-auto">
               Välj det upplägg som passar din vardag. Alltid tydligt pris, alltid premiumkänsla.
@@ -306,62 +309,8 @@ export default function HomePage() {
       {/* Testimonials Section */}
       <Testimonials />
 
-      {/* FAQ / Contact Section */}
-      <section id="fragor-kontakt" className="bg-slate-50 border-t py-16 md:py-24">
-        <div className="container space-y-12">
-          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-center text-slate-900 mb-10">
-            Frågor & Kontakt
-          </h2>
-          <div className="grid gap-10 md:grid-cols-3">
-            <Card className="bg-white border-none shadow-md p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-3">
-                Pris och betalning
-              </h3>
-              <p className="text-sm text-slate-700 leading-relaxed">
-                Du anger en uppskattad vikt när du bokar, så beräknar vi ett
-                preliminärt pris. Slutligt pris baseras på uppmätt vikt vid
-                tvätt. All betalning sker via säker kassa med Stripe.
-              </p>
-            </Card>
-            <Card className="bg-white border-none shadow-md p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-3">
-                Vanliga frågor
-              </h3>
-              <ul className="mt-2 space-y-2 text-sm text-slate-700 leading-relaxed">
-                <li>
-                  <span className="font-medium">
-                    Vad händer om vikten skiljer sig?
-                  </span>
-                  <br />
-                  Priset justeras efter faktisk vikt, men alltid med samma
-                  kilopris.
-                </li>
-                <li>
-                  <span className="font-medium">
-                    Måste jag skapa konto?
-                  </span>
-                  <br />
-                  Nej, du kan boka som gäst med e-post. Skapar du konto senare
-                  med samma e-post kopplas dina tidigare beställningar.
-                </li>
-              </ul>
-            </Card>
-            <Card className="bg-white border-none shadow-md p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-3">
-                Kontakt
-              </h3>
-              <p className="text-sm text-slate-700 leading-relaxed">
-                Har du frågor om din bokning eller vill du göra ändringar?
-                Kontakta oss på{" "}
-                <a href="mailto:kontakt@freshdrop.se">
-                  kontakt@freshdrop.se
-                </a>
-                .
-              </p>
-            </Card>
-          </div>
-        </div>
-      </section>
+      {/* Vanliga frågor – accordion (inspirerad av referens, FreshDrop-tema) */}
+      <FaqSection />
 
       {authModalOpen && (
         <div
