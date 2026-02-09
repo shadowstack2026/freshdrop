@@ -11,7 +11,7 @@ import {
   POSTAL_CODE_CITY_MAP
 } from "@/lib/allowed-postal-codes";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { CheckCircle2, MapPin, XCircle } from "lucide-react";
+import { CalendarClock, CheckCircle2, MapPin, Package, Shirt, Sparkles, UserCircle, XCircle } from "lucide-react";
 
 const TIME_SLOTS = [
   { id: "morning", label: "Morgon", emoji: "🌅", start: "08:00", end: "11:00" },
@@ -559,18 +559,19 @@ export default function BookingFlow({
       id: "wash",
       title: "Välj typ av tvätt",
       render: () => (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                Steg {getBaseStepNumber(0)}
-              </p>
-              <h3 className="text-xl font-semibold text-slate-900">Välj typ av tvätt</h3>
-              <p className="text-sm text-slate-600">Grovtvätt eller vardagstvätt – välj en stil som matchar dina plagg.</p>
+        <Card className="overflow-hidden border-slate-100 bg-gradient-to-br from-sky-50/80 to-white p-5 shadow-sm transition-shadow duration-300 hover:shadow-md sm:p-6">
+          <div className="flex gap-4">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-600">
+              <Shirt className="h-6 w-6" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-600">Steg {getBaseStepNumber(0)}</p>
+              <h3 className="mt-1 text-xl font-semibold text-slate-900">Välj typ av tvätt</h3>
+              <p className="mt-1 text-sm text-slate-600">Grovtvätt eller vardagstvätt – välj en stil som matchar dina plagg.</p>
+              <p className="mt-2 text-xs font-medium text-slate-500">Endast ett val åt gången</p>
             </div>
-            <span className="text-xs font-medium text-slate-500">Endast ett val åt gången</span>
           </div>
-          <div className="grid gap-4 grid-cols-1">
+          <div className="mt-6 grid gap-4 grid-cols-1">
             {WASH_OPTIONS.map((option) => {
               const isSelected = washType === option.id;
               return (
@@ -580,7 +581,7 @@ export default function BookingFlow({
                   onClick={() => {
                     setWashType(option.id);
                   }}
-                  className={`group relative flex flex-col gap-4 rounded-[28px] border border-slate-200 bg-white/80 p-4 text-left transition duration-300 sm:p-5 ${
+                  className={`group relative flex flex-col gap-4 rounded-[28px] border border-slate-200 bg-white/80 p-4 text-left transition duration-300 touch-manipulation active:scale-[0.99] sm:p-5 ${
                     isSelected
                       ? "border-primary/80 bg-primary/10 shadow-[0_0_25px_rgba(56,189,248,0.25)]"
                       : "hover:border-primary/50 hover:shadow-lg"
@@ -628,7 +629,7 @@ export default function BookingFlow({
               );
             })}
           </div>
-        </div>
+        </Card>
       ),
       isComplete: () => Boolean(washType)
     },
@@ -636,18 +637,19 @@ export default function BookingFlow({
       id: "scent",
       title: "Välj doft",
       render: () => (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                Steg {getBaseStepNumber(1)}
-              </p>
-              <h3 className="text-xl font-semibold text-slate-900">Välj doft</h3>
-              <p className="text-sm text-slate-600">Färgade kort för en tillfredsställande känsla.</p>
+        <Card className="overflow-hidden border-slate-100 bg-gradient-to-br from-sky-50/80 to-white p-5 shadow-sm transition-shadow duration-300 hover:shadow-md sm:p-6">
+          <div className="flex gap-4">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-600">
+              <Sparkles className="h-6 w-6" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-600">Steg {getBaseStepNumber(1)}</p>
+              <h3 className="mt-1 text-xl font-semibold text-slate-900">Välj doft</h3>
+              <p className="mt-1 text-sm text-slate-600">Färgade kort för en tillfredsställande känsla.</p>
+              <p className="mt-2 text-xs font-medium text-slate-500">Doften appliceras på hela tvätten</p>
             </div>
-            <span className="text-xs font-medium text-slate-500">Doften appliceras på hela tvätten</span>
           </div>
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+          <div className="mt-6 grid gap-3 grid-cols-1 sm:grid-cols-2">
             {SCENT_OPTIONS.map((option) => {
               const isActive = scent === option.id;
               const isNeutral = option.id === "doftfri";
@@ -681,7 +683,7 @@ export default function BookingFlow({
               );
             })}
           </div>
-        </div>
+        </Card>
       ),
       isComplete: () => Boolean(scent)
     },
@@ -689,19 +691,20 @@ export default function BookingFlow({
       id: "pickup",
       title: "Upphämtning & leverans",
       render: () => (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                Steg {getBaseStepNumber(2)}
-              </p>
-              <h3 className="text-xl font-semibold text-slate-900">Upphämtning & leverans</h3>
-              <p className="text-sm text-slate-600">
+        <Card className="overflow-hidden border-slate-100 bg-gradient-to-br from-sky-50/80 to-white p-5 shadow-sm transition-shadow duration-300 hover:shadow-md sm:p-6">
+          <div className="flex gap-4">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-600">
+              <CalendarClock className="h-6 w-6" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-600">Steg {getBaseStepNumber(2)}</p>
+              <h3 className="mt-1 text-xl font-semibold text-slate-900">Upphämtning & leverans</h3>
+              <p className="mt-1 text-sm text-slate-600">
                 Välj datum och tider för upphämtning och leverans i samma steg.
               </p>
             </div>
           </div>
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="mt-6 grid gap-6 md:grid-cols-2">
             <DateSelectionCard
               title="Upphämtning"
               dateValue={pickupDate}
@@ -718,10 +721,10 @@ export default function BookingFlow({
               minDateOverride={minDeliveryDate}
             />
           </div>
-          <p className="text-sm text-slate-600">
+          <p className="mt-4 text-sm text-slate-600">
             Leverans sker till din dörr – rent, vikt och klart inom 48 timmar efter upphämtning.
           </p>
-        </div>
+        </Card>
       ),
       isComplete: () => Boolean(pickupDate && pickupSlot && deliveryDate && deliverySlot)
     },
@@ -729,19 +732,20 @@ export default function BookingFlow({
       id: "bag-size",
       title: "Välj påse",
       render: () => (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
-                Steg {getBaseStepNumber(3)}
-              </p>
-              <h3 className="text-xl font-semibold text-slate-900">Välj påse</h3>
-              <p className="text-sm text-slate-600">
+        <Card className="overflow-hidden border-slate-100 bg-gradient-to-br from-sky-50/80 to-white p-5 shadow-sm transition-shadow duration-300 hover:shadow-md sm:p-6">
+          <div className="flex gap-4">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-600">
+              <Package className="h-6 w-6" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-600">Steg {getBaseStepNumber(3)}</p>
+              <h3 className="mt-1 text-xl font-semibold text-slate-900">Välj påse</h3>
+              <p className="mt-1 text-sm text-slate-600">
                 Välj den påse som passar din tvättmängd bäst.
               </p>
             </div>
           </div>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
             {BAG_OPTIONS.map((option) => {
               const isSelected = bagSize === option.id;
               return (
@@ -749,7 +753,7 @@ export default function BookingFlow({
                   key={option.id}
                   type="button"
                   onClick={() => setBagSize(option.id)}
-                  className={`group flex h-full flex-col items-start gap-3 rounded-[28px] border bg-white/90 p-4 text-left transition duration-200 ${
+                  className={`group flex h-full min-h-[120px] flex-col items-start gap-3 rounded-[28px] border bg-white/90 p-4 text-left transition duration-200 touch-manipulation active:scale-[0.99] ${
                     isSelected
                       ? "border-primary bg-primary/10 shadow-[0_20px_35px_rgba(56,189,248,0.25)]"
                       : "border-slate-200 hover:border-primary/50 hover:shadow-lg"
@@ -767,7 +771,7 @@ export default function BookingFlow({
               );
             })}
           </div>
-        </div>
+        </Card>
       ),
       isComplete: () => Boolean(bagSize)
     }
@@ -936,7 +940,7 @@ export default function BookingFlow({
                   type="button"
                   disabled={isDisabled}
                   onClick={() => onDateChange(toISO(dayDate))}
-                  className={`h-9 rounded-xl text-sm font-semibold transition ${
+                  className={`min-h-[40px] rounded-xl text-sm font-semibold transition touch-manipulation active:scale-95 ${
                     isSelected
                       ? "bg-primary text-white shadow-lg shadow-primary/20"
                       : "bg-slate-50 text-slate-700 hover:bg-primary/10"
@@ -962,7 +966,7 @@ export default function BookingFlow({
                 type="button"
                 disabled={isDisabled}
                 onClick={() => onSlotChange(slot.id)}
-                className={`flex h-12 items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition duration-200 ${
+                className={`flex h-12 min-h-[44px] items-center justify-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition duration-200 touch-manipulation active:scale-[0.98] ${
                   isActive
                     ? "border-primary bg-primary/10 text-primary shadow-lg shadow-primary/20"
                     : "border-slate-200 bg-white text-slate-600 hover:border-primary/40 hover:shadow-sm"
@@ -1024,30 +1028,35 @@ export default function BookingFlow({
     id: "contact",
     title: "Information",
     render: () => (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Steg 1</p>
+      <Card className="overflow-hidden border-slate-100 bg-gradient-to-br from-sky-50/80 to-white p-5 shadow-sm transition-shadow duration-300 hover:shadow-md sm:p-6">
+        <div className="flex gap-4">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-600">
+            <UserCircle className="h-6 w-6" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1 space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-600">Steg 1</p>
             <h3 className="text-xl font-semibold text-slate-900">Information</h3>
             <p className="text-sm text-slate-600">
               Ange kontaktuppgifter som vi sparar i {user ? "din profil" : "Gästlistan"}.
             </p>
           </div>
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
           <Input
             label="Förnamn"
             value={contactInfo.firstName}
             onChange={handleContactChange("firstName")}
             required
+            inputClassName="rounded-xl transition-shadow duration-200 focus:shadow-md focus:shadow-primary/10"
           />
           <Input
             label="Efternamn"
             value={contactInfo.lastName}
             onChange={handleContactChange("lastName")}
             required
+            inputClassName="rounded-xl transition-shadow duration-200 focus:shadow-md focus:shadow-primary/10"
           />
-          <div className="relative space-y-1">
+          <div className="relative space-y-1 md:col-span-2">
             <label htmlFor="address-input" className="block text-xs font-medium text-slate-700">
               Adress<span className="text-red-500"> *</span>
             </label>
@@ -1066,7 +1075,7 @@ export default function BookingFlow({
                 }, 150);
               }}
               placeholder="Gata och nummer"
-              className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
+              className="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 transition-shadow duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:shadow-md focus:shadow-primary/10"
               required
               autoComplete="street-address"
             />
@@ -1084,7 +1093,7 @@ export default function BookingFlow({
                         type="button"
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={() => handleAddressSelect(suggestion)}
-                        className="flex w-full flex-col gap-1 px-4 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                        className="flex w-full flex-col gap-1 px-4 py-2.5 text-left text-sm text-slate-700 transition hover:bg-sky-50"
                       >
                         <span className="font-semibold text-slate-900">{suggestion.address}</span>
                         <span className="text-xs text-slate-500">{suggestion.city}</span>
@@ -1104,12 +1113,14 @@ export default function BookingFlow({
             label="Adressrad 2 (frivillig)"
             value={contactInfo.address2}
             onChange={handleContactChange("address2")}
+            inputClassName="rounded-xl transition-shadow duration-200 focus:shadow-md focus:shadow-primary/10"
           />
           <Input
             label="Stad"
             value={contactInfo.city}
             onChange={handleCityChange}
             required
+            inputClassName="rounded-xl transition-shadow duration-200 focus:shadow-md focus:shadow-primary/10"
           />
           <Input
             label="Telefonnummer"
@@ -1117,6 +1128,7 @@ export default function BookingFlow({
             onChange={handlePhoneChange}
             error={phoneError}
             placeholder="+46 70 000 00 00"
+            inputClassName="rounded-xl transition-shadow duration-200 focus:shadow-md focus:shadow-primary/10"
           />
           <Input
             label="E-post"
@@ -1125,15 +1137,20 @@ export default function BookingFlow({
             onChange={handleEmailChange}
             helpText={Boolean(user?.email) ? "Låst från inloggningen" : undefined}
             error={emailError}
+            inputClassName="rounded-xl transition-shadow duration-200 focus:shadow-md focus:shadow-primary/10"
           />
         </div>
         {contactTouched && contactMethodError && (
-          <p className="text-xs font-semibold text-amber-600">
+          <p className="mt-4 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
             {contactMethodError}
           </p>
         )}
-        {contactError && <p className="text-xs text-red-500">{contactError}</p>}
-      </div>
+        {contactError && (
+          <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">
+            {contactError}
+          </p>
+        )}
+      </Card>
     ),
     isComplete: () => contactInputsValid
   };
@@ -1330,7 +1347,7 @@ export default function BookingFlow({
         type="button"
         onClick={handleBack}
         disabled={activeStepIndex === 0}
-        className="w-full rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full min-h-[44px] rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400 active:bg-slate-100 touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Tillbaka
       </button>
@@ -1338,9 +1355,9 @@ export default function BookingFlow({
         type="button"
         onClick={handleNext}
         disabled={!canProceed}
-        className={`w-full rounded-full px-5 py-3 text-sm font-semibold text-white transition ${
+        className={`w-full min-h-[44px] rounded-full px-5 py-3 text-sm font-semibold text-white transition touch-manipulation ${
           canProceed
-            ? "bg-primary hover:bg-sky-500"
+            ? "bg-primary hover:bg-sky-500 active:bg-sky-600"
             : "bg-slate-200 text-slate-500 cursor-not-allowed"
         }`}
       >
