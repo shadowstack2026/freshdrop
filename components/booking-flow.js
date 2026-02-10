@@ -202,8 +202,8 @@ export default function BookingFlow({
     Boolean(profile?.postal_code);
 
   const [activeStepIndex, setActiveStepIndex] = useState(showContactStep ? 0 : 0);
-  const [washType, setWashType] = useState(WASH_OPTIONS[0].id);
-  const [scent, setScent] = useState(SCENT_OPTIONS[0].id);
+  const [washType, setWashType] = useState("");
+  const [scent, setScent] = useState("");
   const [bagSize, setBagSize] = useState("");
   const [pickupDate, setPickupDate] = useState("");
   const [pickupSlot, setPickupSlot] = useState(TIME_SLOTS[0].id);
@@ -1479,19 +1479,19 @@ export default function BookingFlow({
               <div className="space-y-2 text-sm text-slate-600">
                 <p>
                   <span className="font-semibold text-slate-900">Wash:</span>{" "}
-                  {WASH_OPTIONS.find((option) => option.id === washType)?.title}
+                  {washType ? WASH_OPTIONS.find((option) => option.id === washType)?.title : "Ej vald"}
                 </p>
                 <p>
                   <span className="font-semibold text-slate-900">Doft:</span>{" "}
-                  {SCENT_OPTIONS.find((option) => option.id === scent)?.label}
+                  {scent ? SCENT_OPTIONS.find((option) => option.id === scent)?.label : "Ej vald"}
                 </p>
                 <p>
                   <span className="font-semibold text-slate-900">Upphämtning:</span>{" "}
-                  {pickupDate ? pickupDate : "Välj datum"} {selectedPickup ? `· ${selectedPickup.label}` : ""}
+                  {pickupDate && selectedPickup ? `${pickupDate} · ${selectedPickup.label}` : "Ej valt"}
                 </p>
                 <p>
                   <span className="font-semibold text-slate-900">Leverans:</span>{" "}
-                  {deliveryDate ? deliveryDate : "Välj datum"} {selectedDelivery ? `· ${selectedDelivery.label}` : ""}
+                  {deliveryDate && selectedDelivery ? `${deliveryDate} · ${selectedDelivery.label}` : "Ej valt"}
                 </p>
                 {showContactStep && (
                   <>
@@ -1613,26 +1613,30 @@ export default function BookingFlow({
           <div className="mt-4 space-y-2 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-sm text-slate-600">
             <p>
               <span className="font-semibold text-slate-900">Tvätt:</span>{" "}
-              {WASH_OPTIONS.find((option) => option.id === washType)?.title}
+              {washType ? WASH_OPTIONS.find((option) => option.id === washType)?.title : "Ej vald"}
             </p>
             <p>
               <span className="font-semibold text-slate-900">Doft:</span>{" "}
-              {SCENT_OPTIONS.find((option) => option.id === scent)?.label}
+              {scent ? SCENT_OPTIONS.find((option) => option.id === scent)?.label : "Ej vald"}
             </p>
             <p>
               <span className="font-semibold text-slate-900">Upphämtning:</span>{" "}
-              {pickupDate ? pickupDate : "Välj datum"} {selectedPickup ? `· ${selectedPickup.label}` : ""}
+              {pickupDate && selectedPickup ? `${pickupDate} · ${selectedPickup.label}` : "Ej valt"}
             </p>
-            <p className="text-xs text-slate-500">
-              {selectedPickup ? `${selectedPickup.start}–${selectedPickup.end}` : ""}
-            </p>
+            {pickupDate && selectedPickup && (
+              <p className="text-xs text-slate-500">
+                {selectedPickup.start}–{selectedPickup.end}
+              </p>
+            )}
             <p>
               <span className="font-semibold text-slate-900">Leverans:</span>{" "}
-              {deliveryDate ? deliveryDate : "Välj datum"} {selectedDelivery ? `· ${selectedDelivery.label}` : ""}
+              {deliveryDate && selectedDelivery ? `${deliveryDate} · ${selectedDelivery.label}` : "Ej valt"}
             </p>
-            <p className="text-xs text-slate-500">
-              {selectedDelivery ? `${selectedDelivery.start}–${selectedDelivery.end}` : ""}
-            </p>
+            {deliveryDate && selectedDelivery && (
+              <p className="text-xs text-slate-500">
+                {selectedDelivery.start}–{selectedDelivery.end}
+              </p>
+            )}
             <p>
               <span className="font-semibold text-slate-900">Påse:</span>{" "}
               {selectedBag ? selectedBag.title : "Ej vald"} · {price > 0 ? `${price} kr` : "Pris ej klart"}
