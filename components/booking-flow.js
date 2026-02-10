@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Input from "@/components/ui/input";
 import Card from "@/components/ui/card";
@@ -200,8 +201,9 @@ export default function BookingFlow({
     Boolean(profile?.full_name) &&
     Boolean(profile?.address_line1) &&
     Boolean(profile?.postal_code);
+  const isLoggedInFlow = Boolean(showContactStep && profile && profileHasBasics);
 
-  const [activeStepIndex, setActiveStepIndex] = useState(showContactStep ? 0 : 0);
+  const [activeStepIndex, setActiveStepIndex] = useState(showContactStep && !isLoggedInFlow ? 0 : 0);
   const [washType, setWashType] = useState("");
   const [scent, setScent] = useState("");
   const [bagSize, setBagSize] = useState("");
@@ -272,9 +274,9 @@ export default function BookingFlow({
         email: user?.email || ""
       });
       setContactSaved(true);
-    setActiveStepIndex(2);
+      setActiveStepIndex(isLoggedInFlow ? 0 : 2);
     }
-  }, [showContactStep, profileHasBasics]);
+  }, [showContactStep, profileHasBasics, isLoggedInFlow]);
 
   useEffect(() => {
     const nextNameParts = parseFullName(profile?.full_name || "");
@@ -289,6 +291,24 @@ export default function BookingFlow({
       email: user?.email || prev.email
     }));
   }, [profile, user]);
+
+  useEffect(() => {
+    if (!isLoggedInFlow || !profile?.postal_code) return;
+    const normalized = normalizePostalCode(profile.postal_code);
+    if (!POSTAL_CODE_REGEX.test(normalized) || !ALLOWED_POSTAL_CODES.has(normalized)) return;
+    let cancelled = false;
+    fetchCityFromPostal(normalized)
+      .then((result) => {
+        if (cancelled) return;
+        setPostalLookup({
+          city: result?.city || "",
+          municipality: result?.municipality || "",
+          allowed: true
+        });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [isLoggedInFlow, profile?.postal_code]);
 
   useEffect(() => {
     setConfirmationEmail(contactInfo.email || user?.email || "");
@@ -551,8 +571,8 @@ export default function BookingFlow({
     setPostalError("Endast fem siffror godkänns.");
   };
 
-  const stepCount = showContactStep ? 6 : 4;
-  const baseStepOffset = showContactStep ? 2 : 1;
+  const stepCount = isLoggedInFlow ? 4 : showContactStep ? 6 : 4;
+  const baseStepOffset = isLoggedInFlow ? 0 : showContactStep ? 2 : 1;
   const getBaseStepNumber = (index) => index + baseStepOffset;
   const baseSteps = [
     {
@@ -1155,18 +1175,26 @@ export default function BookingFlow({
     isComplete: () => contactInputsValid
   };
 
-  const steps = showContactStep ? [cityCheckStep, contactStep, ...baseSteps] : baseSteps;
+  const steps = isLoggedInFlow
+    ? baseSteps
+    : showContactStep
+      ? [cityCheckStep, contactStep, ...baseSteps]
+      : baseSteps;
   const totalSteps = steps.length;
   const missingBookingFields = getMissingBookingFields();
   const isBookingComplete = missingBookingFields.length === 0;
   const bookingHelperText = "Fyll i alla steg för att kunna bekräfta.";
   const currentStep = steps[activeStepIndex];
-  const progressStepCount = showContactStep ? baseSteps.length + 1 : baseSteps.length;
-  const progressStepIndex = showContactStep
-    ? Math.min(Math.max(activeStepIndex, 0), progressStepCount)
-    : Math.min(activeStepIndex + 1, progressStepCount);
-  const progressPercent = Math.min(100, (progressStepIndex / progressStepCount) * 100);
-  const stepLabelNumber = showContactStep ? activeStepIndex : activeStepIndex + 1;
+  const progressStepCount = isLoggedInFlow ? 4 : showContactStep ? baseSteps.length + 1 : baseSteps.length;
+  const progressStepIndex = isLoggedInFlow
+    ? activeStepIndex
+    : showContactStep
+      ? Math.min(Math.max(activeStepIndex, 0), progressStepCount)
+      : Math.min(activeStepIndex + 1, progressStepCount);
+  const progressPercent = isLoggedInFlow
+    ? Math.min(100, (progressStepIndex / Math.max(1, progressStepCount - 1)) * 100)
+    : Math.min(100, (progressStepIndex / progressStepCount) * 100);
+  const stepLabelNumber = isLoggedInFlow ? activeStepIndex : showContactStep ? activeStepIndex : activeStepIndex + 1;
   const stepLabelTotal = progressStepCount;
 
   useEffect(() => {
@@ -1304,9 +1332,54 @@ export default function BookingFlow({
       estimated_delivery: deliveryEstimate || null
     };
 
+    let orderIdForHistory = null;
+
+    if (user) {
+      const pickupWindow = selectedPickup
+        ? `${selectedPickup.start}-${selectedPickup.end}`
+        : "";
+      const deliveryEstimateAt =
+        pickupDate && selectedPickup
+          ? addHours(new Date(`${pickupDate}T${selectedPickup.start}:00`), 48).toISOString()
+          : null;
+      const estimatedWeightKg = price > 0 ? Math.max(1, Math.round(price / 60)) : 1;
+      const customerName = `${(contactInfo.firstName || "").trim()} ${(contactInfo.lastName || "").trim()}`.trim() || "Kund";
+      const customerEmail = (contactInfo.email || "").trim() || user?.email || "";
+
+      const { data: newOrder, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          user_id: user.id,
+          guest_lead_id: null,
+          customer_email: customerEmail || null,
+          customer_name: customerName,
+          customer_phone: (contactInfo.phone || "").trim() || null,
+          address_line1: (contactInfo.address || "").trim() || "",
+          address_line2: (contactInfo.address2 || "").trim() || null,
+          postal_code: normalizePostalCode(contactInfo.postalCode) || "",
+          city: (contactInfo.city || "").trim() || "",
+          pickup_date: pickupDate,
+          pickup_window: pickupWindow,
+          estimated_weight_kg: estimatedWeightKg,
+          price_per_kg: 60,
+          estimated_total_price: price,
+          delivery_estimate_at: deliveryEstimateAt,
+          status: "MOTTAGEN",
+          payment_status: "unpaid"
+        })
+        .select("id")
+        .single();
+
+      if (orderError) {
+        console.error("orders insert failed:", orderError);
+      } else if (newOrder?.id) {
+        orderIdForHistory = newOrder.id;
+      }
+    }
+
     try {
       await supabase.rpc("add_order_status_history", {
-        p_order_id: null,
+        p_order_id: orderIdForHistory,
         p_status: "booking_confirmed",
         p_details: detailsPayload
       });
@@ -1368,7 +1441,7 @@ export default function BookingFlow({
   };
 
   const summaryVisible = showSummary || summaryOpen;
-  const showNavigationButtons = activeStepIndex > 0;
+  const showNavigationButtons = totalSteps > 0;
   const renderNavigationButtons = (className, style) => (
     <div className={`relative z-30 ${className}`} style={style}>
       <button
@@ -1618,146 +1691,195 @@ export default function BookingFlow({
           aria-labelledby="booking-confirmation-title"
           tabIndex={-1}
         >
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Klart</p>
-              <h3
-                id="booking-confirmation-title"
-                className="text-2xl font-semibold text-slate-900"
-              >
-                Bokning bekräftad ✅
-              </h3>
-              <p className="text-sm text-slate-600">Tack! Du kan få bekräftelsen via SMS eller e-post.</p>
-            </div>
-            <button
-              type="button"
-              onClick={closeConfirmationModal}
-              className="rounded-full bg-slate-100 p-2 text-slate-600 transition hover:bg-slate-200"
-              aria-label="Stäng"
-            >
-              ✕
-            </button>
-          </div>
-          <div className="mt-4 space-y-2 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-sm text-slate-600">
-            <p>
-              <span className="font-semibold text-slate-900">Tvätt:</span>{" "}
-              {washType ? WASH_OPTIONS.find((option) => option.id === washType)?.title : "Ej vald"}
-            </p>
-            <p>
-              <span className="font-semibold text-slate-900">Doft:</span>{" "}
-              {scent ? SCENT_OPTIONS.find((option) => option.id === scent)?.label : "Ej vald"}
-            </p>
-            <p>
-              <span className="font-semibold text-slate-900">Upphämtning:</span>{" "}
-              {pickupDate && selectedPickup ? `${pickupDate} · ${selectedPickup.label}` : "Ej valt"}
-            </p>
-            {pickupDate && selectedPickup && (
-              <p className="text-xs text-slate-500">
-                {selectedPickup.start}–{selectedPickup.end}
-              </p>
-            )}
-            <p>
-              <span className="font-semibold text-slate-900">Leverans:</span>{" "}
-              {deliveryDate && selectedDelivery ? `${deliveryDate} · ${selectedDelivery.label}` : "Ej valt"}
-            </p>
-            {deliveryDate && selectedDelivery && (
-              <p className="text-xs text-slate-500">
-                {selectedDelivery.start}–{selectedDelivery.end}
-              </p>
-            )}
-            <p>
-              <span className="font-semibold text-slate-900">Påse:</span>{" "}
-              {selectedBag ? selectedBag.title : "Ej vald"} · {price > 0 ? `${price} kr` : "Pris ej klart"}
-            </p>
-          </div>
-          <div className="mt-6 space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-400">
-              Hur vill du få bekräftelsen?
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {[
-                {
-                  id: "email",
-                  label: "E-post",
-                  helper: "Får bekräftelsen i inkorgen"
-                },
-                {
-                  id: "sms",
-                  label: "SMS",
-                  helper: "Får bekräftelsen som sms"
-                }
-              ].map((option) => {
-                const isActive = confirmationChannel === option.id;
-                return (
-                  <label
-                    key={option.id}
-                    className={`flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 transition ${
-                      isActive ? "border-primary bg-primary/10 text-primary" : "border-slate-200 bg-white text-slate-600"
-                    }`}
+          {user ? (
+            <>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Klart</p>
+                  <h3
+                    id="booking-confirmation-title"
+                    className="text-2xl font-semibold text-slate-900"
                   >
-                    <div>
-                      <p className="text-sm font-semibold">{option.label}</p>
-                      <p className="text-xs text-slate-500">{option.helper}</p>
-                    </div>
-                    <input
-                      type="radio"
-                      name="confirmation-channel"
-                      value={option.id}
-                      checked={confirmationChannel === option.id}
-                      onChange={() => {
-                        setConfirmationChannel(option.id);
-                        setConfirmationError("");
-                      }}
-                      className="h-4 w-4 accent-primary"
-                    />
-                  </label>
-                );
-              })}
-            </div>
-            {confirmationChannel === "email" ? (
-              <Input
-                label="E-postadress"
-                id="confirmation-email"
-                type="email"
-                autoComplete="email"
-                value={confirmationEmail}
-                onChange={(event) => setConfirmationEmail(event.target.value)}
-                placeholder="mejladress@exempel.se"
-                required
-                inputClassName="text-base"
-              />
-            ) : (
-              <Input
-                label="Mobilnummer"
-                id="confirmation-phone"
-                type="tel"
-                inputMode="tel"
-                value={confirmationPhone}
-                onChange={(event) => setConfirmationPhone(event.target.value)}
-                placeholder="+46 70 000 00 00"
-                required
-                inputClassName="text-base"
-              />
-            )}
-            {confirmationError && <p className="text-sm text-red-500">{confirmationError}</p>}
-          </div>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <button
-              type="button"
-              onClick={handleConfirmationSubmit}
-              disabled={confirmationSending}
-              className="flex-1 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {confirmationSending ? "Skickar..." : "OK"}
-            </button>
-            <button
-              type="button"
-              onClick={closeConfirmationModal}
-              className="flex-1 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400"
-            >
-              Avbryt
-            </button>
-          </div>
+                    Bokning bekräftad ✅
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Din beställning har nu skickats och ska hanteras.
+                  </p>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Du kan följa spårningen i{" "}
+                    <Link
+                      href="/bookings"
+                      className="font-semibold text-primary hover:underline"
+                      onClick={closeConfirmationModal}
+                    >
+                      Mina bokningar
+                    </Link>
+                    .
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeConfirmationModal}
+                  className="rounded-full bg-slate-100 p-2 text-slate-600 transition hover:bg-slate-200"
+                  aria-label="Stäng"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="mt-6">
+                <Link
+                  href="/bookings"
+                  onClick={closeConfirmationModal}
+                  className="flex w-full items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500"
+                >
+                  Gå till Mina bokningar
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Klart</p>
+                  <h3
+                    id="booking-confirmation-title"
+                    className="text-2xl font-semibold text-slate-900"
+                  >
+                    Bokning bekräftad ✅
+                  </h3>
+                  <p className="text-sm text-slate-600">Tack! Du kan få bekräftelsen via SMS eller e-post.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeConfirmationModal}
+                  className="rounded-full bg-slate-100 p-2 text-slate-600 transition hover:bg-slate-200"
+                  aria-label="Stäng"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="mt-4 space-y-2 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-sm text-slate-600">
+                <p>
+                  <span className="font-semibold text-slate-900">Tvätt:</span>{" "}
+                  {washType ? WASH_OPTIONS.find((option) => option.id === washType)?.title : "Ej vald"}
+                </p>
+                <p>
+                  <span className="font-semibold text-slate-900">Doft:</span>{" "}
+                  {scent ? SCENT_OPTIONS.find((option) => option.id === scent)?.label : "Ej vald"}
+                </p>
+                <p>
+                  <span className="font-semibold text-slate-900">Upphämtning:</span>{" "}
+                  {pickupDate && selectedPickup ? `${pickupDate} · ${selectedPickup.label}` : "Ej valt"}
+                </p>
+                {pickupDate && selectedPickup && (
+                  <p className="text-xs text-slate-500">
+                    {selectedPickup.start}–{selectedPickup.end}
+                  </p>
+                )}
+                <p>
+                  <span className="font-semibold text-slate-900">Leverans:</span>{" "}
+                  {deliveryDate && selectedDelivery ? `${deliveryDate} · ${selectedDelivery.label}` : "Ej valt"}
+                </p>
+                {deliveryDate && selectedDelivery && (
+                  <p className="text-xs text-slate-500">
+                    {selectedDelivery.start}–{selectedDelivery.end}
+                  </p>
+                )}
+                <p>
+                  <span className="font-semibold text-slate-900">Påse:</span>{" "}
+                  {selectedBag ? selectedBag.title : "Ej vald"} · {price > 0 ? `${price} kr` : "Pris ej klart"}
+                </p>
+              </div>
+              <div className="mt-6 space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-400">
+                  Hur vill du få bekräftelsen?
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    {
+                      id: "email",
+                      label: "E-post",
+                      helper: "Får bekräftelsen i inkorgen"
+                    },
+                    {
+                      id: "sms",
+                      label: "SMS",
+                      helper: "Får bekräftelsen som sms"
+                    }
+                  ].map((option) => {
+                    const isActive = confirmationChannel === option.id;
+                    return (
+                      <label
+                        key={option.id}
+                        className={`flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 transition ${
+                          isActive ? "border-primary bg-primary/10 text-primary" : "border-slate-200 bg-white text-slate-600"
+                        }`}
+                      >
+                        <div>
+                          <p className="text-sm font-semibold">{option.label}</p>
+                          <p className="text-xs text-slate-500">{option.helper}</p>
+                        </div>
+                        <input
+                          type="radio"
+                          name="confirmation-channel"
+                          value={option.id}
+                          checked={confirmationChannel === option.id}
+                          onChange={() => {
+                            setConfirmationChannel(option.id);
+                            setConfirmationError("");
+                          }}
+                          className="h-4 w-4 accent-primary"
+                        />
+                      </label>
+                    );
+                  })}
+                </div>
+                {confirmationChannel === "email" ? (
+                  <Input
+                    label="E-postadress"
+                    id="confirmation-email"
+                    type="email"
+                    autoComplete="email"
+                    value={confirmationEmail}
+                    onChange={(event) => setConfirmationEmail(event.target.value)}
+                    placeholder="mejladress@exempel.se"
+                    required
+                    inputClassName="text-base"
+                  />
+                ) : (
+                  <Input
+                    label="Mobilnummer"
+                    id="confirmation-phone"
+                    type="tel"
+                    inputMode="tel"
+                    value={confirmationPhone}
+                    onChange={(event) => setConfirmationPhone(event.target.value)}
+                    placeholder="+46 70 000 00 00"
+                    required
+                    inputClassName="text-base"
+                  />
+                )}
+                {confirmationError && <p className="text-sm text-red-500">{confirmationError}</p>}
+              </div>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={handleConfirmationSubmit}
+                  disabled={confirmationSending}
+                  className="flex-1 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {confirmationSending ? "Skickar..." : "OK"}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeConfirmationModal}
+                  className="flex-1 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400"
+                >
+                  Avbryt
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </Modal>
     </section>

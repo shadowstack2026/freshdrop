@@ -130,7 +130,7 @@ export default function NavBar() {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur-md">
       <nav className="container flex flex-wrap items-center justify-between gap-4 py-3">
-        <Logo href="/" showText={false} logoSize={56} />
+        <Logo href={isLoggedIn ? "/hem" : "/"} showText={false} logoSize={56} />
         <div className="order-3 w-full flex items-center justify-center gap-3 text-sm font-semibold text-slate-700 sm:gap-4 md:order-2 md:w-auto md:gap-6">
           {navLinks.map((link) => {
             if (link.type === "link") {
