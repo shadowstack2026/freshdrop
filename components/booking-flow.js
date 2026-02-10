@@ -1286,6 +1286,34 @@ export default function BookingFlow({
     setBookingCompletionError("");
     setShowSummary(false);
     setSummaryOpen(false);
+
+    const detailsPayload = {
+      wash: washType ? (WASH_OPTIONS.find((o) => o.id === washType)?.title ?? washType) : null,
+      scent: scent ? (SCENT_OPTIONS.find((o) => o.id === scent)?.label ?? scent) : null,
+      pickup_date: pickupDate || null,
+      pickup_slot: selectedPickup?.label ?? pickupSlot ?? null,
+      delivery_date: deliveryDate || null,
+      delivery_slot: selectedDelivery?.label ?? deliverySlot ?? null,
+      contact: `${(contactInfo.firstName || "").trim()} ${(contactInfo.lastName || "").trim()}`.trim() || null,
+      address: [contactInfo.address, contactInfo.address2, contactInfo.city].filter(Boolean).join(", ") || null,
+      postal_code: normalizePostalCode(contactInfo.postalCode) || null,
+      phone: (contactInfo.phone || "").trim() || null,
+      email: (contactInfo.email || "").trim() || null,
+      bag: selectedBag?.title ?? bagSize ?? null,
+      price: price ?? null,
+      estimated_delivery: deliveryEstimate || null
+    };
+
+    try {
+      await supabase.rpc("add_order_status_history", {
+        p_order_id: null,
+        p_status: "booking_confirmed",
+        p_details: detailsPayload
+      });
+    } catch (err) {
+      console.error("order_status_history insert failed:", err);
+    }
+
     await handlePersistContact({ skipStepAdvance: true });
   };
 
