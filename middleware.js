@@ -1,7 +1,7 @@
 import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
 import { NextResponse } from "next/server";
 
-const protectedPaths = ["/hem", "/profil", "/dashboard", "/account", "/orders", "/admin"];
+const protectedPaths = ["/hem", "/profil", "/dashboard", "/account", "/orders", "/admin", "/abonnemang", "/bookings"];
 
 export async function middleware(req) {
   const res = NextResponse.next();
@@ -50,5 +50,5 @@ export async function middleware(req) {
 }
 
 export const config = {
-  matcher: ["/hem/:path*", "/profil/:path*", "/dashboard/:path*", "/account/:path*", "/orders/:path*", "/admin/:path*", "/login", "/signup"]
+  matcher: ["/hem/:path*", "/profil/:path*", "/dashboard/:path*", "/account/:path*", "/orders/:path*", "/admin/:path*", "/abonnemang/:path*", "/bookings/:path*", "/login", "/signup"]
 };

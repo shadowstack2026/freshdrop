@@ -35,13 +35,13 @@ export default function Modal({
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-[999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm ${overlayClassName}`}
+      className={`fixed inset-0 z-[999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-modal-overlay ${overlayClassName}`}
       onClick={closeOnBackdrop ? onClose : undefined}
     >
       <div
         ref={panelRef}
         tabIndex={-1}
-        className={`relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl ${panelClassName}`}
+        className={`relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl animate-modal-panel ${panelClassName}`}
         onClick={(event) => event.stopPropagation()}
       >
         <button

@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { User, LogOut, Package, ChevronRight, Menu, X, CalendarDays } from "lucide-react";
+import { LogOut, Package, ChevronRight, CalendarDays } from "lucide-react";
 import Card from "@/components/ui/card";
 import BookingFlow from "@/components/booking-flow";
 import Testimonials from "@/components/testimonials";
+import SubscriptionCard from "@/components/subscription-card";
 
 export const dynamic = 'force-dynamic';
 
@@ -16,8 +17,29 @@ export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [subscription, setSubscription] = useState(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true);
+  const [useSubscriptionCredit, setUseSubscriptionCredit] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const fetchSubscription = useCallback(async (userId) => {
+    if (!userId) {
+      setSubscriptionLoading(false);
+      return;
+    }
+    setSubscriptionLoading(true);
+    try {
+      const res = await fetch("/api/subscription/ensure");
+      if (res.ok) {
+        const data = await res.json();
+        setSubscription(data);
+      }
+    } catch (e) {
+      console.error("Subscription fetch error:", e);
+    } finally {
+      setSubscriptionLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     async function fetchUserAndProfile() {
@@ -36,7 +58,7 @@ export default function HomePage() {
           .eq("id", user.id)
           .single();
 
-        if (profileError && profileError.code !== "PGRST116") { // PGRST116 means no rows found
+        if (profileError && profileError.code !== "PGRST116") {
           console.error("Error fetching profile:", profileError);
         } else if (profileData) {
           setProfile({
@@ -48,22 +70,36 @@ export default function HomePage() {
             city: profileData.city || ""
           });
         }
+        fetchSubscription(user.id);
+      } else {
+        setSubscriptionLoading(false);
       }
       setLoading(false);
     }
     fetchUserAndProfile();
-  }, [supabase, router]);
+  }, [supabase, router, fetchSubscription]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
     router.refresh();
   }
 
-  const scrollToBooking = () => {
-    const bookingSection = document.getElementById("boka-tvatt");
-    if (bookingSection) {
-      bookingSection.scrollIntoView({ behavior: "smooth" });
-    }
+  const scrollToBooking = (withCredit = false) => {
+    if (withCredit) setUseSubscriptionCredit(true);
+    const scrollToSection = () => {
+      const el = document.getElementById("boka-tvatt");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    setTimeout(scrollToSection, 100);
+    setTimeout(scrollToSection, 400);
+  };
+
+  const handleBookWithCredit = () => {
+    scrollToBooking(true);
+  };
+
+  const handleSubscriptionUpdated = () => {
+    if (user?.id) fetchSubscription(user.id);
   };
 
   if (loading) {
@@ -98,6 +134,16 @@ export default function HomePage() {
       </header>
 
       <main className="container space-y-8 pb-12 pt-4 sm:space-y-10 sm:pb-16">
+        <section className="space-y-4">
+          <p className="text-xs uppercase tracking-[0.4em] text-white/70">Ditt kort</p>
+          <SubscriptionCard
+            subscription={subscription}
+            loading={subscriptionLoading}
+            onRefresh={handleSubscriptionUpdated}
+            onBookWithCredit={handleBookWithCredit}
+          />
+        </section>
+
         <section className="space-y-5 rounded-2xl bg-white/90 px-4 py-6 shadow-xl sm:space-y-6 sm:rounded-3xl sm:px-6 sm:py-8">
           <div className="space-y-3 text-center sm:text-left">
             <p className="text-xs uppercase tracking-[0.4em] text-slate-500">Dina tjänster</p>
@@ -181,7 +227,14 @@ export default function HomePage() {
             </div>
             <p className="text-sm font-semibold text-white/80">Mobilanpassat med stora element</p>
           </div>
-          <BookingFlow showContactStep profile={profile} user={user} />
+          <BookingFlow
+            showContactStep
+            profile={profile}
+            user={user}
+            subscription={subscription}
+            useSubscriptionCredit={useSubscriptionCredit}
+            onSubscriptionCreditUsed={handleSubscriptionUpdated}
+          />
         </section>
 
         <Testimonials />

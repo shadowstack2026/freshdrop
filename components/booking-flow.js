@@ -192,7 +192,10 @@ const parseFullName = (fullName = "") => {
 export default function BookingFlow({
   showContactStep = false,
   profile = null,
-  user = null
+  user = null,
+  useSubscriptionCredit = false,
+  onSubscriptionCreditUsed = null,
+  subscription = null
 }) {
   const supabase = createClientComponentClient();
   const router = useRouter();
@@ -259,6 +262,9 @@ export default function BookingFlow({
   const [confirmationPhone, setConfirmationPhone] = useState(contactInfo.phone);
   const [confirmationError, setConfirmationError] = useState("");
   const [confirmationSending, setConfirmationSending] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [paymentModalProcessing, setPaymentModalProcessing] = useState(false);
 
   useEffect(() => {
     if (showContactStep && profileHasBasics) {
@@ -1303,7 +1309,7 @@ export default function BookingFlow({
     setShowSummary(false);
   };
 
-  const handleConfirmBooking = async () => {
+  const handleConfirmBooking = async (useCreditOverride) => {
     if (!isBookingComplete) {
       setBookingCompletionError("Du måste slutföra alla steg innan du kan bekräfta bokningen.");
       setShowSummary(true);
@@ -1314,6 +1320,24 @@ export default function BookingFlow({
     setBookingCompletionError("");
     setShowSummary(false);
     setSummaryOpen(false);
+    setShowPaymentModal(false);
+
+    const useCredit = useCreditOverride !== undefined ? useCreditOverride : useSubscriptionCredit;
+
+    if (user && useCredit) {
+      const consumeRes = await fetch("/api/subscription/consume-credit", { method: "POST" });
+      if (!consumeRes.ok) {
+        const errData = await consumeRes.json().catch(() => ({}));
+        setBookingCompletionError(errData.message || "Kunde inte använda abonnemangskredit.");
+        setShowSummary(true);
+        setSummaryOpen(true);
+        scrollSummaryIntoView();
+        return;
+      }
+      try {
+        onSubscriptionCreditUsed?.();
+      } catch (_) {}
+    }
 
     const detailsPayload = {
       wash: washType ? (WASH_OPTIONS.find((o) => o.id === washType)?.title ?? washType) : null,
@@ -1328,7 +1352,7 @@ export default function BookingFlow({
       phone: (contactInfo.phone || "").trim() || null,
       email: (contactInfo.email || "").trim() || null,
       bag: selectedBag?.title ?? bagSize ?? null,
-      price: price ?? null,
+      price: useCredit ? 0 : (price ?? null),
       estimated_delivery: deliveryEstimate || null
     };
 
@@ -1342,7 +1366,8 @@ export default function BookingFlow({
         pickupDate && selectedPickup
           ? addHours(new Date(`${pickupDate}T${selectedPickup.start}:00`), 48).toISOString()
           : null;
-      const estimatedWeightKg = price > 0 ? Math.max(1, Math.round(price / 60)) : 1;
+      const orderPrice = useCredit ? 0 : price;
+      const estimatedWeightKg = orderPrice > 0 ? Math.max(1, Math.round(orderPrice / 60)) : 1;
       const customerName = `${(contactInfo.firstName || "").trim()} ${(contactInfo.lastName || "").trim()}`.trim() || "Kund";
       const customerEmail = (contactInfo.email || "").trim() || user?.email || "";
 
@@ -1362,7 +1387,7 @@ export default function BookingFlow({
           pickup_window: pickupWindow,
           estimated_weight_kg: estimatedWeightKg,
           price_per_kg: 60,
-          estimated_total_price: price,
+          estimated_total_price: orderPrice,
           delivery_estimate_at: deliveryEstimateAt,
           status: "MOTTAGEN",
           payment_status: "unpaid"
@@ -1387,7 +1412,12 @@ export default function BookingFlow({
       console.error("order_status_history insert failed:", err);
     }
 
-    await handlePersistContact({ skipStepAdvance: true });
+    if (user) {
+      setShowConfirmationModal(true);
+      handlePersistContact({ skipStepAdvance: true }).catch(() => {});
+    } else {
+      await handlePersistContact({ skipStepAdvance: true });
+    }
   };
 
   const closeConfirmationModal = () => {
@@ -1497,7 +1527,11 @@ export default function BookingFlow({
           </h2>
         </div>
         <div className="text-xs font-semibold text-slate-600 sm:text-sm">
-          {price > 0 ? (
+          {useSubscriptionCredit ? (
+            <span className="rounded-full bg-sky-100 px-3 py-1.5 text-sky-700">
+              Använder abonnemangskredit
+            </span>
+          ) : price > 0 ? (
             <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-emerald-700">
               Livepris: {price} kr
             </span>
@@ -1624,7 +1658,7 @@ export default function BookingFlow({
                 </p>
                 <p>
                   <span className="font-semibold text-slate-900">Pris:</span>{" "}
-                  {price > 0 ? `${price} kr` : "–"}
+                  {useSubscriptionCredit ? "Använder abonnemangskredit" : price > 0 ? `${price} kr` : "–"}
                 </p>
               </div>
               <div className="space-y-2">
@@ -1647,11 +1681,17 @@ export default function BookingFlow({
               <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                 <button
                   type="button"
-                  onClick={handleConfirmBooking}
+                  onClick={() => {
+                    if (user) {
+                      setShowPaymentModal(true);
+                    } else {
+                      handleConfirmBooking(false);
+                    }
+                  }}
                   disabled={contactSaving || !isBookingComplete}
                   className="flex-1 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
                 >
-                  {contactSaving ? "Sparar..." : "Bekräfta bokning"}
+                  {contactSaving ? "Sparar..." : "Bekräfta bokning och betala"}
                 </button>
                 <button
                   type="button"
@@ -1678,6 +1718,87 @@ export default function BookingFlow({
           )}
         </aside>
       </div>
+
+      <Modal
+        isOpen={showPaymentModal}
+        onClose={() => !paymentModalProcessing && setShowPaymentModal(false)}
+        overlayClassName="items-end sm:items-center px-4 py-6 sm:py-8"
+        panelClassName="max-h-[85vh] overflow-y-auto rounded-t-[28px] p-5 sm:rounded-[32px] sm:p-6"
+      >
+        <div role="dialog" aria-modal="true" aria-labelledby="payment-modal-title" tabIndex={-1}>
+          <h2 id="payment-modal-title" className="text-xl font-bold text-slate-900">
+            Bekräfta köp
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Totalt: <span className="font-semibold text-slate-900">{price} kr</span>
+          </p>
+          <div className="mt-6 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Betalningssätt
+            </p>
+            <label className="flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-slate-200 p-4 transition has-[:checked]:border-primary has-[:checked]:bg-sky-50/50">
+              <input
+                type="radio"
+                name="payment-method"
+                value="card"
+                checked={paymentMethod === "card"}
+                onChange={() => setPaymentMethod("card")}
+                className="h-4 w-4 accent-primary"
+              />
+              <span className="font-medium text-slate-800">Kort</span>
+            </label>
+            <label className="flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-slate-200 p-4 transition has-[:checked]:border-primary has-[:checked]:bg-sky-50/50">
+              <input
+                type="radio"
+                name="payment-method"
+                value="swish"
+                checked={paymentMethod === "swish"}
+                onChange={() => setPaymentMethod("swish")}
+                className="h-4 w-4 accent-primary"
+              />
+              <span className="font-medium text-slate-800">Swish</span>
+            </label>
+            {(subscription?.credits_remaining ?? 0) > 0 && (
+              <label className="flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-slate-200 p-4 transition has-[:checked]:border-primary has-[:checked]:bg-sky-50/50">
+                <input
+                  type="radio"
+                  name="payment-method"
+                  value="subscription"
+                  checked={paymentMethod === "subscription"}
+                  onChange={() => setPaymentMethod("subscription")}
+                  className="h-4 w-4 accent-primary"
+                />
+                <span className="font-medium text-slate-800">
+                  Abonnemang (använd 1 tvätt – du har {(subscription?.credits_remaining ?? 0)} kvar)
+                </span>
+              </label>
+            )}
+          </div>
+          <div className="mt-6 flex gap-3">
+            <button
+              type="button"
+              onClick={async () => {
+                setPaymentModalProcessing(true);
+                await handleConfirmBooking(paymentMethod === "subscription");
+                setPaymentModalProcessing(false);
+              }}
+              disabled={paymentModalProcessing}
+              className="flex-1 rounded-xl bg-primary py-3 font-semibold text-white transition hover:bg-sky-500 disabled:opacity-60"
+            >
+              {paymentModalProcessing ? "Bearbetar..." : "Betala"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowPaymentModal(false)}
+              disabled={paymentModalProcessing}
+              className="flex-1 rounded-xl border-2 border-slate-200 py-3 font-semibold text-slate-600 hover:bg-slate-50"
+            >
+              Avbryt
+            </button>
+          </div>
+        </div>
+      </Modal>
+
       <Modal
         isOpen={showConfirmationModal}
         onClose={closeConfirmationModal}
@@ -1695,26 +1816,15 @@ export default function BookingFlow({
             <>
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Klart</p>
+                  <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Betalt</p>
                   <h3
                     id="booking-confirmation-title"
                     className="text-2xl font-semibold text-slate-900"
                   >
-                    Bokning bekräftad ✅
+                    Tack för din bokning hos oss
                   </h3>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Din beställning har nu skickats och ska hanteras.
-                  </p>
                   <p className="mt-2 text-sm text-slate-600">
-                    Du kan följa spårningen i{" "}
-                    <Link
-                      href="/bookings"
-                      className="font-semibold text-primary hover:underline"
-                      onClick={closeConfirmationModal}
-                    >
-                      Mina bokningar
-                    </Link>
-                    .
+                    Din beställning är mottagen och kommer att hanteras. Du kan följa upp den under Mina beställningar.
                   </p>
                 </div>
                 <button
@@ -1726,14 +1836,21 @@ export default function BookingFlow({
                   ✕
                 </button>
               </div>
-              <div className="mt-6">
+              <div className="mt-6 flex flex-col gap-3">
                 <Link
                   href="/bookings"
                   onClick={closeConfirmationModal}
                   className="flex w-full items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500"
                 >
-                  Gå till Mina bokningar
+                  Följ upp beställningen
                 </Link>
+                <button
+                  type="button"
+                  onClick={closeConfirmationModal}
+                  className="w-full rounded-full border-2 border-slate-200 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                >
+                  Stäng
+                </button>
               </div>
             </>
           ) : (
