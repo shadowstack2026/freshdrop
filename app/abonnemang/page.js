@@ -16,7 +16,7 @@ const PLANS = [
     intervalLabel: "Varannan vecka",
     price: 499,
     description:
-      "Varannan vecka får du en bekymmersfri tvättdag med FreshDrop. Varje upphämtning omfattar en stor FreshDrop-påse (ca 10–12 kg), där du fritt kan blanda vardagstvätt och grovtvätt i samma påse. Det finns inga särskilda begränsningar per plagg – så länge allt ryms i en påse per hämtning.",
+      "Varannan vecka får du en bekymmersfri tvättdag med FreshDrop. Varje upphämtning omfattar en stor FreshDrop-påse, där du fritt kan blanda vardagstvätt och grovtvätt i samma påse. Det finns inga särskilda begränsningar per plagg – så länge allt ryms i en påse per hämtning.",
     bullets: [
       "Prioriterad service",
       "Flexibel ändring",
@@ -31,7 +31,7 @@ const PLANS = [
     intervalLabel: "Varje vecka",
     price: 899,
     description:
-      "Med FreshDrop Premium får du en smidig, återkommande tvättlösning varje vecka. Varje upphämtning omfattar en stor FreshDrop-påse (ca 10–12 kg), där du fritt kan blanda vardagstvätt och grovtvätt i samma påse. Det finns inga särskilda begränsningar per plagg – så länge allt ryms i en påse per hämtning.",
+      "Med FreshDrop Premium får du en smidig, återkommande tvättlösning varje vecka. Varje upphämtning omfattar en stor FreshDrop-påse, där du fritt kan blanda vardagstvätt och grovtvätt i samma påse. Det finns inga särskilda begränsningar per plagg – så länge allt ryms i en påse per hämtning.",
     bullets: [
       "Premiumsupport",
       "Först i kön",
@@ -127,7 +127,7 @@ export default function AbonnemangPage() {
           >
             ← Tillbaka till startsidan
           </Link>
-          <h1 className="mt-4 text-3xl font-bold text-slate-900 sm:text-4xl">
+          <h1 className="mt-4 text-2xl font-bold text-slate-900 sm:text-3xl md:text-4xl">
             Abonnemang
           </h1>
           <p className="mt-2 text-slate-600">
@@ -221,7 +221,7 @@ export default function AbonnemangPage() {
                       type="button"
                       disabled={isCurrent}
                       onClick={() => setPurchaseModalPlan(plan)}
-                      className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-sky-600 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-200/50 transition hover:from-sky-600 hover:to-sky-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="mt-6 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-sky-600 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-200/50 transition active:scale-[0.98] hover:from-sky-600 hover:to-sky-700 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
                     >
                       {isCurrent ? "Aktuell plan" : "Välj abonnemang"}
                       <ChevronRight className="h-4 w-4" />
@@ -278,12 +278,12 @@ export default function AbonnemangPage() {
                 <span className="font-medium text-slate-800">Swish</span>
               </label>
             </div>
-            <div className="mt-6 flex gap-3">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
                 onClick={handlePurchase}
                 disabled={purchasing}
-                className="flex-1 rounded-xl bg-primary py-3 font-semibold text-white transition hover:bg-sky-500 disabled:opacity-60"
+                className="min-h-[48px] flex-1 rounded-xl bg-primary py-3 font-semibold text-white transition active:scale-[0.98] hover:bg-sky-500 disabled:opacity-60 touch-manipulation"
               >
                 {purchasing ? "Bearbetar..." : "Betala"}
               </button>
@@ -291,7 +291,7 @@ export default function AbonnemangPage() {
                 type="button"
                 onClick={() => setPurchaseModalPlan(null)}
                 disabled={purchasing}
-                className="flex-1 rounded-xl border-2 border-slate-200 py-3 font-semibold text-slate-600 hover:bg-slate-50"
+                className="min-h-[48px] flex-1 rounded-xl border-2 border-slate-200 py-3 font-semibold text-slate-600 transition active:scale-[0.98] hover:bg-slate-50 touch-manipulation"
               >
                 Avbryt
               </button>
@@ -302,11 +302,12 @@ export default function AbonnemangPage() {
 
       {toast && (
         <div
-          className={`fixed bottom-6 left-4 right-4 z-[1000] rounded-2xl px-4 py-3 text-center text-sm font-semibold shadow-lg sm:left-auto sm:right-6 sm:max-w-sm ${
+          className={`fixed left-4 right-4 z-[1000] rounded-2xl px-4 py-3 text-center text-sm font-semibold shadow-lg sm:left-auto sm:right-6 sm:max-w-sm ${
             toast.type === "success"
               ? "bg-emerald-500 text-white"
               : "bg-red-500 text-white"
           } animate-modal-panel`}
+          style={{ bottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
         >
           {toast.message}
         </div>

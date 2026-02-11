@@ -5,7 +5,7 @@ import Footer from "@/components/footer";
 export const metadata = {
   title: "FreshDrop – Tvätt hämtad och levererad inom 48 timmar",
   description:
-    "FreshDrop hämtar dina kläder hemma hos dig, tvättar och levererar tillbaka inom 48 timmar. Enkel bokning, tydligt pris: 60 kr/kg."
+    "FreshDrop hämtar dina kläder hemma hos dig, tvättar och levererar tillbaka inom 48 timmar. Enkel bokning, fast pris per påse."
 };
 
 export const viewport = {

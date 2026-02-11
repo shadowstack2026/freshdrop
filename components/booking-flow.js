@@ -1362,10 +1362,15 @@ export default function BookingFlow({
       const pickupWindow = selectedPickup
         ? `${selectedPickup.start}-${selectedPickup.end}`
         : "";
+      const deliveryWindow = selectedDelivery
+        ? `${selectedDelivery.start}-${selectedDelivery.end}`
+        : "";
       const deliveryEstimateAt =
-        pickupDate && selectedPickup
-          ? addHours(new Date(`${pickupDate}T${selectedPickup.start}:00`), 48).toISOString()
-          : null;
+        deliveryDate && selectedDelivery
+          ? new Date(`${deliveryDate}T${selectedDelivery.end}:00`).toISOString()
+          : pickupDate && selectedPickup
+            ? addHours(new Date(`${pickupDate}T${selectedPickup.start}:00`), 48).toISOString()
+            : null;
       const orderPrice = useCredit ? 0 : price;
       const estimatedWeightKg = orderPrice > 0 ? Math.max(1, Math.round(orderPrice / 60)) : 1;
       const customerName = `${(contactInfo.firstName || "").trim()} ${(contactInfo.lastName || "").trim()}`.trim() || "Kund";
@@ -1385,6 +1390,8 @@ export default function BookingFlow({
           city: (contactInfo.city || "").trim() || "",
           pickup_date: pickupDate,
           pickup_window: pickupWindow,
+          delivery_window: deliveryWindow || null,
+          bag_size: bagSize || null,
           estimated_weight_kg: estimatedWeightKg,
           price_per_kg: 60,
           estimated_total_price: orderPrice,
@@ -1664,7 +1671,9 @@ export default function BookingFlow({
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Beräknad leverans</p>
                 <p className="font-semibold text-slate-900">
-                  {deliveryEstimate || "Välj upphämtningstid för exakt datum"}
+                  {deliveryDate && selectedDelivery
+                    ? `${deliveryDate} ${selectedDelivery.start}–${selectedDelivery.end}`
+                    : deliveryEstimate || "Välj upphämtning och leveranstid"}
                 </p>
               </div>
               {bookingCompletionError ? (
@@ -1689,14 +1698,14 @@ export default function BookingFlow({
                     }
                   }}
                   disabled={contactSaving || !isBookingComplete}
-                  className="flex-1 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+                  className="min-h-[48px] flex-1 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition active:scale-[0.98] hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 touch-manipulation"
                 >
                   {contactSaving ? "Sparar..." : "Bekräfta bokning och betala"}
                 </button>
                 <button
                   type="button"
                   onClick={handleCancelSummary}
-                  className="flex-1 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400"
+                  className="min-h-[48px] flex-1 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition active:scale-[0.98] hover:border-slate-400 touch-manipulation"
                 >
                   Avbryt
                 </button>
@@ -1736,7 +1745,7 @@ export default function BookingFlow({
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Betalningssätt
             </p>
-            <label className="flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-slate-200 p-4 transition has-[:checked]:border-primary has-[:checked]:bg-sky-50/50">
+            <label className="flex min-h-[48px] cursor-pointer items-center gap-3 rounded-2xl border-2 border-slate-200 p-4 transition has-[:checked]:border-primary has-[:checked]:bg-sky-50/50 touch-manipulation active:scale-[0.99]">
               <input
                 type="radio"
                 name="payment-method"
@@ -1747,7 +1756,7 @@ export default function BookingFlow({
               />
               <span className="font-medium text-slate-800">Kort</span>
             </label>
-            <label className="flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-slate-200 p-4 transition has-[:checked]:border-primary has-[:checked]:bg-sky-50/50">
+            <label className="flex min-h-[48px] cursor-pointer items-center gap-3 rounded-2xl border-2 border-slate-200 p-4 transition has-[:checked]:border-primary has-[:checked]:bg-sky-50/50 touch-manipulation active:scale-[0.99]">
               <input
                 type="radio"
                 name="payment-method"
@@ -1759,7 +1768,7 @@ export default function BookingFlow({
               <span className="font-medium text-slate-800">Swish</span>
             </label>
             {(subscription?.credits_remaining ?? 0) > 0 && (
-              <label className="flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-slate-200 p-4 transition has-[:checked]:border-primary has-[:checked]:bg-sky-50/50">
+              <label className="flex min-h-[48px] cursor-pointer items-center gap-3 rounded-2xl border-2 border-slate-200 p-4 transition has-[:checked]:border-primary has-[:checked]:bg-sky-50/50 touch-manipulation active:scale-[0.99]">
                 <input
                   type="radio"
                   name="payment-method"
@@ -1774,7 +1783,7 @@ export default function BookingFlow({
               </label>
             )}
           </div>
-          <div className="mt-6 flex gap-3">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
               onClick={async () => {
@@ -1783,7 +1792,7 @@ export default function BookingFlow({
                 setPaymentModalProcessing(false);
               }}
               disabled={paymentModalProcessing}
-              className="flex-1 rounded-xl bg-primary py-3 font-semibold text-white transition hover:bg-sky-500 disabled:opacity-60"
+              className="min-h-[48px] flex-1 rounded-xl bg-primary py-3 font-semibold text-white transition active:scale-[0.98] hover:bg-sky-500 disabled:opacity-60 touch-manipulation"
             >
               {paymentModalProcessing ? "Bearbetar..." : "Betala"}
             </button>
@@ -1791,7 +1800,7 @@ export default function BookingFlow({
               type="button"
               onClick={() => setShowPaymentModal(false)}
               disabled={paymentModalProcessing}
-              className="flex-1 rounded-xl border-2 border-slate-200 py-3 font-semibold text-slate-600 hover:bg-slate-50"
+              className="min-h-[48px] flex-1 rounded-xl border-2 border-slate-200 py-3 font-semibold text-slate-600 transition active:scale-[0.98] hover:bg-slate-50 touch-manipulation"
             >
               Avbryt
             </button>
@@ -1830,7 +1839,7 @@ export default function BookingFlow({
                 <button
                   type="button"
                   onClick={closeConfirmationModal}
-                  className="rounded-full bg-slate-100 p-2 text-slate-600 transition hover:bg-slate-200"
+                  className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-slate-100 p-2 text-slate-600 transition hover:bg-slate-200 active:bg-slate-300 touch-manipulation"
                   aria-label="Stäng"
                 >
                   ✕
@@ -1840,14 +1849,14 @@ export default function BookingFlow({
                 <Link
                   href="/bookings"
                   onClick={closeConfirmationModal}
-                  className="flex w-full items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500"
+                  className="flex min-h-[48px] w-full items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition active:scale-[0.98] hover:bg-sky-500 touch-manipulation"
                 >
                   Följ upp beställningen
                 </Link>
                 <button
                   type="button"
                   onClick={closeConfirmationModal}
-                  className="w-full rounded-full border-2 border-slate-200 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                  className="min-h-[48px] w-full rounded-full border-2 border-slate-200 py-3 text-sm font-semibold text-slate-600 transition active:scale-[0.98] hover:bg-slate-50 touch-manipulation"
                 >
                   Stäng
                 </button>
@@ -1869,7 +1878,7 @@ export default function BookingFlow({
                 <button
                   type="button"
                   onClick={closeConfirmationModal}
-                  className="rounded-full bg-slate-100 p-2 text-slate-600 transition hover:bg-slate-200"
+                  className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-slate-100 p-2 text-slate-600 transition hover:bg-slate-200 active:bg-slate-300 touch-manipulation"
                   aria-label="Stäng"
                 >
                   ✕

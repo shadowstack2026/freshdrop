@@ -95,6 +95,8 @@ create table if not exists public.orders (
   price_per_kg numeric not null default 60,
   estimated_total_price numeric not null,
   delivery_estimate_at timestamptz not null,
+  delivery_window text,
+  bag_size text,
   status text not null default 'MOTTAGEN',
   payment_status text not null default 'unpaid',
   stripe_checkout_session_id text,

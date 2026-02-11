@@ -15,7 +15,7 @@ const FAQ_ITEMS = [
     id: "vikt",
     question: "Vad händer om vikten skiljer sig från uppskattningen?",
     answer:
-      "Priset justeras efter faktisk vikt, men alltid med samma kilopris. Du betalar alltså bara för det vi faktiskt tvättar."
+      "Du väljer storlek på påse (liten, mellan eller stor) och betalar det fasta priset för den påsen."
   },
   {
     id: "konto",

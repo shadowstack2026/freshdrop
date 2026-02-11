@@ -35,18 +35,18 @@ export default function Modal({
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-[999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-modal-overlay ${overlayClassName}`}
+      className={`fixed inset-0 z-[999] flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4 backdrop-blur-sm animate-modal-overlay ${overlayClassName}`}
       onClick={closeOnBackdrop ? onClose : undefined}
     >
       <div
         ref={panelRef}
         tabIndex={-1}
-        className={`relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl animate-modal-panel ${panelClassName}`}
+        className={`relative w-full max-w-lg rounded-t-2xl bg-white p-4 shadow-2xl animate-modal-panel sm:rounded-2xl sm:p-6 ${panelClassName}`}
         onClick={(event) => event.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
+          className="absolute right-3 top-3 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 active:bg-slate-200 touch-manipulation sm:right-4 sm:top-4"
           aria-label="Stäng"
         >
           <X className="h-5 w-5" />

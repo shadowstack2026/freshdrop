@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { getBagSizeLabel } from "@/lib/order-display";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { ChevronRight, Package, Calendar } from "lucide-react";
 import StatusBadge from "@/components/status-badge";
@@ -43,8 +44,11 @@ export default function BookingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-sky-50/30 pb-16">
-      <div className="container py-8 sm:py-10">
+    <div
+      className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-sky-50/30 pb-16"
+      style={{ paddingBottom: "max(4rem, env(safe-area-inset-bottom))" }}
+    >
+      <div className="container py-6 sm:py-10">
         <Link
           href="/hem"
           className="inline-flex items-center gap-1 text-sm font-semibold text-sky-600 hover:text-sky-700"
@@ -59,7 +63,7 @@ export default function BookingsPage() {
         </p>
 
         {!orders.length ? (
-          <div className="mt-8 rounded-2xl border border-slate-100 bg-white p-8 text-center shadow-sm">
+          <div className="mt-8 rounded-2xl border border-slate-100 bg-white p-6 text-center shadow-sm sm:p-8">
             <Package className="mx-auto h-12 w-12 text-slate-300" />
             <p className="mt-4 font-medium text-slate-700">Inga beställningar ännu</p>
             <p className="mt-1 text-sm text-slate-500">
@@ -67,7 +71,7 @@ export default function BookingsPage() {
             </p>
             <Link
               href="/hem"
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500"
+              className="mt-6 inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition active:scale-[0.98] hover:bg-sky-500 touch-manipulation"
             >
               Gå till startsidan <ChevronRight className="h-4 w-4" />
             </Link>
@@ -78,7 +82,7 @@ export default function BookingsPage() {
               <li key={order.id}>
                 <Link
                   href={`/orders/${order.id}`}
-                  className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition hover:border-sky-200 hover:shadow-md sm:p-5"
+                  className="flex min-h-[56px] items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition active:scale-[0.99] hover:border-sky-200 hover:shadow-md touch-manipulation sm:gap-4 sm:p-5"
                 >
                   <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-600">
                     <Calendar className="h-6 w-6" />
@@ -88,7 +92,7 @@ export default function BookingsPage() {
                       Upphämtning {order.pickup_date} · {order.pickup_window}
                     </p>
                     <p className="text-sm text-slate-500">
-                      {order.estimated_total_price} kr · {order.estimated_weight_kg} kg
+                      {order.estimated_total_price} kr · {getBagSizeLabel(order.bag_size)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">

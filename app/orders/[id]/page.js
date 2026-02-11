@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import StatusBadge from "@/components/status-badge";
+import { formatDeliveryDisplay, getBagSizeLabel } from "@/lib/order-display";
 
 export const dynamic = "force-dynamic";
 
@@ -45,11 +46,8 @@ export default async function OrderDetailPage({ params }) {
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="font-medium">Beräknad leverans senast</span>
-            <span>
-              {order.delivery_estimate_at &&
-                new Date(order.delivery_estimate_at).toLocaleString("sv-SE")}
-            </span>
+            <span className="font-medium">Beräknad leverans</span>
+            <span>{formatDeliveryDisplay(order)}</span>
           </div>
         </div>
         <div className="space-y-2 text-xs text-slate-700">
@@ -86,12 +84,8 @@ export default async function OrderDetailPage({ params }) {
 
       <div className="mt-6 border-t pt-4 text-xs text-slate-700 space-y-1">
         <div className="flex items-center justify-between">
-          <span>Uppskattad vikt</span>
-          <span>{order.estimated_weight_kg} kg</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span>Pris per kg</span>
-          <span>{order.price_per_kg} kr</span>
+          <span>Påse</span>
+          <span>{getBagSizeLabel(order.bag_size)}</span>
         </div>
         <div className="flex items-center justify-between font-semibold">
           <span>Beräknat pris</span>

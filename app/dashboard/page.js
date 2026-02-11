@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import StatusBadge from "@/components/status-badge";
+import { getBagSizeLabel } from "@/lib/order-display";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +56,7 @@ export default async function DashboardPage() {
                   Upphämtning
                 </th>
                 <th className="px-4 py-2 text-left font-medium text-slate-600">
-                  Vikt
+                  Påse
                 </th>
                 <th className="px-4 py-2 text-left font-medium text-slate-600">
                   Pris
@@ -79,7 +80,7 @@ export default async function DashboardPage() {
                     {order.pickup_date} {order.pickup_window}
                   </td>
                   <td className="px-4 py-2 text-slate-700">
-                    {order.estimated_weight_kg} kg
+                    {getBagSizeLabel(order.bag_size)}
                   </td>
                   <td className="px-4 py-2 text-slate-700">
                     {order.estimated_total_price} kr

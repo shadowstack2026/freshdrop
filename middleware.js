@@ -34,11 +34,15 @@ export async function middleware(req) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Admin access control (remains unchanged)
+  // Admin access control: only users with role=admin may access /admin
   if (pathname.startsWith("/admin")) {
+    if (!session?.user?.id) {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
+      .eq("id", session.user.id)
       .single();
 
     if (!profile || profile.role !== "admin") {

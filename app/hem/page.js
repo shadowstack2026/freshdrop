@@ -133,7 +133,10 @@ export default function HomePage() {
         </button>
       </header>
 
-      <main className="container space-y-8 pb-12 pt-4 sm:space-y-10 sm:pb-16">
+      <main
+        className="container space-y-8 pt-4 sm:space-y-10"
+        style={{ paddingBottom: "max(3rem, calc(1rem + env(safe-area-inset-bottom)))" }}
+      >
         <section className="space-y-4">
           <p className="text-xs uppercase tracking-[0.4em] text-white/70">Ditt kort</p>
           <SubscriptionCard

@@ -36,7 +36,7 @@ const subscriptionPricing = [
     details: [
       "Abonnemang 1 – FreshDrop Standard (varannan vecka)",
       "Så funkar det:",
-      "Varannan vecka får du en bekymmersfri tvättdag med FreshDrop. Varje upphämtning omfattar en stor FreshDrop-påse (ca 10–12 kg), där du fritt kan blanda vardagstvätt och grovtvätt i samma påse. Det finns inga särskilda begränsningar per plagg – så länge allt ryms i en påse per hämtning.",
+      "Varannan vecka får du en bekymmersfri tvättdag med FreshDrop. Varje upphämtning omfattar en stor FreshDrop-påse, där du fritt kan blanda vardagstvätt och grovtvätt i samma påse. Det finns inga särskilda begränsningar per plagg – så länge allt ryms i en påse per hämtning.",
       "Har du mer tvätt än vad som ryms i påsen? Då kan du enkelt boka en extra tvätt till ordinarie pris."
     ]
   },
@@ -47,7 +47,7 @@ const subscriptionPricing = [
     details: [
       "Abonnemang 2 – FreshDrop Premium (varje vecka)",
       "Så funkar det:",
-      "Med FreshDrop Premium får du en smidig, återkommande tvättlösning varje vecka. Varje upphämtning omfattar en stor FreshDrop-påse (ca 10–12 kg), där du fritt kan blanda vardagstvätt och grovtvätt i samma påse. Det finns inga särskilda begränsningar per plagg – så länge allt ryms i en påse per hämtning.",
+      "Med FreshDrop Premium får du en smidig, återkommande tvättlösning varje vecka. Varje upphämtning omfattar en stor FreshDrop-påse, där du fritt kan blanda vardagstvätt och grovtvätt i samma påse. Det finns inga särskilda begränsningar per plagg – så länge allt ryms i en påse per hämtning.",
       "Har du mer tvätt än vad som ryms i påsen? Då kan du enkelt boka en extra tvätt till ordinarie pris."
     ]
   }

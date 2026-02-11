@@ -65,7 +65,7 @@ export default function SubscriptionCard({
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-600">
               Ditt FreshDrop-kort
             </p>
-            <h3 className="mt-1 text-xl font-bold text-slate-900">
+            <h3 className="mt-1 text-lg font-bold text-slate-900 sm:text-xl">
               {planConfig.name}
             </h3>
             {!isFree && (
@@ -114,7 +114,7 @@ export default function SubscriptionCard({
               type="button"
               disabled={!hasCredits || consuming}
               onClick={handleBookWithCredit}
-              className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-200/50 transition hover:from-sky-600 hover:to-sky-700 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
+              className="flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-200/50 transition active:scale-[0.98] hover:from-sky-600 hover:to-sky-700 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none touch-manipulation"
             >
               {consuming ? "Öppnar..." : "Boka med abonnemang"}
             </button>
@@ -126,7 +126,7 @@ export default function SubscriptionCard({
           )}
           <Link
             href="/abonnemang"
-            className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border-2 border-sky-200 bg-white px-4 py-3 text-sm font-semibold text-sky-700 transition hover:border-sky-400 hover:bg-sky-50"
+            className="flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl border-2 border-sky-200 bg-white px-4 py-3 text-sm font-semibold text-sky-700 transition active:scale-[0.98] hover:border-sky-400 hover:bg-sky-50 touch-manipulation"
           >
             {isFree ? "Uppgradera till abonnemang" : "Hantera abonnemang"}
             <ChevronRight className="h-4 w-4" />
