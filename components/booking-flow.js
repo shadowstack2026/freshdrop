@@ -166,19 +166,17 @@ const fetchCityFromPostal = async (postalCode, { signal } = {}) => {
   };
 };
 
-const searchAddresses = async (query, postalCode, { signal } = {}) => {
-  if (!query || query.trim().length < 2 || !POSTAL_CODE_REGEX.test(postalCode)) return [];
+const searchAddresses = async (query, { signal } = {}) => {
+  if (!query || query.trim().length < 2) return [];
   const encodedQuery = encodeURIComponent(query.trim());
-  const response = await fetch(
-    `/api/address-search?query=${encodedQuery}&postalCode=${postalCode}`,
-    { signal }
-  );
+  const response = await fetch(`/api/address-search?query=${encodedQuery}`, { signal });
   if (!response.ok) return [];
   const results = await response.json();
-  return (results || []).map((item) => ({
-    id: item.id,
-    address: item.address,
-    city: item.city
+  return (Array.isArray(results) ? results : []).map((item) => ({
+    id: item.place_id || item.id,
+    place_id: item.place_id || item.id,
+    address: item.address || "",
+    city: item.city || ""
   }));
 };
 
@@ -232,6 +230,7 @@ export default function BookingFlow({
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [addressLoading, setAddressLoading] = useState(false);
   const [addressDropdownOpen, setAddressDropdownOpen] = useState(false);
+  const [addressError, setAddressError] = useState("");
   const addressRequestIdRef = useRef(0);
   const addressBlurTimerRef = useRef(null);
   const postalLookupIdRef = useRef(0);
@@ -482,19 +481,49 @@ export default function BookingFlow({
     setAddressDropdownOpen(true);
   };
 
-  const handleAddressSelect = (suggestion) => {
-    setContactSaved(false);
-    setContactError("");
-    setContactInfo((prev) => ({
-      ...prev,
-      address: suggestion.address,
-      city: suggestion.city ? suggestion.city : prev.city
-    }));
-    if (suggestion.city) {
-      setCityAutoFilled(true);
-    }
+  const handleAddressSelect = async (suggestion) => {
+    setAddressError("");
     setAddressDropdownOpen(false);
     setAddressSuggestions([]);
+    const placeId = suggestion.place_id || suggestion.id;
+    if (!placeId) {
+      setContactInfo((prev) => ({
+        ...prev,
+        address: suggestion.address || prev.address,
+        city: suggestion.city ? suggestion.city : prev.city
+      }));
+      if (suggestion.city) setCityAutoFilled(true);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/address-search?placeId=${encodeURIComponent(placeId)}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setAddressError("Kunde inte hämta adressdetaljer.");
+        return;
+      }
+      setContactSaved(false);
+      setContactError("");
+      setContactInfo((prev) => ({
+        ...prev,
+        address: data.address || suggestion.address || prev.address,
+        city: data.city || suggestion.city || prev.city,
+        postalCode: data.postal_code || prev.postalCode
+      }));
+      if (data.city) setCityAutoFilled(true);
+      if (data.postal_code) {
+        setPostalLookup((prev) => ({ ...prev, allowed: data.allowed }));
+        setPostalStatus(data.allowed ? "valid" : "invalid");
+        if (!data.allowed) {
+          setPostalError("Vi levererar inte till detta postnummer.");
+          setAddressError("Vi levererar inte till detta postnummer. Välj en adress inom vårt leveransområde.");
+        } else {
+          setPostalError("");
+        }
+      }
+    } catch {
+      setAddressError("Kunde inte verifiera adressen.");
+    }
   };
 
   const handlePostalChange = (event) => {
@@ -1129,9 +1158,12 @@ export default function BookingFlow({
                 )}
               </div>
             )}
-            {!POSTAL_CODE_REGEX.test(contactInfo.postalCode.trim()) && (
-              <p className="text-[11px] text-slate-500">
-                Fyll i postnummer i steg 0 för att få adressförslag.
+            <p className="text-[11px] text-slate-500">
+              Skriv adress – förslag begränsade till Sverige. Vi levererar endast till våra postorter.
+            </p>
+            {addressError && (
+              <p className="text-[11px] font-semibold text-amber-600" role="alert">
+                {addressError}
               </p>
             )}
           </div>
