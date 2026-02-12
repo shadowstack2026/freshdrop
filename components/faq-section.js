@@ -43,7 +43,7 @@ const FAQ_ITEMS = [
         Har du frågor om din bokning eller vill göra ändringar? Skicka e-post till{" "}
         <a
           href="mailto:hej@freshdrop.se"
-          className="font-medium text-teal-600 underline decoration-teal-300 underline-offset-2 hover:text-teal-700"
+          className="font-medium text-primary underline decoration-sky-300 underline-offset-2 hover:text-sky-700"
         >
           hej@freshdrop.se
         </a>{" "}
@@ -57,7 +57,10 @@ export default function FaqSection() {
   const [openId, setOpenId] = useState(null);
 
   return (
-    <section id="fragor-kontakt" className="border-t bg-[#e8f6f8] py-14 md:py-20">
+    <section
+      id="fragor-kontakt"
+      className="border-t border-slate-200 bg-gradient-to-b from-sky-50 via-white to-sky-50/40 py-14 md:py-20"
+    >
       <div className="container mx-auto max-w-4xl px-4 sm:px-6">
         <h2 className="text-center text-2xl font-bold tracking-tight text-slate-800 md:text-3xl">
           Vanliga frågor
@@ -69,7 +72,7 @@ export default function FaqSection() {
             return (
               <div
                 key={item.id}
-                className="overflow-hidden rounded-2xl border border-white/80 bg-white shadow-sm transition-shadow hover:shadow-md"
+                className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
               >
                 <button
                   type="button"
@@ -79,13 +82,13 @@ export default function FaqSection() {
                   aria-controls={`faq-answer-${item.id}`}
                   id={`faq-question-${item.id}`}
                 >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-100 text-teal-600">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-100 text-primary">
                     <HelpCircle className="h-4 w-4" />
                   </span>
                   <span className="min-w-0 flex-1 text-sm font-medium text-slate-800 sm:text-base">
                     {item.question}
                   </span>
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-colors group-hover:bg-teal-100">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-colors group-hover:bg-sky-100">
                     {isOpen ? (
                       <Minus className="h-4 w-4 transition-transform duration-200" />
                     ) : (
@@ -117,7 +120,7 @@ export default function FaqSection() {
         <p className="mt-8 text-center">
           <Link
             href="/om-oss"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-teal-600 transition hover:text-teal-700"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary transition hover:text-sky-700"
           >
             Fler vanliga frågor och svar
             <ArrowRight className="h-4 w-4" aria-hidden />
