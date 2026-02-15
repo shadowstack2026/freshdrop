@@ -45,7 +45,7 @@ const underlineClasses =
 
 export default function Footer() {
   const footerRef = useRef(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const [hasAnimated, setHasAnimated] = useState(false);
 
   useEffect(() => {
     const node = footerRef.current;
@@ -54,11 +54,11 @@ export default function Footer() {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setIsVisible(true);
+          setHasAnimated(true);
           observer.disconnect();
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.1 }
     );
 
     observer.observe(node);
@@ -74,7 +74,7 @@ export default function Footer() {
       </div>
       <div
         className={`container relative py-12 sm:py-16 ${
-          isVisible ? "animate-fade-slide-up" : "opacity-0 translate-y-6"
+          hasAnimated ? "animate-fade-slide-up" : "opacity-100 translate-y-0"
         }`}
       >
         <div className="grid gap-10 md:grid-cols-4">

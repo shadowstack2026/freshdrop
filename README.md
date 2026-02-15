@@ -43,6 +43,7 @@ FreshDrop är en enkel tvättjänst där vi hämtar dina kläder hemma hos dig, 
 
 4. **Miljövariabler**
 
+   - `.env.local` ska ligga i **projektroten** (samma nivå som `package.json`).
    - Kopiera `.env.example` till `.env.local`:
 
    ```bash
@@ -56,6 +57,10 @@ FreshDrop är en enkel tvättjänst där vi hämtar dina kläder hemma hos dig, 
      - `STRIPE_SECRET_KEY` – Stripe secret key (testläge)
      - `STRIPE_WEBHOOK_SECRET` – Stripe webhook secret (testläge)
      - `NEXT_PUBLIC_APP_URL` – bas-URL för appen, t.ex. `http://localhost:3000` lokalt
+     - **Google Places (adressförslag):**
+       - `GOOGLE_PLACES_API_KEY_SERVER` – **Obligatorisk** för adressförslag. Server-nyckel (Application restrictions: None, inga referer). Används endast i `/api/address-search`.
+       - `NEXT_PUBLIC_GOOGLE_PLACES_API_KEY` – API-nyckel för webbläsaren (Maps JavaScript API, referer-begränsad). Används endast i klienten.
+     - **Efter redigering av `.env.local` måste du starta om `npm run dev`** (env läses bara vid start). After editing `.env.local` you MUST restart `npm run dev`.
 
 5. **Stripe-konfiguration (testläge)**
 
@@ -138,12 +143,15 @@ FreshDrop är en enkel tvättjänst där vi hämtar dina kläder hemma hos dig, 
 ### Deploy till Vercel
 
 1. Skapa ett nytt projekt på Vercel och koppla mot detta repo.
-2. Sätt samma miljövariabler som i `.env.local` under projektets inställningar på Vercel.
+2. Sätt samma miljövariabler som i `.env.local` under projektets inställningar på Vercel (inkl. `GOOGLE_PLACES_API_KEY_SERVER` och `NEXT_PUBLIC_GOOGLE_PLACES_API_KEY`).
 3. Deploya.
-4. Uppdatera `NEXT_PUBLIC_APP_URL` till din produktionsdomän.
-5. I Stripe:
+4. **Efter ändringar i miljövariabler på Vercel måste du redeploya** (ny deploy triggas inte automatiskt).
+5. Uppdatera `NEXT_PUBLIC_APP_URL` till din produktionsdomän.
+6. I Stripe:
    - Lägg till webhook mot produktionsdomänen (`/api/stripe/webhook`).
    - Använd live-nycklar om du går över till skarpt läge.
+
+**Google Places server-nyckel på Vercel:** IP-begränsning är ofta opraktiskt eftersom Vercels egress-IP kan variera. Rekommendation: använd **Application restrictions: None** på server-nyckeln och begränsa istället med **API restrictions** (t.ex. bara "Places API" aktiverat för den nyckeln).
 
 ### Övrigt
 

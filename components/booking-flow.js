@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Script from "next/script";
 import Input from "@/components/ui/input";
 import Card from "@/components/ui/card";
 import Modal from "@/components/ui/modal";
@@ -13,6 +14,9 @@ import {
 } from "@/lib/allowed-postal-codes";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { CalendarClock, CheckCircle2, MapPin, Package, Shirt, Sparkles, UserCircle, XCircle } from "lucide-react";
+
+// Endast för webbläsare ("use client"). Nyckel med HTTP referrer-begränsning. Använd aldrig server-nyckeln här.
+const GOOGLE_PLACES_BROWSER_KEY = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
 
 const TIME_SLOTS = [
   { id: "morning", label: "Morgon", emoji: "🌅", start: "08:00", end: "11:00" },
@@ -166,12 +170,23 @@ const fetchCityFromPostal = async (postalCode, { signal } = {}) => {
   };
 };
 
-const searchAddresses = async (query, { signal } = {}) => {
+const searchAddresses = async (query, postalCode, { signal } = {}) => {
   if (!query || query.trim().length < 2) return [];
   const encodedQuery = encodeURIComponent(query.trim());
-  const response = await fetch(`/api/address-search?query=${encodedQuery}`, { signal });
-  if (!response.ok) return [];
-  const results = await response.json();
+  const normalizedPostal = normalizePostalCode(postalCode || "");
+  const postalParam = POSTAL_CODE_REGEX.test(normalizedPostal)
+    ? `&postalCode=${encodeURIComponent(normalizedPostal)}`
+    : "";
+  const response = await fetch(`/api/address-search?query=${encodedQuery}${postalParam}`, { signal });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      data?.google_status || data?.error
+        ? `Adressförslag misslyckades: ${data.google_status || "ERROR"}${data.google_message ? ` (${data.google_message})` : ""}`
+        : "Adressförslag misslyckades.";
+    throw new Error(message);
+  }
+  const results = data;
   return (Array.isArray(results) ? results : []).map((item) => ({
     id: item.place_id || item.id,
     place_id: item.place_id || item.id,
@@ -231,8 +246,12 @@ export default function BookingFlow({
   const [addressLoading, setAddressLoading] = useState(false);
   const [addressDropdownOpen, setAddressDropdownOpen] = useState(false);
   const [addressError, setAddressError] = useState("");
+  const [googlePlacesLoaded, setGooglePlacesLoaded] = useState(false);
   const addressRequestIdRef = useRef(0);
   const addressBlurTimerRef = useRef(null);
+  const addressInputRef = useRef(null);
+  const placesAutocompleteRef = useRef(null);
+  const placesPostalBiasRef = useRef("");
   const postalLookupIdRef = useRef(0);
   const postalLookupAbortRef = useRef(null);
   const postalCacheRef = useRef(new Map());
@@ -321,17 +340,22 @@ export default function BookingFlow({
   }, [contactInfo.email, contactInfo.phone, user?.email]);
 
   useEffect(() => {
+    // Hämta adressförslag från servern när användaren skriver (kräver giltigt postnummer från steg 0).
     const query = contactInfo.address.trim();
     const postalCode = normalizePostalCode(contactInfo.postalCode);
     if (!query || query.length < 2 || !POSTAL_CODE_REGEX.test(postalCode)) {
       setAddressSuggestions([]);
       setAddressLoading(false);
+      if (query && query.length >= 2 && postalCode && !POSTAL_CODE_REGEX.test(postalCode)) {
+        setAddressError("Ange ett giltigt postnummer (5 siffror) för att få adressförslag.");
+      }
       return;
     }
 
     const requestId = addressRequestIdRef.current + 1;
     addressRequestIdRef.current = requestId;
     setAddressLoading(true);
+    setAddressError("");
     const controller = new AbortController();
 
     const timer = setTimeout(async () => {
@@ -339,8 +363,13 @@ export default function BookingFlow({
         const results = await searchAddresses(query, postalCode, { signal: controller.signal });
         if (addressRequestIdRef.current !== requestId) return;
         setAddressSuggestions(results);
+        setAddressError(results.length > 0 ? "" : "Inga adresser hittades. Testa att skriva mer (t.ex. gata + nummer).");
       } catch (error) {
         if (error?.name === "AbortError") return;
+        if (addressRequestIdRef.current === requestId) {
+          setAddressSuggestions([]);
+          setAddressError(error?.message || "Kunde inte hämta adressförslag.");
+        }
       } finally {
         if (addressRequestIdRef.current === requestId) {
           setAddressLoading(false);
@@ -353,6 +382,98 @@ export default function BookingFlow({
       clearTimeout(timer);
     };
   }, [contactInfo.address, contactInfo.postalCode]);
+
+  // Vi använder alltid serverns förslag och egen dropdown – Googles Autocomplete-widget kopplas inte in.
+  useEffect(() => {
+    return;
+    if (typeof window === "undefined") return;
+    const google = window.google;
+    if (!google?.maps?.places || !addressInputRef.current) return;
+    if (!placesAutocompleteRef.current) {
+      const autocomplete = new google.maps.places.Autocomplete(addressInputRef.current, {
+        types: ["address"],
+        componentRestrictions: { country: "se" },
+        fields: ["address_components", "formatted_address"]
+      });
+
+      autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace?.();
+        const components = place?.address_components || [];
+        const get = (type) => components.find((c) => c.types?.includes(type));
+
+        const route = get("route")?.long_name || "";
+        const streetNumber = get("street_number")?.long_name || "";
+        const postalCode = normalizePostalCode(get("postal_code")?.long_name || "");
+        const city =
+          get("postal_town")?.long_name ||
+          get("locality")?.long_name ||
+          get("administrative_area_level_2")?.long_name ||
+          "";
+
+        const address = [route, streetNumber].filter(Boolean).join(" ").trim() || (place?.formatted_address || "");
+
+        setContactSaved(false);
+        setContactError("");
+        setAddressError("");
+        setAddressDropdownOpen(false);
+        setAddressSuggestions([]);
+        setAddressLoading(false);
+
+        setContactInfo((prev) => ({
+          ...prev,
+          address: address || prev.address,
+          city: city || prev.city,
+          postalCode: postalCode || prev.postalCode
+        }));
+
+        if (city) setCityAutoFilled(true);
+
+        if (postalCode) {
+          const allowed = ALLOWED_POSTAL_CODES.has(postalCode);
+          setPostalLookup((prev) => ({ ...prev, allowed }));
+          setPostalStatus(allowed ? "valid" : "invalid");
+          if (!allowed) {
+            setPostalError("Vi levererar inte till detta postnummer.");
+            setAddressError("Vi levererar inte till detta postnummer. Välj en adress inom vårt leveransområde.");
+          } else {
+            setPostalError("");
+          }
+        }
+      });
+
+      placesAutocompleteRef.current = autocomplete;
+    }
+  }, [googlePlacesLoaded]);
+
+  useEffect(() => {
+    if (!GOOGLE_PLACES_BROWSER_KEY || !googlePlacesLoaded) return;
+    if (typeof window === "undefined") return;
+    const google = window.google;
+    const autocomplete = placesAutocompleteRef.current;
+    if (!google?.maps?.Geocoder || !google?.maps?.Circle || !autocomplete) return;
+
+    const postalCode = normalizePostalCode(contactInfo.postalCode || "");
+    if (!POSTAL_CODE_REGEX.test(postalCode)) return;
+    if (placesPostalBiasRef.current === postalCode) return;
+    placesPostalBiasRef.current = postalCode;
+
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode(
+      { address: `${postalCode} Sweden`, componentRestrictions: { country: "SE" } },
+      (results, status) => {
+        if (status !== "OK" || !results?.[0]?.geometry?.location) return;
+        const location = results[0].geometry.location;
+        const circle = new google.maps.Circle({
+          center: location,
+          radius: 20000
+        });
+        const bounds = circle.getBounds?.();
+        if (bounds) {
+          autocomplete.setBounds(bounds);
+        }
+      }
+    );
+  }, [contactInfo.postalCode, googlePlacesLoaded]);
 
   useEffect(() => {
     return () => {
@@ -1121,6 +1242,7 @@ export default function BookingFlow({
               value={contactInfo.address}
               onChange={handleAddressChange}
               onFocus={() => setAddressDropdownOpen(true)}
+              ref={addressInputRef}
               onBlur={() => {
                 if (addressBlurTimerRef.current) {
                   clearTimeout(addressBlurTimerRef.current);
@@ -1134,11 +1256,16 @@ export default function BookingFlow({
               required
               autoComplete="street-address"
             />
-            {addressDropdownOpen && (addressLoading || addressSuggestions.length > 0) && (
+            {addressDropdownOpen &&
+              (addressLoading || addressSuggestions.length > 0 || addressError) && (
               <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
                 {addressLoading ? (
                   <div className="px-4 py-3 text-xs font-semibold text-slate-500">
                     Söker adresser…
+                  </div>
+                ) : addressError && addressSuggestions.length === 0 ? (
+                  <div className="px-4 py-3 text-xs font-semibold text-amber-700">
+                    {addressError}
                   </div>
                 ) : (
                   <div className="max-h-48 overflow-y-auto py-2">
@@ -1551,6 +1678,17 @@ export default function BookingFlow({
       id="boka-tvatt"
       className="mx-auto w-full max-w-[min(100%,960px)] bg-white/95 backdrop-blur-sm rounded-2xl p-5 sm:p-6 lg:p-8 shadow-xl border border-slate-100"
     >
+      {GOOGLE_PLACES_BROWSER_KEY && (
+        <Script
+          src={`https://maps.googleapis.com/maps/api/js?key=${GOOGLE_PLACES_BROWSER_KEY}&libraries=places&language=sv&region=SE`}
+          strategy="afterInteractive"
+          onLoad={() => setGooglePlacesLoaded(true)}
+          onError={() => {
+            setGooglePlacesLoaded(false);
+            setAddressError("Kunde inte ladda Google Places. Kontrollera att Maps JavaScript API + Places är aktiverat och att nyckeln är referrer-tillåten.");
+          }}
+        />
+      )}
       <div
         ref={wizardTopRef}
         className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between"

@@ -110,3 +110,28 @@
 .animate-modal-panel {
   animation: modal-panel-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
+
+/* Google Places Autocomplete (pac-container) styling */
+.pac-container {
+  border-radius: 16px !important;
+  border: 1px solid rgba(148, 163, 184, 0.5) !important; /* slate-300-ish */
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12) !important;
+  font-family: inherit !important;
+  z-index: 9999 !important;
+}
+
+.pac-item {
+  padding: 10px 14px !important;
+  border-top: 1px solid rgba(148, 163, 184, 0.25) !important;
+  font-size: 14px !important;
+}
+
+.pac-item:hover,
+.pac-item-selected {
+  background: rgba(14, 165, 233, 0.08) !important; /* sky-500/8 */
+}
+
+.pac-item-query {
+  font-size: 14px !important;
+  color: rgb(15, 23, 42) !important; /* slate-900 */
+}
