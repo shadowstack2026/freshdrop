@@ -1589,6 +1589,26 @@ export default function BookingFlow({
   const closeConfirmationModal = () => {
     setShowConfirmationModal(false);
     setConfirmationError("");
+    // Återställ bokningen så användaren kan göra en ny (steg 0, inga val – inte som “vald påse”-läge)
+    setActiveStepIndex(0);
+    setStepDirection(1);
+    setWashType("");
+    setScent("");
+    setBagSize("");
+    setPickupDate("");
+    setPickupSlot(TIME_SLOTS[0].id);
+    setDeliveryDate("");
+    setDeliverySlot(TIME_SLOTS[0].id);
+    setShowSummary(false);
+    setSummaryOpen(false);
+    setBookingSuccess("");
+    setBookingCompletionError("");
+    setShowPaymentModal(false);
+    // Scroll till bokningssektionen så användaren hamnar i boka-tvatt efter stäng
+    requestAnimationFrame(() => {
+      const el = document.getElementById("boka-tvatt");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const validateConfirmationInput = () => {
