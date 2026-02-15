@@ -9,6 +9,7 @@ import Card from "@/components/ui/card";
 import BookingFlow from "@/components/booking-flow";
 import Testimonials from "@/components/testimonials";
 import SubscriptionCard from "@/components/subscription-card";
+import CompleteProfileModal from "@/components/complete-profile-modal";
 
 export const dynamic = 'force-dynamic';
 
@@ -95,7 +96,8 @@ export default function HomePage() {
 
         if (profileError && profileError.code !== "PGRST116") {
           console.error("Error fetching profile:", profileError);
-        } else if (profileData) {
+        }
+        if (profileData) {
           setProfile({
             full_name: profileData.full_name || "",
             phone: profileData.phone || "",
@@ -104,6 +106,26 @@ export default function HomePage() {
             postal_code: profileData.postal_code || "",
             city: profileData.city || ""
           });
+        } else {
+          // Ny användare (t.ex. Google) – skapa profilrad med id + email så modalen kan fylla i resten
+          const { data: inserted } = await supabase
+            .from("profiles")
+            .upsert({
+              id: effectiveUser.id,
+              email: effectiveUser.email || ""
+            })
+            .select()
+            .single();
+          if (inserted) {
+            setProfile({
+              full_name: inserted.full_name || "",
+              phone: inserted.phone || "",
+              address_line1: inserted.address_line1 || "",
+              address_line2: inserted.address_line2 || "",
+              postal_code: inserted.postal_code || "",
+              city: inserted.city || ""
+            });
+          }
         }
         fetchSubscription(effectiveUser.id);
       } else {
@@ -152,6 +174,29 @@ export default function HomePage() {
 
   const handleSubscriptionUpdated = () => {
     if (user?.id) fetchSubscription(user.id);
+  };
+
+  const isProfileComplete = (p) => {
+    if (!p) return false;
+    const has = (v) => (v && String(v).trim().length > 0);
+    return has(p.postal_code) && has(p.full_name) && has(p.address_line1) && has(p.phone) && has(p.city);
+  };
+
+  const showCompleteProfileModal = user && profile && !isProfileComplete(profile);
+
+  const handleCompleteProfileDone = async () => {
+    if (!user?.id) return;
+    const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+    if (data) {
+      setProfile({
+        full_name: data.full_name || "",
+        phone: data.phone || "",
+        address_line1: data.address_line1 || "",
+        address_line2: data.address_line2 || "",
+        postal_code: data.postal_code || "",
+        city: data.city || ""
+      });
+    }
   };
 
   if (loading) {
@@ -309,6 +354,10 @@ export default function HomePage() {
 
         <Testimonials />
       </main>
+
+      {showCompleteProfileModal && (
+        <CompleteProfileModal user={user} onComplete={handleCompleteProfileDone} />
+      )}
     </div>
   );
 }

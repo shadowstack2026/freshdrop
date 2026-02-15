@@ -53,13 +53,18 @@ export async function middleware(req) {
       .single();
 
     if (!profile || profile.role !== "admin") {
-      return NextResponse.redirect(new URL("/", req.url));
+      return NextResponse.redirect(new URL("/hem", req.url));
     }
+  }
+
+  // Inloggade användare ska aldrig komma in på landningssidan (/) – omdirigera till /hem
+  if (session && pathname === "/") {
+    return NextResponse.redirect(new URL("/hem", req.url));
   }
 
   return res;
 }
 
 export const config = {
-  matcher: ["/hem/:path*", "/profil/:path*", "/dashboard/:path*", "/account/:path*", "/orders/:path*", "/admin/:path*", "/abonnemang/:path*", "/bookings/:path*", "/login", "/signup"]
+  matcher: ["/", "/hem/:path*", "/profil/:path*", "/dashboard/:path*", "/account/:path*", "/orders/:path*", "/admin/:path*", "/abonnemang/:path*", "/bookings/:path*", "/login", "/signup"]
 };
