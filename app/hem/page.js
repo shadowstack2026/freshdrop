@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -13,7 +13,7 @@ import SubscriptionCard from "@/components/subscription-card";
 export const dynamic = 'force-dynamic';
 
 export default function HomePage() {
-  const supabase = createClientComponentClient();
+  const supabase = useMemo(() => createClientComponentClient(), []);
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -21,6 +21,7 @@ export default function HomePage() {
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
   const [useSubscriptionCredit, setUseSubscriptionCredit] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
 
   const fetchSubscription = useCallback(async (userId) => {
     if (!userId) {
@@ -42,20 +43,54 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    let mounted = true;
+
     async function fetchUserAndProfile() {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) {
-        console.error("Error fetching user:", userError);
-        router.push("/login");
+      setAuthError("");
+
+      // 1) Använd session först (snabbt + robust med middleware/cookies)
+      const {
+        data: { session },
+        error: sessionError
+      } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.error("Error fetching session:", sessionError);
+      }
+
+      const sessionUser = session?.user ?? null;
+      if (!sessionUser) {
+        // Om session saknas helt (t.ex. utloggad i annan tab) → gå till login.
+        const redirect = new URLSearchParams({ redirectTo: "/hem" }).toString();
+        router.replace(`/login?${redirect}`);
         return;
       }
-      setUser(user);
 
-      if (user) {
+      if (!mounted) return;
+      setUser(sessionUser);
+
+      // 2) Försök verifiera user (kan faila tillfälligt). Vid fel behåller vi sessionUser.
+      const {
+        data: { user: verifiedUser },
+        error: userError
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        console.error("Error fetching user:", userError);
+        if (mounted) {
+          setAuthError("Kunde inte verifiera inloggningen just nu. Försök uppdatera sidan.");
+        }
+      } else if (mounted) {
+        setUser(verifiedUser ?? sessionUser);
+      }
+
+      const effectiveUser = verifiedUser ?? sessionUser;
+
+      if (effectiveUser) {
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("*")
-          .eq("id", user.id)
+          .eq("id", effectiveUser.id)
           .single();
 
         if (profileError && profileError.code !== "PGRST116") {
@@ -70,13 +105,30 @@ export default function HomePage() {
             city: profileData.city || ""
           });
         }
-        fetchSubscription(user.id);
+        fetchSubscription(effectiveUser.id);
       } else {
         setSubscriptionLoading(false);
       }
-      setLoading(false);
+      if (mounted) setLoading(false);
     }
+
     fetchUserAndProfile();
+
+    const {
+      data: { subscription: authSubscription }
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      const nextUser = nextSession?.user ?? null;
+      setUser(nextUser);
+      if (!nextUser) {
+        const redirect = new URLSearchParams({ redirectTo: "/hem" }).toString();
+        router.replace(`/login?${redirect}`);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      authSubscription?.unsubscribe?.();
+    };
   }, [supabase, router, fetchSubscription]);
 
   async function handleLogout() {
@@ -112,6 +164,21 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-light to-primary-dark text-slate-100">
+      {authError ? (
+        <div className="container pt-4">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
+            <p className="text-sm font-semibold">Tillfälligt fel</p>
+            <p className="text-sm">{authError}</p>
+            <button
+              type="button"
+              onClick={() => router.refresh()}
+              className="mt-3 inline-flex min-h-[40px] items-center justify-center rounded-full bg-amber-100 px-4 text-sm font-semibold text-amber-900 transition hover:bg-amber-200"
+            >
+              Uppdatera
+            </button>
+          </div>
+        </div>
+      ) : null}
       <header className="container flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/10 px-4 py-5 shadow-sm backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:rounded-3xl sm:py-6">
         <div className="space-y-1 min-w-0">
           <p className="text-xs uppercase tracking-[0.4em] text-primary/90">FreshDrop</p>

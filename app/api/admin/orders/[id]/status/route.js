@@ -59,6 +59,7 @@ export async function POST(req, { params }) {
     );
   }
 
-  return NextResponse.redirect(new URL("/admin", req.url));
+  // Viktigt: använd 303 så att browsern gör en GET till /admin (inte POST -> 405).
+  return NextResponse.redirect(new URL("/admin", req.url), 303);
 }
 
