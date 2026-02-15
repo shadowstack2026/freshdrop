@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import LoadingSpinner from "@/components/loading-spinner";
 
 export const dynamic = "force-dynamic";
 
@@ -50,8 +51,10 @@ export default function AuthCallbackPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-light to-primary-dark flex items-center justify-center py-12 px-4">
-      <div className="text-center text-slate-700">
-        {status === "loading" && <p className="text-lg">Loggar in...</p>}
+      <div className="text-center text-white">
+        {status === "loading" && (
+          <LoadingSpinner size="lg" label="Loggar in..." className="text-white" />
+        )}
         {status === "error" && <p className="text-lg">Omdirigerar till inloggning...</p>}
       </div>
     </div>

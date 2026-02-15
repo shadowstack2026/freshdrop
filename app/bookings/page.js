@@ -7,6 +7,7 @@ import { getBagSizeLabel } from "@/lib/order-display";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { ChevronRight, Package, Calendar } from "lucide-react";
 import StatusBadge from "@/components/status-badge";
+import LoadingSpinner from "@/components/loading-spinner";
 
 export default function BookingsPage() {
   const router = useRouter();
@@ -38,7 +39,7 @@ export default function BookingsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-sky-50 to-white flex items-center justify-center">
-        <p className="text-slate-600 font-medium">Laddar beställningar...</p>
+        <LoadingSpinner size="lg" label="Laddar beställningar..." className="text-sky-600" />
       </div>
     );
   }

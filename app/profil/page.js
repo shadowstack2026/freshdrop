@@ -7,6 +7,7 @@ import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
 import { Save, Edit, XCircle, CheckCircle2 } from "lucide-react";
+import LoadingSpinner from "@/components/loading-spinner";
 
 export const dynamic = 'force-dynamic';
 
@@ -114,7 +115,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-light to-primary-dark flex items-center justify-center">
-        <p className="text-white text-lg">Laddar profil...</p>
+        <LoadingSpinner size="lg" label="Laddar profil..." className="text-white" />
       </div>
     );
   }

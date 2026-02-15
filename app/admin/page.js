@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import StatusBadge from "@/components/status-badge";
 import { getBagSizeLabel } from "@/lib/order-display";
+import LoadingSpinner from "@/components/loading-spinner";
 
 function StatCard({ icon: Icon, label, value, sub }) {
   return (
@@ -71,13 +72,8 @@ export default function AdminPage() {
 
   if (loading && !stats.recentOrders?.length) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <div className="container py-8 sm:py-10">
-          <div className="flex items-center gap-3 text-slate-600">
-            <RefreshCw className="h-5 w-5 animate-spin" />
-            <span>Laddar adminpanel...</span>
-          </div>
-        </div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <LoadingSpinner size="lg" label="Laddar adminpanel..." className="text-slate-600" />
       </div>
     );
   }

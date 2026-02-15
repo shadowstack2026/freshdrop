@@ -10,6 +10,7 @@ import BookingFlow from "@/components/booking-flow";
 import Testimonials from "@/components/testimonials";
 import SubscriptionCard from "@/components/subscription-card";
 import CompleteProfileModal from "@/components/complete-profile-modal";
+import LoadingSpinner from "@/components/loading-spinner";
 
 export const dynamic = 'force-dynamic';
 
@@ -155,6 +156,7 @@ export default function HomePage() {
 
   async function handleLogout() {
     await supabase.auth.signOut();
+    router.push("/");
     router.refresh();
   }
 
@@ -202,7 +204,7 @@ export default function HomePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-light to-primary-dark flex items-center justify-center">
-        <p className="text-white text-lg">Laddar...</p>
+        <LoadingSpinner size="lg" label="Laddar..." className="text-white" />
       </div>
     );
   }

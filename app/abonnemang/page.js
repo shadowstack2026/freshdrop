@@ -8,6 +8,7 @@ import { ChevronDown, ChevronRight, CreditCard, Check, Sparkles } from "lucide-r
 import Card from "@/components/ui/card";
 import Modal from "@/components/ui/modal";
 import { getPlanConfig } from "@/lib/subscription";
+import LoadingSpinner from "@/components/loading-spinner";
 
 const PLANS = [
   {
@@ -110,7 +111,7 @@ export default function AbonnemangPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-sky-100 to-sky-200 flex items-center justify-center">
-        <p className="text-slate-600 font-medium">Laddar...</p>
+        <LoadingSpinner size="lg" label="Laddar..." className="text-sky-600" />
       </div>
     );
   }

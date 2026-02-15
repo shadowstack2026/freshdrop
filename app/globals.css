@@ -135,3 +135,101 @@
   font-size: 14px !important;
   color: rgb(15, 23, 42) !important; /* slate-900 */
 }
+
+/* ========== Loading Spinner ========== */
+.loading-spinner-wrap {
+  --spinner-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.loading-spinner-ring {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-spinner-ring-inner,
+.loading-spinner-ring-outer {
+  position: absolute;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: currentColor;
+  animation: loading-spinner-spin 1.1s var(--spinner-ease) infinite;
+}
+
+.loading-spinner-ring-outer {
+  border-width: 2px;
+  border-top-color: currentColor;
+  opacity: 0.35;
+  animation-direction: reverse;
+  animation-duration: 1.4s;
+}
+
+.loading-spinner-ring-inner {
+  opacity: 0.9;
+}
+
+/* Size variants */
+.loading-spinner-ring.loading-spinner-sm {
+  width: 20px;
+  height: 20px;
+}
+
+.loading-spinner-ring.loading-spinner-sm .loading-spinner-ring-inner,
+.loading-spinner-ring.loading-spinner-sm .loading-spinner-ring-outer {
+  width: 20px;
+  height: 20px;
+}
+
+.loading-spinner-ring.loading-spinner-md {
+  width: 44px;
+  height: 44px;
+}
+
+.loading-spinner-ring.loading-spinner-md .loading-spinner-ring-inner,
+.loading-spinner-ring.loading-spinner-md .loading-spinner-ring-outer {
+  width: 44px;
+  height: 44px;
+}
+
+.loading-spinner-ring.loading-spinner-lg {
+  width: 56px;
+  height: 56px;
+}
+
+.loading-spinner-ring.loading-spinner-lg .loading-spinner-ring-inner,
+.loading-spinner-ring.loading-spinner-lg .loading-spinner-ring-outer {
+  width: 56px;
+  height: 56px;
+  border-width: 4px;
+}
+
+.loading-spinner-ring.loading-spinner-lg .loading-spinner-ring-outer {
+  border-width: 3px;
+}
+
+@keyframes loading-spinner-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Optional: subtle pulse on the wrapper for "alive" feel */
+.loading-spinner-wrap .loading-spinner-ring {
+  animation: loading-spinner-breathe 2.2s ease-in-out infinite;
+}
+
+@keyframes loading-spinner-breathe {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.92;
+    transform: scale(1.02);
+  }
+}
