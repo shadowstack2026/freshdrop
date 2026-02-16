@@ -13,17 +13,17 @@ import { supabaseBrowserClient } from "@/lib/supabase/client";
 const bagPricing = [
   {
     title: "Liten påse",
-    price: "199 kr",
+    price: "219 kr",
     subtitle: "Perfekt för vardagsplagg och småtvätt."
   },
   {
     title: "Mellan påse",
-    price: "299 kr",
+    price: "259 kr",
     subtitle: "Lagom för helgens blandade tvätt."
   },
   {
     title: "Stor påse",
-    price: "399 kr",
+    price: "299 kr",
     subtitle: "För större tvätthögar eller familjen."
   }
 ];

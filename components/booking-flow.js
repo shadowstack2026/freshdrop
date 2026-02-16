@@ -1746,8 +1746,8 @@ export default function BookingFlow({
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,1fr)] px-0 sm:px-0 lg:px-0">
-        <div className="relative z-10 flex flex-col gap-6 pb-[140px] sm:pb-12">
-          <div className="pb-6 lg:relative lg:min-h-[520px]">
+        <div className="relative z-10 flex min-w-0 flex-col gap-6 pb-[140px] sm:pb-12">
+          <div className="pb-6 lg:relative lg:min-h-[720px]">
             {steps.map((step, index) => {
               const isActive = index === activeStepIndex;
               return (
@@ -1793,7 +1793,7 @@ export default function BookingFlow({
 
         <aside
           ref={summaryRef}
-          className="space-y-4 lg:max-w-sm"
+          className="min-w-0 space-y-4 lg:max-w-sm"
         >
           <div>
             <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Sammanfattning</p>
