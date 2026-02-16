@@ -13,7 +13,7 @@ import {
   POSTAL_CODE_CITY_MAP
 } from "@/lib/allowed-postal-codes";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { CalendarClock, CheckCircle2, MapPin, Package, Shirt, Sparkles, UserCircle, XCircle } from "lucide-react";
+import { CalendarClock, CheckCircle2, Droplets, MapPin, Package, Shirt, Sparkles, Thermometer, UserCircle, Wind, XCircle } from "lucide-react";
 
 // Endast för webbläsare ("use client"). Nyckel med HTTP referrer-begränsning. Använd aldrig server-nyckeln här.
 const GOOGLE_PLACES_BROWSER_KEY = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
@@ -745,6 +745,24 @@ export default function BookingFlow({
               <h3 className="mt-1 text-xl font-semibold text-slate-900">Välj typ av tvätt</h3>
               <p className="mt-1 text-sm text-slate-600">Grovtvätt eller vardagstvätt – välj en stil som matchar dina plagg.</p>
               <p className="mt-2 text-xs font-medium text-slate-500">Endast ett val åt gången</p>
+              <div className="mt-4 hidden flex-wrap items-center gap-4 text-slate-500 lg:flex">
+                <span className="flex items-center gap-1.5 text-xs">
+                  <Droplets className="h-3.5 w-3.5" aria-hidden />
+                  Vattentvätt
+                </span>
+                <span className="flex items-center gap-1.5 text-xs">
+                  <Thermometer className="h-3.5 w-3.5" aria-hidden />
+                  40°/60°
+                </span>
+                <span className="flex items-center gap-1.5 text-xs">
+                  <Thermometer className="h-3.5 w-3.5" aria-hidden />
+                  60–90°
+                </span>
+                <span className="flex items-center gap-1.5 text-xs">
+                  <Wind className="h-3.5 w-3.5" aria-hidden />
+                  Torktumlas
+                </span>
+              </div>
             </div>
           </div>
           <div className="mt-6 grid gap-4 grid-cols-1">
@@ -775,15 +793,37 @@ export default function BookingFlow({
                   </div>
                   <div className="grid grid-cols-1 gap-4 text-sm text-slate-600 sm:grid-cols-2">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-emerald-600">Detta ingår</p>
-                      <ul className="mt-2 space-y-1 text-sm font-medium text-emerald-800">
-                        {option.included.map((item) => (
-                          <li key={item} className="flex items-center gap-2">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      {option.id === "vardagstvatt" ? (
+                        <>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-emerald-600">Det här ingår</p>
+                          <ul className="mt-2 space-y-1.5 text-sm font-medium text-emerald-800">
+                            <li className="flex items-start gap-2">
+                              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                              <span>Vi sorterar efter färg &amp; temperatur</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                              <span>Sängkläder/lakan blir släta och krispiga</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                              <span>Strumpor paras ihop, allt viks snyggt och levereras till dörren</span>
+                            </li>
+                          </ul>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-emerald-600">Detta ingår</p>
+                          <ul className="mt-2 space-y-1 text-sm font-medium text-emerald-800">
+                            {option.included.map((item) => (
+                              <li key={item} className="flex items-center gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      )}
                     </div>
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-red-500">Detta ingår inte</p>
@@ -821,8 +861,7 @@ export default function BookingFlow({
             <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-600">Steg {getBaseStepNumber(1)}</p>
               <h3 className="mt-1 text-xl font-semibold text-slate-900">Välj doft</h3>
-              <p className="mt-1 text-sm text-slate-600">Färgade kort för en tillfredsställande känsla.</p>
-              <p className="mt-2 text-xs font-medium text-slate-500">Doften appliceras på hela tvätten</p>
+              <p className="mt-1 text-sm text-slate-600">Vi tvättar med Svanenmärkta, parfymfria medel.</p>
             </div>
           </div>
           <div className="mt-6 grid gap-3 grid-cols-1 sm:grid-cols-2">
@@ -852,9 +891,11 @@ export default function BookingFlow({
                     </div>
                     {isActive && <CheckCircle2 className="h-5 w-5 text-primary" />}
                   </div>
-                  <p className="mt-3 text-[9px] font-semibold uppercase tracking-[0.4em] text-slate-500 sm:text-[11px]">
-                    {isNeutral ? "Doftfri" : "Doften appliceras på hela tvätten"}
-                  </p>
+                  {isNeutral && (
+                    <p className="mt-3 text-[9px] font-semibold uppercase tracking-[0.4em] text-slate-500 sm:text-[11px]">
+                      Doftfri
+                    </p>
+                  )}
                 </button>
               );
             })}
@@ -1780,7 +1821,7 @@ export default function BookingFlow({
                 }
               )}
               {renderNavigationButtons(
-                "hidden w-full flex-col gap-3 border-t border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200 sm:mt-3 sm:flex-row sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none lg:flex lg:static lg:border-t-0 lg:bg-transparent lg:px-0 lg:py-0 lg:shadow-none"
+                "hidden w-full flex-col gap-3 border-t border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200 sm:mt-3 sm:flex-row sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none lg:flex lg:static lg:mt-16 lg:mb-8 lg:border-t-0 lg:bg-transparent lg:px-0 lg:py-0 lg:shadow-none"
               )}
             </>
           )}
