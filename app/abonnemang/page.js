@@ -14,14 +14,14 @@ const PLANS = [
   {
     id: "standard_biweekly",
     name: "FreshDrop Standard",
-    intervalLabel: "Varannan vecka",
+    intervalLabel: "3 tvättar/månad",
     price: 499,
     description:
-      "Varannan vecka får du en bekymmersfri tvättdag med FreshDrop. Varje upphämtning omfattar en stor FreshDrop-påse, där du fritt kan blanda vardagstvätt och grovtvätt i samma påse. Det finns inga särskilda begränsningar per plagg – så länge allt ryms i en påse per hämtning.",
+      "Varje månad får du 3 gratis tvättar med FreshDrop. Krediterna återställs den första varje månad. Varje upphämtning omfattar en stor FreshDrop-påse, där du fritt kan blanda vardagstvätt och grovtvätt i samma påse. Det finns inga särskilda begränsningar per plagg – så länge allt ryms i en påse per hämtning.",
     bullets: [
+      "3 gratis tvättar per månad",
       "Prioriterad service",
-      "Flexibel ändring",
-      "Regelbunden hämtning"
+      "Reset varje månad"
     ],
     moreCopy:
       "Har du mer tvätt än vad som ryms i påsen? Då kan du enkelt boka en extra tvätt till ordinarie pris."
@@ -29,14 +29,14 @@ const PLANS = [
   {
     id: "premium_weekly",
     name: "FreshDrop Premium",
-    intervalLabel: "Varje vecka",
+    intervalLabel: "5 tvättar/månad",
     price: 899,
     description:
-      "Med FreshDrop Premium får du en smidig, återkommande tvättlösning varje vecka. Varje upphämtning omfattar en stor FreshDrop-påse, där du fritt kan blanda vardagstvätt och grovtvätt i samma påse. Det finns inga särskilda begränsningar per plagg – så länge allt ryms i en påse per hämtning.",
+      "Varje månad får du 5 gratis tvättar med FreshDrop. Krediterna återställs den första varje månad. Varje upphämtning omfattar en stor FreshDrop-påse, där du fritt kan blanda vardagstvätt och grovtvätt i samma påse. Det finns inga särskilda begränsningar per plagg – så länge allt ryms i en påse per hämtning.",
     bullets: [
+      "5 gratis tvättar per månad",
       "Premiumsupport",
-      "Först i kön",
-      "Maximal bekvämlighet"
+      "Reset varje månad"
     ],
     moreCopy:
       "Har du mer tvätt än vad som ryms i påsen? Då kan du enkelt boka en extra tvätt till ordinarie pris."

@@ -30,24 +30,24 @@ const bagPricing = [
 
 const subscriptionPricing = [
   {
-    title: "Varannan vecka",
+    title: "3 tvättar/månad",
     price: "499 kr",
-    bullets: ["Regelbunden hämtning", "Flexibel ändring", "Prioriterad service"],
+    bullets: ["3 gratis tvättar/månad", "Flexibel ändring", "Prioriterad service"],
     details: [
-      "Abonnemang premium – FreshDrop Standard (varannan vecka)",
+      "Abonnemang – FreshDrop Standard (3 tvättar/månad)",
       "Så funkar det:",
-      "Varannan vecka får du en bekymmersfri tvättdag med FreshDrop. Varje upphämtning omfattar en stor FreshDrop-påse, där du fritt kan blanda vardagstvätt och grovtvätt i samma påse. Det finns inga särskilda begränsningar per plagg – så länge allt ryms i en påse per hämtning.",
+      "Varje månad får du 3 gratis tvättar. Krediterna återställs den första varje månad. Varje upphämtning omfattar en stor FreshDrop-påse, där du fritt kan blanda vardagstvätt och grovtvätt i samma påse.",
       "Har du mer tvätt än vad som ryms i påsen? Då kan du enkelt boka en extra tvätt till ordinarie pris."
     ]
   },
   {
-    title: "Varje vecka",
+    title: "5 tvättar/månad",
     price: "899 kr",
-    bullets: ["Maximal bekvämlighet", "Först i kön", "Premiumsupport"],
+    bullets: ["5 gratis tvättar/månad", "Först i kön", "Premiumsupport"],
     details: [
-      "Abonnemang full premium – FreshDrop Premium (varje vecka)",
+      "Abonnemang – FreshDrop Premium (5 tvättar/månad)",
       "Så funkar det:",
-      "Med FreshDrop Premium får du en smidig, återkommande tvättlösning varje vecka. Varje upphämtning omfattar en stor FreshDrop-påse, där du fritt kan blanda vardagstvätt och grovtvätt i samma påse. Det finns inga särskilda begränsningar per plagg – så länge allt ryms i en påse per hämtning.",
+      "Varje månad får du 5 gratis tvättar. Krediterna återställs den första varje månad. Varje upphämtning omfattar en stor FreshDrop-påse, där du fritt kan blanda vardagstvätt och grovtvätt i samma påse.",
       "Har du mer tvätt än vad som ryms i påsen? Då kan du enkelt boka en extra tvätt till ordinarie pris."
     ]
   }

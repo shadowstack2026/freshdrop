@@ -98,7 +98,7 @@ export default function SubscriptionCard({
         ) : (
           <div className="mt-4 space-y-2">
             <p className="text-sm font-semibold text-slate-700">
-              Bokningar kvar denna period:{" "}
+              Bokningar kvar denna månad:{" "}
               <span className="text-primary">{creditsRemaining}</span>
             </p>
             <p className="text-sm text-slate-600">

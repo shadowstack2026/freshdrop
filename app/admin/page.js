@@ -80,8 +80,8 @@ export default function AdminPage() {
 
   const planLabels = {
     free: "Gratis",
-    standard_biweekly: "Standard (varannan vecka)",
-    premium_weekly: "Premium (veckovis)"
+    standard_biweekly: "Standard (3/månad)",
+    premium_weekly: "Premium (5/månad)"
   };
 
   return (
