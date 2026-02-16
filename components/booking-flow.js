@@ -745,7 +745,7 @@ export default function BookingFlow({
               <h3 className="mt-1 text-xl font-semibold text-slate-900">Välj typ av tvätt</h3>
               <p className="mt-1 text-sm text-slate-600">Grovtvätt eller vardagstvätt – välj en stil som matchar dina plagg.</p>
               <p className="mt-2 text-xs font-medium text-slate-500">Endast ett val åt gången</p>
-              <div className="mt-4 hidden flex-wrap items-center gap-4 text-slate-500 lg:flex">
+              <div className="mt-4 flex flex-wrap items-center gap-4 text-slate-500">
                 <span className="flex items-center gap-1.5 text-xs">
                   <Droplets className="h-3.5 w-3.5" aria-hidden />
                   Vattentvätt
