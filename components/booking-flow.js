@@ -880,7 +880,7 @@ export default function BookingFlow({
               </p>
             </div>
           </div>
-          <div className="mt-6 grid gap-6 md:grid-cols-2">
+          <div className="mt-6 grid gap-6 md:grid-cols-2 lg:gap-10">
             <DateSelectionCard
               title="Upphämtning"
               dateValue={pickupDate}
