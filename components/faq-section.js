@@ -58,7 +58,7 @@ export default function FaqSection() {
 
   return (
     <section
-      id="fragor-kontakt"
+      id="faq"
       className="border-t border-slate-200 bg-gradient-to-b from-sky-50 via-white to-sky-50/40 py-14 md:py-20"
     >
       <div className="container mx-auto max-w-4xl px-4 sm:px-6">

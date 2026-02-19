@@ -2,19 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Facebook, Instagram, Linkedin } from "lucide-react";
 
 const quickLinks = [
   { label: "Hem", href: "/" },
-  { label: "Så funkar det", href: "/#sa-funkar-det" },
-  { label: "Priser", href: "/#priser" },
+  { label: "Så funkar det", href: "/#how-it-works", sectionId: "how-it-works" },
+  { label: "Priser", href: "/#pricing", sectionId: "pricing" },
   { label: "Om oss", href: "/om-oss" },
   { label: "Offert", href: "/offert" },
-  { label: "Kontakt", href: "/#kontakt" }
+  { label: "Kontakt", href: "/kontakt" }
 ];
 
 const infoLinks = [
-  { label: "Vanliga frågor", href: "/#faq" },
+  { label: "Vanliga frågor", href: "/#faq", sectionId: "faq" },
   { label: "Integritetspolicy", href: "/integritet" },
   { label: "Villkor", href: "/villkor" },
   { label: "Cookies", href: "/cookies" }
@@ -42,6 +43,31 @@ const linkClasses =
   "group relative inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
 const underlineClasses =
   "absolute -bottom-1 left-0 h-px w-full origin-left scale-x-0 bg-sky-400 transition-transform duration-300 group-hover:scale-x-100";
+
+function FooterLink({ link, linkClasses, underlineClasses }) {
+  const pathname = usePathname();
+  const isSectionLink = "sectionId" in link && link.sectionId;
+  const isHome = pathname === "/";
+
+  const handleClick = (e) => {
+    if (isSectionLink && isHome) {
+      e.preventDefault();
+      const el = document.getElementById(link.sectionId);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  return (
+    <Link
+      href={link.href}
+      className={`${linkClasses} hover:-translate-y-0.5`}
+      onClick={handleClick}
+    >
+      {link.label}
+      <span className={underlineClasses} />
+    </Link>
+  );
+}
 
 export default function Footer() {
   const footerRef = useRef(null);
@@ -98,10 +124,7 @@ export default function Footer() {
             <ul className="mt-4 space-y-3">
               {quickLinks.map((link) => (
                 <li key={link.label}>
-                  <Link href={link.href} className={`${linkClasses} hover:-translate-y-0.5`}>
-                    {link.label}
-                    <span className={underlineClasses} />
-                  </Link>
+                  <FooterLink link={link} linkClasses={linkClasses} underlineClasses={underlineClasses} />
                 </li>
               ))}
             </ul>
@@ -114,10 +137,7 @@ export default function Footer() {
             <ul className="mt-4 space-y-3">
               {infoLinks.map((link) => (
                 <li key={link.label}>
-                  <Link href={link.href} className={`${linkClasses} hover:-translate-y-0.5`}>
-                    {link.label}
-                    <span className={underlineClasses} />
-                  </Link>
+                  <FooterLink link={link} linkClasses={linkClasses} underlineClasses={underlineClasses} />
                 </li>
               ))}
             </ul>

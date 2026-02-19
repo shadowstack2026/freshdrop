@@ -9,6 +9,10 @@
     --border: rgba(15, 23, 42, 0.08);
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-[var(--background)] text-[var(--foreground)] antialiased;
     font-size: 18px;
@@ -215,6 +219,30 @@
   100% {
     transform: rotate(360deg);
   }
+}
+
+/* Legal pages – readable, structured content */
+.legal-prose {
+  @apply text-slate-600 leading-relaxed;
+}
+.legal-prose p {
+  @apply mt-3 first:mt-0;
+}
+.legal-prose ul {
+  @apply mt-3 list-none space-y-2 pl-0;
+}
+.legal-prose li {
+  @apply relative pl-5;
+}
+.legal-prose li::before {
+  content: "";
+  @apply absolute left-0 top-[0.55em] h-1.5 w-1.5 rounded-full bg-primary/70;
+}
+.legal-prose strong {
+  @apply font-semibold text-slate-800;
+}
+.legal-prose a {
+  @apply text-primary font-medium underline decoration-sky-300 underline-offset-2 hover:text-sky-600 hover:decoration-sky-500;
 }
 
 /* Optional: subtle pulse on the wrapper for "alive" feel */
