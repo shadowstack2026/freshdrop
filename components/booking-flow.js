@@ -81,19 +81,19 @@ const BAG_OPTIONS = [
   {
     id: "small",
     title: "Liten påse",
-    price: 199,
+    price: 219,
     subtitle: "Perfekt för vardagsplagg och småtvätt."
   },
   {
     id: "medium",
     title: "Mellan påse",
-    price: 299,
+    price: 259,
     subtitle: "Lagom för helgens blandade tvätt."
   },
   {
     id: "large",
     title: "Stor påse",
-    price: 399,
+    price: 299,
     subtitle: "För större tvätthögar eller familjen."
   }
 ];
