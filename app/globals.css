@@ -221,9 +221,9 @@
   }
 }
 
-/* Legal pages – readable, structured content */
+/* Legal pages – readable, structured content (mobile-friendly) */
 .legal-prose {
-  @apply text-slate-600 leading-relaxed;
+  @apply text-slate-600 leading-relaxed break-words;
 }
 .legal-prose p {
   @apply mt-3 first:mt-0;
@@ -242,7 +242,7 @@
   @apply font-semibold text-slate-800;
 }
 .legal-prose a {
-  @apply text-primary font-medium underline decoration-sky-300 underline-offset-2 hover:text-sky-600 hover:decoration-sky-500;
+  @apply text-primary font-medium underline decoration-sky-300 underline-offset-2 hover:text-sky-600 hover:decoration-sky-500 break-all sm:break-words;
 }
 
 /* Optional: subtle pulse on the wrapper for "alive" feel */

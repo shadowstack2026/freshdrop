@@ -25,16 +25,16 @@ export default function LegalPageLayout({
       {/* Hero */}
       <header className="relative border-b border-slate-200/80 bg-white/80 backdrop-blur-sm">
         <div className="absolute inset-0 h-px bg-gradient-to-r from-transparent via-sky-200/60 to-transparent bottom-0" />
-        <div className="container py-10 md:py-14">
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-primary">
-              <FileText className="h-5 w-5" />
+        <div className="container py-8 sm:py-10 md:py-14">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-primary sm:h-11 sm:w-11">
+              <FileText className="h-5 w-5 sm:h-5 sm:w-5" />
             </span>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 sm:tracking-[0.35em]">
                 Juridiskt
               </p>
-              <h1 className="mt-1.5 text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
+              <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl md:text-4xl">
                 {title}
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
@@ -48,8 +48,8 @@ export default function LegalPageLayout({
         </div>
       </header>
 
-      <div className="container py-8 md:py-12">
-        <div className="flex flex-col gap-8 lg:flex-row lg:gap-12">
+      <div className="container py-6 sm:py-8 md:py-12">
+        <div className="flex flex-col gap-6 sm:gap-8 lg:flex-row lg:gap-12">
           {/* Table of contents – sticky on desktop */}
           {toc.length > 0 && (
             <aside className="lg:w-56 lg:shrink-0">
@@ -57,16 +57,19 @@ export default function LegalPageLayout({
                 <button
                   type="button"
                   onClick={() => setTocOpen((o) => !o)}
-                  className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 shadow-sm lg:hidden"
+                  className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-left text-sm font-medium text-slate-700 shadow-sm active:bg-slate-50 lg:hidden touch-manipulation min-h-[48px]"
+                  aria-expanded={tocOpen}
+                  aria-controls="legal-toc-nav"
                 >
                   Innehåll
                   {tocOpen ? (
-                    <ChevronDown className="h-4 w-4 text-slate-400" />
+                    <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
                   ) : (
-                    <ChevronRight className="h-4 w-4 text-slate-400" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
                   )}
                 </button>
                 <nav
+                  id="legal-toc-nav"
                   className={`mt-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm lg:mt-0 ${
                     tocOpen ? "block" : "hidden lg:block"
                   }`}
@@ -80,7 +83,8 @@ export default function LegalPageLayout({
                       <li key={id}>
                         <a
                           href={`#${id}`}
-                          className="block rounded-lg px-3 py-2 text-sm text-slate-600 transition hover:bg-sky-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          onClick={() => setTocOpen(false)}
+                          className="block rounded-lg px-3 py-2.5 text-sm text-slate-600 transition hover:bg-sky-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/30 active:bg-sky-50 min-h-[44px] flex items-center touch-manipulation"
                         >
                           {label}
                         </a>
@@ -99,7 +103,7 @@ export default function LegalPageLayout({
             </div>
 
             {/* Related legal pages */}
-            <div className="mt-12 rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm backdrop-blur-sm">
+            <div className="mt-10 sm:mt-12 rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm backdrop-blur-sm sm:p-6">
               <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Relaterade sidor
               </p>
@@ -110,7 +114,7 @@ export default function LegalPageLayout({
                     <Link
                       key={p.href}
                       href={p.href}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800"
+                      className="inline-flex min-h-[44px] items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 active:bg-sky-100 touch-manipulation"
                     >
                       {p.label}
                     </Link>
@@ -128,14 +132,14 @@ export function LegalSection({ id, title, children }) {
   return (
     <section
       id={id}
-      className="scroll-mt-24 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm md:p-8"
+      className="scroll-mt-20 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-6 md:scroll-mt-24 md:p-8"
     >
-      <div className="border-l-4 border-primary pl-4 md:pl-5">
-        <h2 className="text-xl font-semibold tracking-tight text-slate-900">
+      <div className="border-l-4 border-primary pl-3 sm:pl-4 md:pl-5">
+        <h2 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
           {title}
         </h2>
       </div>
-      <div className="legal-prose mt-5 md:mt-6">{children}</div>
+      <div className="legal-prose mt-4 sm:mt-5 md:mt-6">{children}</div>
     </section>
   );
 }
