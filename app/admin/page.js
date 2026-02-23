@@ -9,7 +9,8 @@ import {
   TrendingUp,
   LayoutDashboard,
   ArrowRight,
-  RefreshCw
+  RefreshCw,
+  Trash2
 } from "lucide-react";
 import StatusBadge from "@/components/status-badge";
 import { getBagSizeLabel } from "@/lib/order-display";
@@ -43,6 +44,7 @@ export default function AdminPage() {
   const [notifyChannel, setNotifyChannel] = useState("email");
   const [notifyLoading, setNotifyLoading] = useState(null);
   const [notifyMessage, setNotifyMessage] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(null);
   const [stats, setStats] = useState({
     ordersToday: 0,
     ordersThisWeek: 0,
@@ -52,7 +54,8 @@ export default function AdminPage() {
     subscriptionsByPlan: { free: 0, standard_biweekly: 0, premium_weekly: 0 },
     ordersByStatus: {},
     recentOrders: [],
-    allOrders: []
+    allOrders: [],
+    guestLeads: []
   });
 
   async function fetchAdminData() {
@@ -89,6 +92,26 @@ export default function AdminPage() {
       setNotifyMessage("Nätverksfel.");
     } finally {
       setNotifyLoading(null);
+    }
+  }
+
+  async function deleteOrder(orderId) {
+    if (!confirm("Vill du verkligen ta bort denna beställning? Detta går inte att ångra.")) return;
+    setDeleteLoading(orderId);
+    setNotifyMessage(null);
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setNotifyMessage(data.message || "Kunde inte ta bort.");
+        return;
+      }
+      setNotifyMessage("Beställningen borttagen.");
+      fetchAdminData();
+    } catch (e) {
+      setNotifyMessage("Nätverksfel.");
+    } finally {
+      setDeleteLoading(null);
     }
   }
 
@@ -207,6 +230,100 @@ export default function AdminPage() {
                   <StatusBadge status={status} />
                   <span>{count}</span>
                 </span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {stats.guestLeads && stats.guestLeads.length > 0 && (
+          <section className="mb-8">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-500">
+              Gästleads – bokningar utan konto
+            </h2>
+            <div className="space-y-4">
+              {stats.guestLeads.map((guest) => (
+                <div
+                  key={guest.id}
+                  className="rounded-2xl border border-amber-200/80 bg-amber-50/50 p-4 shadow-sm sm:p-5"
+                >
+                  <div className="mb-3 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                    <div>
+                      <p className="text-xs font-medium uppercase text-slate-500">Namn</p>
+                      <p className="font-medium text-slate-900">{guest.full_name || "–"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase text-slate-500">E-post</p>
+                      <p className="text-slate-800">{guest.email || "–"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase text-slate-500">Telefon</p>
+                      <p className="text-slate-800">{guest.phone || "–"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase text-slate-500">Adress</p>
+                      <p className="text-slate-800">
+                        {[guest.address_line1, guest.address_line2, guest.postal_code, guest.city]
+                          .filter(Boolean)
+                          .join(", ") || "–"}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="mb-2 text-xs text-slate-500">
+                    Registrerad: {guest.created_at ? new Date(guest.created_at).toLocaleString("sv-SE") : "–"}
+                  </p>
+                  <div>
+                    <p className="mb-2 text-xs font-medium uppercase text-slate-500">
+                      Beställningar ({guest.orders?.length ?? 0})
+                    </p>
+                    {!guest.orders?.length ? (
+                      <p className="text-sm text-slate-500">Ingen beställning kopplad än.</p>
+                    ) : (
+                      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                        <table className="min-w-full text-xs">
+                          <thead className="bg-slate-50">
+                            <tr>
+                              <th className="px-3 py-2 text-left font-medium text-slate-600">Referens</th>
+                              <th className="px-3 py-2 text-left font-medium text-slate-600">Upphämtning</th>
+                              <th className="px-3 py-2 text-left font-medium text-slate-600">Påse</th>
+                              <th className="px-3 py-2 text-left font-medium text-slate-600">Pris</th>
+                              <th className="px-3 py-2 text-left font-medium text-slate-600">Status</th>
+                              <th className="px-3 py-2 text-left font-medium text-slate-600">Betalning</th>
+                              <th className="px-3 py-2 text-right font-medium text-slate-600">Länk</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200">
+                            {guest.orders.map((order) => (
+                              <tr key={order.id} className="hover:bg-slate-50/50">
+                                <td className="px-3 py-2">
+                                  <Link href={`/orders/${order.id}`} className="font-medium text-primary hover:underline">
+                                    {order.id.slice(0, 8)}
+                                  </Link>
+                                </td>
+                                <td className="px-3 py-2 text-slate-700">
+                                  {order.pickup_date} {order.pickup_window}
+                                </td>
+                                <td className="px-3 py-2 text-slate-700">{getBagSizeLabel(order.bag_size)}</td>
+                                <td className="px-3 py-2 text-slate-700">{order.estimated_total_price} kr</td>
+                                <td className="px-3 py-2">
+                                  <StatusBadge status={order.status} />
+                                </td>
+                                <td className="px-3 py-2 text-slate-700">{order.payment_status}</td>
+                                <td className="px-3 py-2 text-right">
+                                  <Link
+                                    href={`/orders/${order.id}`}
+                                    className="text-primary hover:underline"
+                                  >
+                                    Visa
+                                  </Link>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
               ))}
             </div>
           </section>
@@ -389,6 +506,16 @@ export default function AdminPage() {
                               Uppdatera
                             </button>
                           </form>
+                          <button
+                            type="button"
+                            disabled={!!deleteLoading}
+                            onClick={() => deleteOrder(order.id)}
+                            className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100 disabled:opacity-50 touch-manipulation"
+                            title="Ta bort beställning"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Ta bort
+                          </button>
                         </div>
                       </td>
                     </tr>

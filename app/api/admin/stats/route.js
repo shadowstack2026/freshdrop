@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 function getStartOfToday() {
   const d = new Date();
@@ -55,17 +56,23 @@ export async function GET() {
   const endOfToday = getEndOfToday().toISOString();
   const startOfWeek = getStartOfThisWeek().toISOString();
 
+  // Använd service role så att alla orders visas (inkl. gästbeställningar som RLS annars kan dölja)
+  const adminSupabase = createSupabaseServiceRoleClient();
+  const dataClient = adminSupabase || supabase;
+
   const [
     { count: totalUsers },
     { data: orders, error: ordersError },
-    { data: subscriptions, error: subsError }
+    { data: subscriptions, error: subsError },
+    { data: guestLeads, error: guestLeadsError }
   ] = await Promise.all([
-    supabase.from("profiles").select("*", { count: "exact", head: true }),
-    supabase
+    dataClient.from("profiles").select("*", { count: "exact", head: true }),
+    dataClient
       .from("orders")
       .select("*")
       .order("created_at", { ascending: false }),
-    supabase.from("subscriptions").select("plan")
+    dataClient.from("subscriptions").select("plan"),
+    dataClient.from("guest_leads").select("*").order("created_at", { ascending: false })
   ]);
 
   if (ordersError) {
@@ -76,6 +83,15 @@ export async function GET() {
   }
 
   const ordersList = orders || [];
+  const guestLeadsList = guestLeads || [];
+  if (guestLeadsError) {
+    // guest_leads kan vara blockerad av RLS om dataClient är anon; ignorerar
+  }
+
+  const guestLeadsWithOrders = guestLeadsList.map((gl) => ({
+    ...gl,
+    orders: ordersList.filter((o) => o.guest_lead_id === gl.id)
+  }));
   const ordersToday = ordersList.filter(
     (o) => o.created_at >= startOfToday && o.created_at < endOfToday
   ).length;
@@ -104,6 +120,7 @@ export async function GET() {
     subscriptionsByPlan,
     ordersByStatus,
     recentOrders: ordersList.slice(0, 20),
-    allOrders: ordersList
+    allOrders: ordersList,
+    guestLeads: guestLeadsWithOrders
   });
 }
