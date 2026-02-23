@@ -553,7 +553,8 @@ export default function BookingFlow({
     if (!pickupDate) return null;
     const base = new Date(`${pickupDate}T00:00:00`);
     if (Number.isNaN(base.getTime())) return null;
-    base.setDate(base.getDate() + 1);
+    // Minst 1 dag mellanrum: upphämtning 24 → leverans från 26
+    base.setDate(base.getDate() + 2);
     return base;
   }, [pickupDate]);
 

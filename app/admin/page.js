@@ -40,6 +40,9 @@ function StatCard({ icon: Icon, label, value, sub }) {
 
 export default function AdminPage() {
   const [loading, setLoading] = useState(true);
+  const [notifyChannel, setNotifyChannel] = useState("email");
+  const [notifyLoading, setNotifyLoading] = useState(null);
+  const [notifyMessage, setNotifyMessage] = useState(null);
   const [stats, setStats] = useState({
     ordersToday: 0,
     ordersThisWeek: 0,
@@ -63,6 +66,29 @@ export default function AdminPage() {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function setStatusAndNotify(orderId, status) {
+    setNotifyLoading(orderId + status);
+    setNotifyMessage(null);
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/status-notify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, channel: notifyChannel })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setNotifyMessage(data.message || "Något gick fel.");
+        return;
+      }
+      setNotifyMessage(data.message || "Klart.");
+      fetchAdminData();
+    } catch (e) {
+      setNotifyMessage("Nätverksfel.");
+    } finally {
+      setNotifyLoading(null);
     }
   }
 
@@ -200,10 +226,16 @@ export default function AdminPage() {
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">
+                      Typ
+                    </th>
+                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">
                       Referens
                     </th>
                     <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">
                       Kund
+                    </th>
+                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">
+                      Adress
                     </th>
                     <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">
                       Upphämtning
@@ -228,6 +260,17 @@ export default function AdminPage() {
                 <tbody className="divide-y divide-slate-200 bg-white">
                   {stats.allOrders.map((order) => (
                     <tr key={order.id} className="hover:bg-slate-50/50">
+                      <td className="px-3 py-3 sm:px-4">
+                        <span
+                          className={
+                            order.guest_lead_id
+                              ? "inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800"
+                              : "inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700"
+                          }
+                        >
+                          {order.guest_lead_id ? "Gäst" : "Konto"}
+                        </span>
+                      </td>
                       <td className="px-3 py-3 text-slate-800 sm:px-4">
                         <Link
                           href={`/orders/${order.id}`}
@@ -239,7 +282,21 @@ export default function AdminPage() {
                       <td className="px-3 py-3 text-slate-700 sm:px-4">
                         <span className="font-medium">{order.customer_name}</span>
                         <br />
-                        <span className="text-slate-500">{order.customer_email}</span>
+                        <span className="text-slate-500">{order.customer_email || "–"}</span>
+                        {order.customer_phone && (
+                          <>
+                            <br />
+                            <span className="text-slate-500">{order.customer_phone}</span>
+                          </>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-slate-700 sm:px-4 max-w-[180px]">
+                        <span className="block truncate" title={`${order.address_line1 || ""} ${order.postal_code || ""} ${order.city || ""}`.trim()}>
+                          {order.address_line1 || "–"}
+                          {(order.postal_code || order.city) && (
+                            <><br />{[order.postal_code, order.city].filter(Boolean).join(" ")}</>
+                          )}
+                        </span>
                       </td>
                       <td className="px-3 py-3 text-slate-700 sm:px-4">
                         {order.pickup_date} {order.pickup_window}
@@ -265,31 +322,74 @@ export default function AdminPage() {
                         </span>
                       </td>
                       <td className="px-3 py-3 text-right sm:px-4">
-                        <form
-                          action={`/api/admin/orders/${order.id}/status`}
-                          method="post"
-                          className="inline-flex flex-wrap items-center gap-2"
-                        >
-                          <select
-                            name="status"
-                            defaultValue={order.status}
-                            className="min-h-[36px] rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs touch-manipulation"
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-500">Notis:</span>
+                            <button
+                              type="button"
+                              onClick={() => setNotifyChannel("email")}
+                              className={`min-h-[32px] rounded-lg px-2 py-1 text-xs font-medium touch-manipulation ${
+                                notifyChannel === "email"
+                                  ? "bg-slate-900 text-white"
+                                  : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                              }`}
+                            >
+                              E-post
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setNotifyChannel("sms")}
+                              className={`min-h-[32px] rounded-lg px-2 py-1 text-xs font-medium touch-manipulation ${
+                                notifyChannel === "sms"
+                                  ? "bg-slate-900 text-white"
+                                  : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                              }`}
+                            >
+                              SMS
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {["TVÄTTAS", "PÅ_VÄG", "LEVERERAD"].map((s) => (
+                              <button
+                                key={s}
+                                type="button"
+                                disabled={!!notifyLoading}
+                                onClick={() => setStatusAndNotify(order.id, s)}
+                                className="min-h-[32px] rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 touch-manipulation"
+                              >
+                                {s === "PÅ_VÄG" ? "På väg" : s === "LEVERERAD" ? "Levererad" : "Tvättas"}
+                              </button>
+                            ))}
+                          </div>
+                          {notifyMessage && (
+                            <p className="text-xs text-slate-600 max-w-[200px] text-right">{notifyMessage}</p>
+                          )}
+                          <form
+                            action={`/api/admin/orders/${order.id}/status`}
+                            method="post"
+                            className="inline-flex flex-wrap items-center gap-2"
                           >
-                            <option value="MOTTAGEN">MOTTAGEN</option>
-                            <option value="BOKAD">BOKAD</option>
-                            <option value="HÄMTAD">HÄMTAD</option>
-                            <option value="TVÄTTAS">TVÄTTAS</option>
-                            <option value="PÅ_VÄG">PÅ_VÄG</option>
-                            <option value="LEVERERAD">LEVERERAD</option>
-                            <option value="AVBRUTEN">AVBRUTEN</option>
-                          </select>
-                          <button
-                            type="submit"
-                            className="min-h-[36px] rounded-full bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-700 active:scale-[0.98] touch-manipulation"
-                          >
-                            Uppdatera
-                          </button>
-                        </form>
+                            <select
+                              name="status"
+                              defaultValue={order.status}
+                              className="min-h-[36px] rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs touch-manipulation"
+                            >
+                              <option value="MOTTAGEN">MOTTAGEN</option>
+                              <option value="BOKAD">BOKAD</option>
+                              <option value="HÄMTAD">HÄMTAD</option>
+                              <option value="TVÄTTAS">TVÄTTAS</option>
+                              <option value="PÅ_VÄG">PÅ_VÄG</option>
+                              <option value="LEVERERAD">LEVERERAD</option>
+                              <option value="AVBRUTEN">AVBRUTEN</option>
+                            </select>
+                            <button
+                              type="submit"
+                              className="min-h-[36px] rounded-full bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-700 active:scale-[0.98] touch-manipulation"
+                            >
+                              Uppdatera
+                            </button>
+                          </form>
+                        </div>
                       </td>
                     </tr>
                   ))}

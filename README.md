@@ -61,6 +61,7 @@ FreshDrop är en enkel tvättjänst där vi hämtar dina kläder hemma hos dig, 
        - `GOOGLE_PLACES_API_KEY_SERVER` – **Obligatorisk** för adressförslag. Server-nyckel (Application restrictions: None, inga referer). Används endast i `/api/address-search`.
        - `NEXT_PUBLIC_GOOGLE_PLACES_API_KEY` – API-nyckel för webbläsaren (Maps JavaScript API, referer-begränsad). Används endast i klienten.
      - **Efter redigering av `.env.local` måste du starta om `npm run dev`** (env läses bara vid start). After editing `.env.local` you MUST restart `npm run dev`.
+     - **Statusnotiser (admin):** För e-post: `RESEND_API_KEY` och valfritt `FRESHDROP_FROM_EMAIL`. För SMS: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`. Saknas dessa uppdateras endast status.
 
 5. **Stripe-konfiguration (testläge)**
 
