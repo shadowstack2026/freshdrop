@@ -238,93 +238,92 @@ export default function AdminPage() {
         {stats.guestLeads && stats.guestLeads.length > 0 && (
           <section className="mb-8">
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-500">
-              Gästleads – bokningar utan konto
+              Gästbokningar – från order_status_history
             </h2>
+            <p className="mb-4 text-xs text-slate-500">
+              All info som gästen fyllt i (namn, adress, tid, tvätt, påse m.m.) visas här.
+            </p>
             <div className="space-y-4">
-              {stats.guestLeads.map((guest) => (
-                <div
-                  key={guest.id}
-                  className="rounded-2xl border border-amber-200/80 bg-amber-50/50 p-4 shadow-sm sm:p-5"
-                >
-                  <div className="mb-3 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                    <div>
-                      <p className="text-xs font-medium uppercase text-slate-500">Namn</p>
-                      <p className="font-medium text-slate-900">{guest.full_name || "–"}</p>
+              {stats.guestLeads.map((row) => {
+                const d = row.details || {};
+                const email = d.email ?? row.customer_email ?? row.user_email ?? "–";
+                const contact = d.contact ?? "–";
+                const orderId = row.order_id;
+                const linkedOrder = orderId && stats.allOrders?.find((o) => o.id === orderId);
+                return (
+                  <div
+                    key={row.id}
+                    className="rounded-2xl border border-amber-200/80 bg-amber-50/50 p-4 shadow-sm sm:p-5"
+                  >
+                    <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                      <span>{row.created_at ? new Date(row.created_at).toLocaleString("sv-SE") : "–"}</span>
+                      {row.event_type && (
+                        <span className="rounded bg-slate-200 px-1.5 py-0.5">{row.event_type}</span>
+                      )}
+                      {row.status && (
+                        <span className="rounded bg-slate-200 px-1.5 py-0.5">{row.status}</span>
+                      )}
+                      {linkedOrder && (
+                        <Link href={`/orders/${orderId}`} className="font-medium text-primary hover:underline">
+                          Order {orderId.slice(0, 8)}
+                        </Link>
+                      )}
                     </div>
-                    <div>
-                      <p className="text-xs font-medium uppercase text-slate-500">E-post</p>
-                      <p className="text-slate-800">{guest.email || "–"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium uppercase text-slate-500">Telefon</p>
-                      <p className="text-slate-800">{guest.phone || "–"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium uppercase text-slate-500">Adress</p>
-                      <p className="text-slate-800">
-                        {[guest.address_line1, guest.address_line2, guest.postal_code, guest.city]
-                          .filter(Boolean)
-                          .join(", ") || "–"}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="mb-2 text-xs text-slate-500">
-                    Registrerad: {guest.created_at ? new Date(guest.created_at).toLocaleString("sv-SE") : "–"}
-                  </p>
-                  <div>
-                    <p className="mb-2 text-xs font-medium uppercase text-slate-500">
-                      Beställningar ({guest.orders?.length ?? 0})
-                    </p>
-                    {!guest.orders?.length ? (
-                      <p className="text-sm text-slate-500">Ingen beställning kopplad än.</p>
-                    ) : (
-                      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                        <table className="min-w-full text-xs">
-                          <thead className="bg-slate-50">
-                            <tr>
-                              <th className="px-3 py-2 text-left font-medium text-slate-600">Referens</th>
-                              <th className="px-3 py-2 text-left font-medium text-slate-600">Upphämtning</th>
-                              <th className="px-3 py-2 text-left font-medium text-slate-600">Påse</th>
-                              <th className="px-3 py-2 text-left font-medium text-slate-600">Pris</th>
-                              <th className="px-3 py-2 text-left font-medium text-slate-600">Status</th>
-                              <th className="px-3 py-2 text-left font-medium text-slate-600">Betalning</th>
-                              <th className="px-3 py-2 text-right font-medium text-slate-600">Länk</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-200">
-                            {guest.orders.map((order) => (
-                              <tr key={order.id} className="hover:bg-slate-50/50">
-                                <td className="px-3 py-2">
-                                  <Link href={`/orders/${order.id}`} className="font-medium text-primary hover:underline">
-                                    {order.id.slice(0, 8)}
-                                  </Link>
-                                </td>
-                                <td className="px-3 py-2 text-slate-700">
-                                  {order.pickup_date} {order.pickup_window}
-                                </td>
-                                <td className="px-3 py-2 text-slate-700">{getBagSizeLabel(order.bag_size)}</td>
-                                <td className="px-3 py-2 text-slate-700">{order.estimated_total_price} kr</td>
-                                <td className="px-3 py-2">
-                                  <StatusBadge status={order.status} />
-                                </td>
-                                <td className="px-3 py-2 text-slate-700">{order.payment_status}</td>
-                                <td className="px-3 py-2 text-right">
-                                  <Link
-                                    href={`/orders/${order.id}`}
-                                    className="text-primary hover:underline"
-                                  >
-                                    Visa
-                                  </Link>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                    <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      <div>
+                        <p className="text-xs font-medium uppercase text-slate-500">Kontakt / Namn</p>
+                        <p className="font-medium text-slate-900">{contact}</p>
                       </div>
-                    )}
+                      <div>
+                        <p className="text-xs font-medium uppercase text-slate-500">E-post</p>
+                        <p className="text-slate-800">{email}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium uppercase text-slate-500">Telefon</p>
+                        <p className="text-slate-800">{d.phone ?? "–"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium uppercase text-slate-500">Adress</p>
+                        <p className="text-slate-800">{(d.address ?? [d.postal_code].filter(Boolean).join(" ")) || "–"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium uppercase text-slate-500">Postnummer</p>
+                        <p className="text-slate-800">{d.postal_code ?? "–"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium uppercase text-slate-500">Upphämtning</p>
+                        <p className="text-slate-800">
+                          {[d.pickup_date, d.pickup_slot].filter(Boolean).join(" ") || "–"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium uppercase text-slate-500">Leverans</p>
+                        <p className="text-slate-800">
+                          {[d.delivery_date, d.delivery_slot].filter(Boolean).join(" ") || d.estimated_delivery || "–"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium uppercase text-slate-500">Tvätt</p>
+                        <p className="text-slate-800">{d.wash ?? "–"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium uppercase text-slate-500">Påse</p>
+                        <p className="text-slate-800">{d.bag ?? "–"}</p>
+                      </div>
+                      {(d.price != null || d.scent) && (
+                        <div>
+                          <p className="text-xs font-medium uppercase text-slate-500">Pris / Doft</p>
+                          <p className="text-slate-800">
+                            {d.price != null ? `${d.price} kr` : ""}
+                            {d.price != null && d.scent ? " · " : ""}
+                            {d.scent ?? ""}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         )}

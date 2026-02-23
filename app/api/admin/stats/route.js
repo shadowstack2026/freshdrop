@@ -64,7 +64,7 @@ export async function GET() {
     { count: totalUsers },
     { data: orders, error: ordersError },
     { data: subscriptions, error: subsError },
-    { data: guestLeads, error: guestLeadsError }
+    { data: orderStatusHistory, error: historyError }
   ] = await Promise.all([
     dataClient.from("profiles").select("*", { count: "exact", head: true }),
     dataClient
@@ -72,7 +72,10 @@ export async function GET() {
       .select("*")
       .order("created_at", { ascending: false }),
     dataClient.from("subscriptions").select("plan"),
-    dataClient.from("guest_leads").select("*").order("created_at", { ascending: false })
+    dataClient
+      .from("order_status_history")
+      .select("*")
+      .order("created_at", { ascending: false })
   ]);
 
   if (ordersError) {
@@ -83,15 +86,23 @@ export async function GET() {
   }
 
   const ordersList = orders || [];
-  const guestLeadsList = guestLeads || [];
-  if (guestLeadsError) {
-    // guest_leads kan vara blockerad av RLS om dataClient är anon; ignorerar
+  const historyList = orderStatusHistory || [];
+  if (historyError) {
+    // RLS kan blockera; ignorerar
   }
 
-  const guestLeadsWithOrders = guestLeadsList.map((gl) => ({
-    ...gl,
-    orders: ordersList.filter((o) => o.guest_lead_id === gl.id)
-  }));
+  // Bokningsrader: har details med kontakt/upphämtning (gästbokningar eller bokningsförfrågningar)
+  const bookingRows = historyList.filter((row) => {
+    const d = row.details || {};
+    return (
+      d.contact != null ||
+      d.email != null ||
+      d.pickup_date != null ||
+      d.user_email != null ||
+      row.event_type === "booking_preferences" ||
+      (row.status && String(row.status).toLowerCase().includes("booking"))
+    );
+  });
   const ordersToday = ordersList.filter(
     (o) => o.created_at >= startOfToday && o.created_at < endOfToday
   ).length;
@@ -121,6 +132,6 @@ export async function GET() {
     ordersByStatus,
     recentOrders: ordersList.slice(0, 20),
     allOrders: ordersList,
-    guestLeads: guestLeadsWithOrders
+    guestLeads: bookingRows
   });
 }
