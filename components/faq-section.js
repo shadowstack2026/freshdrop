@@ -33,7 +33,7 @@ const FAQ_ITEMS = [
     id: "leverans",
     question: "När hämtar och levererar ni?",
     answer:
-      "Du väljer önskat datum och tidsfönster (morgon, förmiddag, eftermiddag eller kväll). Vi hämtar och levererar tillbaka inom 48 timmar från upphämtning."
+      "Du väljer önskat datum och tidsfönster (förmiddag 8–11, efter middag eller kväll). Vi hämtar och levererar tillbaka inom 48 timmar från upphämtning."
   },
   {
     id: "kontakt",

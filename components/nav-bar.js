@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 const navLinks = [
-  { label: "Hur det funkar", targetId: "how-it-works", type: "scroll" },
+  { label: "Vårt koncept", targetId: "how-it-works", type: "scroll" },
   { label: "Om oss", href: "/om-oss", type: "link" },
   { label: "Priser & abonnemang", targetId: "pricing", type: "scroll" }
 ];

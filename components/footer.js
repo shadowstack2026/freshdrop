@@ -6,19 +6,15 @@ import { usePathname } from "next/navigation";
 import { Facebook, Instagram, Linkedin } from "lucide-react";
 
 const quickLinks = [
-  { label: "Hem", href: "/" },
-  { label: "Så funkar det", href: "/#how-it-works", sectionId: "how-it-works" },
-  { label: "Priser", href: "/#pricing", sectionId: "pricing" },
-  { label: "Om oss", href: "/om-oss" },
-  { label: "Offert", href: "/offert" },
-  { label: "Kontakt", href: "/kontakt" }
+  { label: "Om oss", href: "/om-oss" }
 ];
 
 const infoLinks = [
   { label: "Vanliga frågor", href: "/#faq", sectionId: "faq" },
   { label: "Integritetspolicy", href: "/integritet" },
   { label: "Villkor", href: "/villkor" },
-  { label: "Cookies", href: "/cookies" }
+  { label: "Cookies", href: "/cookies" },
+  { label: "Kontakt", href: "/kontakt" }
 ];
 
 const socialLinks = [
@@ -103,8 +99,8 @@ export default function Footer() {
           hasAnimated ? "animate-fade-slide-up" : "opacity-100 translate-y-0"
         }`}
       >
-        <div className="grid gap-10 md:grid-cols-4">
-          <div className="space-y-4">
+        <div className="grid gap-x-12 gap-y-10 sm:gap-x-16 md:grid-cols-4">
+          <div className="space-y-4 md:min-w-0">
             <div>
               <p className="text-lg font-semibold text-slate-900">FreshDrop</p>
               <p className="mt-2 text-sm text-slate-600">
@@ -117,11 +113,11 @@ export default function Footer() {
             </div>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">
               Snabblänkar
             </p>
-            <ul className="mt-4 space-y-3">
+            <ul className="mt-4 space-y-3.5">
               {quickLinks.map((link) => (
                 <li key={link.label}>
                   <FooterLink link={link} linkClasses={linkClasses} underlineClasses={underlineClasses} />
@@ -130,11 +126,11 @@ export default function Footer() {
             </ul>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">
               Support &amp; info
             </p>
-            <ul className="mt-4 space-y-3">
+            <ul className="mt-4 space-y-3.5">
               {infoLinks.map((link) => (
                 <li key={link.label}>
                   <FooterLink link={link} linkClasses={linkClasses} underlineClasses={underlineClasses} />
@@ -143,7 +139,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">
               Socialt
             </p>

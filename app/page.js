@@ -14,17 +14,20 @@ const bagPricing = [
   {
     title: "Liten påse",
     price: "219 kr",
-    subtitle: "Perfekt för vardagsplagg och småtvätt."
+    subtitle: "För vardaglig tvätt och grovtvätt.",
+    details: "I den lilla påsen erbjuds en liten påse som rymmer 5–8 kg. Perfekt för vardaglig tvätt och grovtvätt."
   },
   {
     title: "Mellan påse",
-    price: "259 kr",
-    subtitle: "Lagom för helgens blandade tvätt."
+    price: "279 kr",
+    subtitle: "För vardaglig tvätt och grovtvätt.",
+    details: "Mellan påse rymmer 8–10 kg. Lagom för vardaglig tvätt och grovtvätt."
   },
   {
     title: "Stor påse",
-    price: "299 kr",
-    subtitle: "För större tvätthögar eller familjen."
+    price: "329 kr",
+    subtitle: "För vardaglig tvätt och grovtvätt.",
+    details: "Stor påse rymmer 11–15 kg. För vardaglig tvätt och grovtvätt."
   }
 ];
 
@@ -57,6 +60,7 @@ export default function HomePage() {
   const pricingCardRefs = useRef([]);
   const [visiblePricingCards, setVisiblePricingCards] = useState([]);
   const [openSubscription, setOpenSubscription] = useState(null);
+  const [openBag, setOpenBag] = useState(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState(null);
   const supabase = supabaseBrowserClient;
@@ -135,7 +139,7 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-tr from-primary/60 to-sky-400/60 z-10 hero-overlay"></div>
         <div className="container relative z-20 text-center">
           <span className="inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white mb-4">
-            Enklare tvätt, renare liv
+            Mer tid för livet
           </span>
           <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mb-6 leading-tight drop-shadow-sm">
             Tvätt hämtad, tvättad och levererad inom{" "}
@@ -171,26 +175,24 @@ export default function HomePage() {
       <section id="pricing" className="py-16 md:py-24 bg-white border-y border-slate-200">
         <div className="container space-y-12">
           <div className="space-y-3 text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-400">
-              Priser & abonnemang
-            </p>
             <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-900">
               <span className="bg-gradient-to-r from-slate-800 via-slate-900 to-teal-800 bg-clip-text text-transparent">
                 Priser & abonnemang
               </span>
             </h2>
             <p className="text-sm md:text-base text-slate-500 max-w-2xl mx-auto">
-              Välj det upplägg som passar din vardag. Alltid tydligt pris, alltid premiumkänsla.
+              Välj det alternativ som passar dig bäst.
             </p>
           </div>
 
           <div className="space-y-6">
             <h3 className="text-xl md:text-2xl font-semibold text-slate-900 text-center">
-              Fast pris per påse (väldigt populärt)
+              Varje påse har fast pris
             </h3>
             <div className="grid gap-6 md:grid-cols-3">
               {bagPricing.map((item, index) => {
                 const isVisible = visiblePricingCards.includes(index);
+                const isOpen = openBag === index;
                 return (
                   <div
                     key={item.title}
@@ -208,6 +210,22 @@ export default function HomePage() {
                       <span className="text-lg font-semibold text-primary">{item.price}</span>
                     </div>
                     <p className="mt-2 text-sm text-slate-600">{item.subtitle}</p>
+                    <button
+                      type="button"
+                      onClick={() => setOpenBag((prev) => (prev === index ? null : index))}
+                      className="mt-5 inline-flex items-center gap-2 rounded-full bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700 transition hover:bg-sky-100"
+                    >
+                      {isOpen ? "Läs mer ↓" : "Läs mer →"}
+                    </button>
+                    <div
+                      className={`overflow-hidden transition-all duration-500 ease-out ${
+                        isOpen ? "max-h-[200px] opacity-100 mt-4" : "max-h-0 opacity-0"
+                      }`}
+                    >
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-600">
+                        {item.details}
+                      </div>
+                    </div>
                   </div>
                 );
               })}
@@ -221,6 +239,9 @@ export default function HomePage() {
             <h3 className="text-xl md:text-2xl font-semibold text-slate-900 text-center">
               Abonnemang
             </h3>
+            <p className="text-sm md:text-base text-slate-500 max-w-2xl mx-auto text-center">
+              Välj ett abonnemang som passar din vardag – få tvätt hämtad och levererad utan att tänka på det.
+            </p>
             <div className="grid gap-6 md:grid-cols-2">
               {subscriptionPricing.map((item, index) => {
                 const cardIndex = bagPricing.length + index;

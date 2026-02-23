@@ -19,9 +19,8 @@ import { CalendarClock, CheckCircle2, Droplets, MapPin, Package, Shirt, Sparkles
 const GOOGLE_PLACES_BROWSER_KEY = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
 
 const TIME_SLOTS = [
-  { id: "morning", label: "Morgon", emoji: "🌅", start: "08:00", end: "11:00" },
-  { id: "foren", label: "Förmiddag", emoji: "☀️", start: "11:00", end: "14:00" },
-  { id: "afternoon", label: "Eftermiddag", emoji: "🌤", start: "14:00", end: "17:00" },
+  { id: "foren", label: "Förmiddag", emoji: "☀️", start: "08:00", end: "11:00" },
+  { id: "afternoon", label: "Efter middag", emoji: "🌤", start: "14:00", end: "17:00" },
   { id: "evening", label: "Kväll", emoji: "🌙", start: "17:00", end: "20:00" }
 ];
 
@@ -82,19 +81,19 @@ const BAG_OPTIONS = [
     id: "small",
     title: "Liten påse",
     price: 219,
-    subtitle: "Perfekt för vardagsplagg och småtvätt."
+    subtitle: "För vardaglig tvätt och grovtvätt."
   },
   {
     id: "medium",
     title: "Mellan påse",
-    price: 259,
-    subtitle: "Lagom för helgens blandade tvätt."
+    price: 279,
+    subtitle: "För vardaglig tvätt och grovtvätt."
   },
   {
     id: "large",
     title: "Stor påse",
-    price: 299,
-    subtitle: "För större tvätthögar eller familjen."
+    price: 329,
+    subtitle: "För vardaglig tvätt och grovtvätt."
   }
 ];
 
@@ -433,8 +432,8 @@ export default function BookingFlow({
           setPostalLookup((prev) => ({ ...prev, allowed }));
           setPostalStatus(allowed ? "valid" : "invalid");
           if (!allowed) {
-            setPostalError("Vi levererar inte till detta postnummer.");
-            setAddressError("Vi levererar inte till detta postnummer. Välj en adress inom vårt leveransområde.");
+            setPostalError("Tyvärr levererar vi inte till detta område ännu men inom snart framtid 😊");
+            setAddressError("Tyvärr levererar vi inte till detta område ännu men inom snart framtid 😊");
           } else {
             setPostalError("");
           }
@@ -636,8 +635,8 @@ export default function BookingFlow({
         setPostalLookup((prev) => ({ ...prev, allowed: data.allowed }));
         setPostalStatus(data.allowed ? "valid" : "invalid");
         if (!data.allowed) {
-          setPostalError("Vi levererar inte till detta postnummer.");
-          setAddressError("Vi levererar inte till detta postnummer. Välj en adress inom vårt leveransområde.");
+          setPostalError("Tyvärr levererar vi inte till detta område ännu men inom snart framtid 😊");
+          setAddressError("Tyvärr levererar vi inte till detta område ännu men inom snart framtid 😊");
         } else {
           setPostalError("");
         }
@@ -665,7 +664,7 @@ export default function BookingFlow({
     if (POSTAL_CODE_REGEX.test(normalized)) {
       if (!ALLOWED_POSTAL_CODES.has(normalized)) {
         setPostalStatus("invalid");
-        setPostalError("Tyvärr levererar vi inte till detta område ännu.");
+        setPostalError("Tyvärr levererar vi inte till detta område ännu men inom snart framtid 😊");
         return;
       }
       setPostalStatus("loading");
@@ -1201,7 +1200,7 @@ export default function BookingFlow({
 
   const cityCheckStep = {
     id: "city-check",
-    title: "Kontroll om vi finns i din stad",
+    title: "Kontrollera om vi finns i din stad",
     render: () => (
       <Card className="overflow-hidden border-slate-100 bg-gradient-to-br from-sky-50/80 to-white p-5 shadow-sm sm:p-6">
         <div className="flex gap-4">
@@ -1211,7 +1210,7 @@ export default function BookingFlow({
           <div className="min-w-0 flex-1 space-y-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-600">Steg 0</p>
-              <h3 className="mt-1 text-xl font-semibold text-slate-900">Kontroll om vi finns i din stad</h3>
+              <h3 className="mt-1 text-xl font-semibold text-slate-900">Kontrollera om vi finns i din stad</h3>
               <p className="mt-1 text-sm text-slate-600">
                 Ange postnummer så kollar vi att vi levererar till din adress.
               </p>
@@ -1221,11 +1220,7 @@ export default function BookingFlow({
               value={contactInfo.postalCode}
               onChange={handlePostalChange}
               error={postalError || (postalInvalid ? "Endast fem siffror godkänns." : undefined)}
-              helpText={
-                postalStatus === "loading"
-                  ? "Verifierar postnummer..."
-                  : "Postnummer används för zonkontroll och sparas automatiskt."
-              }
+              helpText={postalStatus === "loading" ? "Verifierar postnummer..." : undefined}
               inputClassName={
                 postalStatus === "valid"
                   ? "border-emerald-400 focus:border-emerald-400 focus:ring-emerald-200"
@@ -1760,7 +1755,7 @@ export default function BookingFlow({
           </span>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 sm:text-[2.25rem]">
             <span className="bg-gradient-to-r from-slate-800 to-slate-900 bg-clip-text text-transparent">
-              Bygg din FreshDrop-upplevelse
+              Skräddarsy din FreshDrop tvätt med oss här
             </span>
           </h2>
         </div>
