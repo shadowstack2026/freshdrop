@@ -146,9 +146,9 @@ export default function HomePage() {
             <span className="text-white">48 timmar</span>.
           </h1>
           <p className="text-lg md:text-xl max-w-2xl mx-auto mb-8 opacity-90 drop-shadow-sm">
-            FreshDrop gör din vardag enklare. Vi hämtar dina kläder hemma hos
-            dig, tvättar och levererar tillbaka – allt utan att du behöver
-            lyfta ett finger. Upplev friheten med enkel tvätt.
+            FreshDrop underlättar den hektiska vardagen genom att avlasta dig med din tvätt. Allt du behöver
+            göra är att packa ner din tvätt för avhämtning och sedan tvättar vi och levererar tillbaka ren tvätt
+            inom 48h. Boka tvätt nedan för att frigöra mer tid i livet.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <button

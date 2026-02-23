@@ -7,21 +7,21 @@ const steps = [
   {
     title: "Boka upphämtning",
     description:
-      "Välj tid som passar dig. Vi hämtar tvätten direkt hemma hos dig – enkelt och utan krångel.",
+      "Välj en dag och tid du vill att vi ska hämta din tvätt hemma hos dig enkelt och smidigt.",
     accent: "from-primary/70 via-sky-400/40 to-sky-500/50",
     src: "/images/pickup-2.png"
   },
   {
     title: "Vi tvättar och viker",
     description:
-      "Vi tvättar dina kläder varsamt, viker dem snyggt och ser till att allt är fräscht och klart.",
+      "Vi tvättar dina kläder i våra lokaler enligt era önskemål.",
     accent: "from-slate-500/20 via-slate-400/10 to-primary/20",
     src: "/images/wash-2.png"
   },
   {
     title: "Leverans till dörren",
     description:
-      "Inom 48 timmar levererar vi tillbaka din tvätt – ren, vikt och redo att användas.",
+      "Vi levererar tillbaka din tvätt inom 48h rent, vikt och fräscht redo för att användas.",
     accent: "from-sky-400/40 via-primary/30 to-primary/70",
     src: "/images/deliver-2.png"
   }
@@ -68,11 +68,12 @@ export default function HowItWorksSection({ sectionId = "how-it-works" }) {
       <div className="container space-y-10">
         <div className="space-y-3 text-center">
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-900">
-            Så fungerar FreshDrop
+            Vårt koncept
           </h2>
           <p className="text-sm md:text-base text-slate-500 max-w-2xl mx-auto">
-            En enkel, trygg process som känns modern och fräsch. Scrolla igenom varje steg
-            för att få en tydlig bild av hur vi tar hand om din tvätt från start till slut.
+            Freshdrop är en enkel lösning för att få din tvätt ren och fräscht inom 48h enligt dina önskemål.
+            Med endast 3 steg har du gjort det du ska för att få din vardagstvätt färdig. Kolla nedan hur vi tar
+            hand om din tvätt från dörr till dörr.
           </p>
         </div>
 
