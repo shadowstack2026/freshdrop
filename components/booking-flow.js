@@ -1606,11 +1606,13 @@ export default function BookingFlow({
     }
 
     try {
-      await supabase.rpc("add_order_status_history", {
-        p_order_id: orderIdForHistory,
-        p_status: "booking_confirmed",
-        p_details: detailsPayload
-      });
+      if (!user) {
+        await supabase.rpc("add_order_status_history", {
+          p_order_id: orderIdForHistory,
+          p_status: "booking_confirmed",
+          p_details: detailsPayload
+        });
+      }
     } catch (err) {
       console.error("order_status_history insert failed:", err);
     }

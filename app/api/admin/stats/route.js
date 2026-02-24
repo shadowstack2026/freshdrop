@@ -91,17 +91,22 @@ export async function GET() {
     // RLS kan blockera; ignorerar
   }
 
-  // Bokningsrader: har details med kontakt/upphämtning (gästbokningar eller bokningsförfrågningar)
+  // Bokningsrader: endast gästbokningar (utan konto). Exkludera rader kopplade till en order med user_id.
   const bookingRows = historyList.filter((row) => {
     const d = row.details || {};
-    return (
+    const hasBookingDetails =
       d.contact != null ||
       d.email != null ||
       d.pickup_date != null ||
       d.user_email != null ||
       row.event_type === "booking_preferences" ||
-      (row.status && String(row.status).toLowerCase().includes("booking"))
-    );
+      (row.status && String(row.status).toLowerCase().includes("booking"));
+    if (!hasBookingDetails) return false;
+    if (row.order_id) {
+      const order = ordersList.find((o) => o.id === row.order_id);
+      if (order && order.user_id) return false;
+    }
+    return true;
   });
   const ordersToday = ordersList.filter(
     (o) => o.created_at >= startOfToday && o.created_at < endOfToday

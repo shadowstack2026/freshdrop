@@ -72,14 +72,36 @@ export default function AdminPage() {
     }
   }
 
-  async function setStatusAndNotify(orderId, status) {
+  async function setStatusAndNotify(orderId, status, order) {
+    const isGuest = !!order?.guest_lead_id;
+    const hasEmail = !!order?.customer_email?.trim();
+    const hasPhone = !!order?.customer_phone?.trim();
+    let channel = notifyChannel;
+    if (isGuest) {
+      channel = "sms";
+      if (!hasPhone) {
+        setNotifyMessage("Gäst har inget telefonnummer – kan inte skicka notis (gäster får endast sms).");
+        return;
+      }
+    } else {
+      if (channel === "email" && !hasEmail && hasPhone) channel = "sms";
+      else if (channel === "sms" && !hasPhone && hasEmail) channel = "email";
+      else if (!hasEmail && !hasPhone) {
+        setNotifyMessage("Kunden har varken e-post eller telefon – kan inte skicka notis.");
+        return;
+      } else if ((channel === "email" && !hasEmail) || (channel === "sms" && !hasPhone)) {
+        setNotifyMessage(channel === "email" ? "Kunden har ingen e-post." : "Kunden har inget telefonnummer.");
+        return;
+      }
+    }
+
     setNotifyLoading(orderId + status);
     setNotifyMessage(null);
     try {
       const res = await fetch(`/api/admin/orders/${orderId}/status-notify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status, channel: notifyChannel })
+        body: JSON.stringify({ status, channel: channel })
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -249,7 +271,15 @@ export default function AdminPage() {
                 const email = d.email ?? row.customer_email ?? row.user_email ?? "–";
                 const contact = d.contact ?? "–";
                 const orderId = row.order_id;
-                const linkedOrder = orderId && stats.allOrders?.find((o) => o.id === orderId);
+                const guestEmail = (d.email || row.customer_email || "").trim();
+                const linkedOrder =
+                  (orderId && stats.allOrders?.find((o) => o.id === orderId)) ||
+                  (stats.allOrders || [])
+                    .filter((o) => o.guest_lead_id && (o.customer_email || "").trim() === guestEmail)
+                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+                const hasEmail = !!linkedOrder?.customer_email?.trim();
+                const hasPhone = !!linkedOrder?.customer_phone?.trim() || !!d.phone?.trim();
+                const canNotify = linkedOrder && (hasEmail || hasPhone);
                 return (
                   <div
                     key={row.id}
@@ -439,44 +469,70 @@ export default function AdminPage() {
                       </td>
                       <td className="px-3 py-3 text-right sm:px-4">
                         <div className="flex flex-col items-end gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-500">Notis:</span>
-                            <button
-                              type="button"
-                              onClick={() => setNotifyChannel("email")}
-                              className={`min-h-[32px] rounded-lg px-2 py-1 text-xs font-medium touch-manipulation ${
-                                notifyChannel === "email"
-                                  ? "bg-slate-900 text-white"
-                                  : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                              }`}
-                            >
-                              E-post
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setNotifyChannel("sms")}
-                              className={`min-h-[32px] rounded-lg px-2 py-1 text-xs font-medium touch-manipulation ${
-                                notifyChannel === "sms"
-                                  ? "bg-slate-900 text-white"
-                                  : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                              }`}
-                            >
-                              SMS
-                            </button>
-                          </div>
-                          <div className="flex flex-wrap gap-1">
-                            {["TVÄTTAS", "PÅ_VÄG", "LEVERERAD"].map((s) => (
-                              <button
-                                key={s}
-                                type="button"
-                                disabled={!!notifyLoading}
-                                onClick={() => setStatusAndNotify(order.id, s)}
-                                className="min-h-[32px] rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 touch-manipulation"
-                              >
-                                {s === "PÅ_VÄG" ? "På väg" : s === "LEVERERAD" ? "Levererad" : "Tvättas"}
-                              </button>
-                            ))}
-                          </div>
+                          {(() => {
+                            const hasEmail = !!order.customer_email?.trim();
+                            const hasPhone = !!order.customer_phone?.trim();
+                            const isGuest = !!order.guest_lead_id;
+                            const canNotify = isGuest ? hasPhone : (hasEmail || hasPhone);
+                            return (
+                              <>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-slate-500">Notis:</span>
+                                  {!isGuest && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setNotifyChannel("email")}
+                                      disabled={!hasEmail}
+                                      title={hasEmail ? "Skicka till kundens e-post" : "Kunden har inte angett e-post"}
+                                      className={`min-h-[32px] rounded-lg px-2 py-1 text-xs font-medium touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed ${
+                                        notifyChannel === "email"
+                                          ? "bg-slate-900 text-white"
+                                          : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                      } ${!hasEmail ? "opacity-50" : ""}`}
+                                    >
+                                      E-post
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => setNotifyChannel("sms")}
+                                    disabled={!hasPhone}
+                                    title={hasPhone ? "Skicka till kundens telefon" : "Kunden har inte angett telefon"}
+                                    className={`min-h-[32px] rounded-lg px-2 py-1 text-xs font-medium touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed ${
+                                      (isGuest ? true : notifyChannel === "sms")
+                                        ? "bg-slate-900 text-white"
+                                        : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                    } ${!hasPhone ? "opacity-50" : ""}`}
+                                  >
+                                    SMS
+                                  </button>
+                                </div>
+                                {isGuest ? (
+                                  <p className="text-[10px] text-amber-700">
+                                    Gäst har inte konto – notis skickas endast via sms.
+                                  </p>
+                                ) : canNotify ? (
+                                  <p className="text-[10px] text-slate-400">
+                                    Skickas till: {hasEmail && hasPhone ? "e-post eller sms (valt)" : hasEmail ? "e-post" : "sms"}
+                                  </p>
+                                ) : null}
+                                <div className="flex flex-wrap gap-1">
+                                  {["TVÄTTAS", "PÅ_VÄG", "LEVERERAD"].map((s) => (
+                                    <button
+                                      key={s}
+                                      type="button"
+                                      disabled={!!notifyLoading || !canNotify}
+                                      onClick={() => setStatusAndNotify(order.id, s, order)}
+                                      title={!canNotify ? (isGuest ? "Gäst har inget telefonnummer" : "Kunden har varken e-post eller telefon") : undefined}
+                                      className="min-h-[32px] rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                                    >
+                                      {s === "PÅ_VÄG" ? "På väg" : s === "LEVERERAD" ? "Levererad" : "Tvättas"}
+                                    </button>
+                                  ))}
+                                </div>
+                              </>
+                            );
+                          })()}
                           {notifyMessage && (
                             <p className="text-xs text-slate-600 max-w-[200px] text-right">{notifyMessage}</p>
                           )}
