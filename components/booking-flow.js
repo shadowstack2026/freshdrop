@@ -13,7 +13,7 @@ import {
   POSTAL_CODE_CITY_MAP
 } from "@/lib/allowed-postal-codes";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { CalendarClock, CheckCircle2, Droplets, MapPin, Package, Shirt, Sparkles, Thermometer, UserCircle, Wind, XCircle } from "lucide-react";
+import { CalendarClock, CheckCircle2, Droplets, LayoutGrid, MapPin, Package, Shirt, Sparkles, Thermometer, UserCircle, Wind, XCircle } from "lucide-react";
 
 // Endast för webbläsare ("use client"). Nyckel med HTTP referrer-begränsning. Använd aldrig server-nyckeln här.
 const GOOGLE_PLACES_BROWSER_KEY = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
@@ -38,6 +38,13 @@ const WASH_OPTIONS = [
     description: "För vardagskläder och känsligare plagg.",
     included: ["T-shirts", "Underkläder", "Tröjor"],
     excluded: ["Kraftigt smutsade arbetskläder"]
+  },
+  {
+    id: "mattvatt",
+    title: "Mattvätt",
+    description: "Professionell mattvätt. Samma pris för alla mattor, frakt ingår.",
+    included: ["Samma pris för alla mattor", "Frakt ingår i priset", "Erfarenhet av mattvätt"],
+    excluded: ["Viskos, silke, tencel och bambu tvättas på egen risk"]
   }
 ];
 
@@ -96,6 +103,9 @@ const BAG_OPTIONS = [
     subtitle: "För vardaglig tvätt och grovtvätt."
   }
 ];
+
+const RUG_PRICE_PER_M2 = 50;
+const RUG_MIN_M2 = 3;
 
 function addHours(date, hours) {
   const result = new Date(date);
@@ -222,6 +232,8 @@ export default function BookingFlow({
   const [washType, setWashType] = useState("");
   const [scent, setScent] = useState("");
   const [bagSize, setBagSize] = useState("");
+  const [rugWidthCm, setRugWidthCm] = useState(200);
+  const [rugHeightCm, setRugHeightCm] = useState(150);
   const [pickupDate, setPickupDate] = useState("");
   const [pickupSlot, setPickupSlot] = useState(TIME_SLOTS[0].id);
   const [deliveryDate, setDeliveryDate] = useState("");
@@ -531,7 +543,16 @@ export default function BookingFlow({
   }, [showConfirmationModal]);
 
   const selectedBag = BAG_OPTIONS.find((option) => option.id === bagSize);
-  const price = useMemo(() => selectedBag?.price ?? 0, [selectedBag]);
+  const rugAreaM2 = useMemo(() => {
+    const w = Number(rugWidthCm) || 0;
+    const h = Number(rugHeightCm) || 0;
+    return Math.max(RUG_MIN_M2, (w / 100) * (h / 100));
+  }, [rugWidthCm, rugHeightCm]);
+  const rugPrice = useMemo(() => Math.round(rugAreaM2 * RUG_PRICE_PER_M2), [rugAreaM2]);
+  const price = useMemo(
+    () => (washType === "mattvatt" ? rugPrice : (selectedBag?.price ?? 0)),
+    [washType, rugPrice, selectedBag]
+  );
 
   const selectedPickup = TIME_SLOTS.find((slot) => slot.id === pickupSlot);
   const selectedDelivery = TIME_SLOTS.find((slot) => slot.id === deliverySlot);
@@ -553,10 +574,11 @@ export default function BookingFlow({
     if (!pickupDate) return null;
     const base = new Date(`${pickupDate}T00:00:00`);
     if (Number.isNaN(base.getTime())) return null;
-    // Minst 1 dag mellanrum: upphämtning 24 → leverans från 26
-    base.setDate(base.getDate() + 2);
+    // Mattvätt: minst 1 vecka; vanlig tvätt: minst 1 dag mellanrum
+    const daysToAdd = washType === "mattvatt" ? 7 : 2;
+    base.setDate(base.getDate() + daysToAdd);
     return base;
-  }, [pickupDate]);
+  }, [pickupDate, washType]);
 
   useEffect(() => {
     if (!pickupDate || !deliveryDate) return;
@@ -730,7 +752,7 @@ export default function BookingFlow({
   const stepCount = isLoggedInFlow ? 4 : showContactStep ? 6 : 4;
   const baseStepOffset = isLoggedInFlow ? 0 : showContactStep ? 2 : 1;
   const getBaseStepNumber = (index) => index + baseStepOffset;
-  const baseSteps = [
+  const allBaseSteps = [
     {
       id: "wash",
       title: "Välj typ av tvätt",
@@ -743,7 +765,7 @@ export default function BookingFlow({
             <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-600">Steg {getBaseStepNumber(0)}</p>
               <h3 className="mt-1 text-xl font-semibold text-slate-900">Välj typ av tvätt</h3>
-              <p className="mt-1 text-sm text-slate-600">Grovtvätt eller vardagstvätt – välj en stil som matchar dina plagg.</p>
+              <p className="mt-1 text-sm text-slate-600">Grovtvätt, vardagstvätt eller mattvätt – välj en stil som matchar dina plagg.</p>
               <p className="mt-2 text-xs font-medium text-slate-500">Endast ett val åt gången</p>
               <div className="mt-4 flex flex-wrap items-center gap-4 text-slate-500">
                 <span className="flex items-center gap-1.5 text-xs">
@@ -793,7 +815,19 @@ export default function BookingFlow({
                   </div>
                   <div className="grid grid-cols-1 gap-4 text-sm text-slate-600 sm:grid-cols-2">
                     <div>
-                      {option.id === "vardagstvatt" ? (
+                      {option.id === "mattvatt" ? (
+                        <>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-emerald-600">Detta ingår</p>
+                          <ul className="mt-2 space-y-1 text-sm font-medium text-emerald-800">
+                            {option.included.map((item) => (
+                              <li key={item} className="flex items-center gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      ) : option.id === "vardagstvatt" ? (
                         <>
                           <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-emerald-600">Det här ingår</p>
                           <ul className="mt-2 space-y-1.5 text-sm font-medium text-emerald-800">
@@ -837,10 +871,12 @@ export default function BookingFlow({
                       </ul>
                     </div>
                   </div>
-                  <div className="mt-auto flex gap-3 text-[10px] font-semibold uppercase tracking-[0.3em] sm:text-[11px]">
-                    <div className="flex-1 rounded-2xl bg-emerald-100/80 p-3 text-emerald-700">✓ Rätt plagg</div>
-                    <div className="flex-1 rounded-2xl bg-red-100/80 p-3 text-red-600">✕ Fel plagg</div>
-                  </div>
+                  {option.id !== "mattvatt" && (
+                    <div className="mt-auto flex gap-3 text-[10px] font-semibold uppercase tracking-[0.3em] sm:text-[11px]">
+                      <div className="flex-1 rounded-2xl bg-emerald-100/80 p-3 text-emerald-700">✓ Rätt plagg</div>
+                      <div className="flex-1 rounded-2xl bg-red-100/80 p-3 text-red-600">✕ Fel plagg</div>
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -848,6 +884,66 @@ export default function BookingFlow({
         </Card>
       ),
       isComplete: () => Boolean(washType)
+    },
+    {
+      id: "rug-size",
+      title: "Mattstorlek",
+      render: () => {
+        const rawArea = ((Number(rugWidthCm) || 0) / 100) * ((Number(rugHeightCm) || 0) / 100);
+        const areaValid = rawArea >= RUG_MIN_M2;
+        return (
+          <Card className="overflow-hidden border-slate-100 bg-gradient-to-br from-sky-50/80 to-white p-5 shadow-sm transition-shadow duration-300 hover:shadow-md sm:p-6">
+            <div className="flex gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-600">
+                <LayoutGrid className="h-6 w-6" aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-600">Steg {getBaseStepNumber(1)}</p>
+                <h3 className="mt-1 text-xl font-semibold text-slate-900">Mattstorlek</h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  {RUG_PRICE_PER_M2} kr/m² · Minst {RUG_MIN_M2} m². Fyll i bredd och höjd i cm.
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">Bredd (cm)</label>
+                  <input
+                    type="number"
+                    min={100}
+                    max={500}
+                    value={rugWidthCm}
+                    onChange={(e) => setRugWidthCm(Math.max(0, Number(e.target.value) || 0))}
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">Höjd (cm)</label>
+                  <input
+                    type="number"
+                    min={100}
+                    max={500}
+                    value={rugHeightCm}
+                    onChange={(e) => setRugHeightCm(Math.max(0, Number(e.target.value) || 0))}
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-slate-900"
+                  />
+                </div>
+              </div>
+              <p className="mt-3 text-sm font-medium text-slate-700">
+                {rugWidthCm} × {rugHeightCm} = {rawArea.toFixed(1)} m²
+              </p>
+              {!areaValid && rawArea > 0 && (
+                <p className="mt-2 text-sm text-amber-700">
+                  Minst {RUG_MIN_M2} m² krävs. Mindre mattor kan skickas med grovtvätt.
+                </p>
+              )}
+              <p className="mt-2 text-lg font-semibold text-primary">Ert pris: {rugPrice} kr</p>
+            </div>
+          </Card>
+        );
+      },
+      isComplete: () => ((Number(rugWidthCm) || 0) / 100) * ((Number(rugHeightCm) || 0) / 100) >= RUG_MIN_M2
     },
     {
       id: "scent",
@@ -939,7 +1035,9 @@ export default function BookingFlow({
             />
           </div>
           <p className="mt-4 text-sm text-slate-600">
-            Leverans sker till din dörr – rent, vikt och klart inom 48 timmar efter upphämtning.
+            {washType === "mattvatt"
+              ? "Leverans minst 1 vecka efter upphämtning – välj datum och tider."
+              : "Leverans sker till din dörr – rent, vikt och klart inom 48 timmar efter upphämtning."}
           </p>
         </Card>
       ),
@@ -993,6 +1091,10 @@ export default function BookingFlow({
       isComplete: () => Boolean(bagSize)
     }
   ];
+  const baseSteps =
+    washType === "mattvatt"
+      ? [allBaseSteps[0], allBaseSteps[1], allBaseSteps[3]] // wash, rug-size, pickup
+      : [allBaseSteps[0], allBaseSteps[2], allBaseSteps[3], allBaseSteps[4]]; // wash, scent, pickup, bag-size
 
   const postalCodeValue = normalizePostalCode(contactInfo.postalCode);
   const isPostalCodeFormatValid = POSTAL_CODE_REGEX.test(postalCodeValue);
@@ -1039,17 +1141,18 @@ export default function BookingFlow({
     if (!washType) {
       missing.push("tvättyp");
     }
-    if (!scent) {
-      missing.push("doftval");
+    if (washType !== "mattvatt") {
+      if (!scent) missing.push("doftval");
+      if (!bagSize) missing.push("påse");
+    } else {
+      const areaM2 = (Number(rugWidthCm) || 0) / 100 * (Number(rugHeightCm) || 0) / 100;
+      if (areaM2 < RUG_MIN_M2) missing.push("mattstorlek (min 3 m²)");
     }
     if (!pickupDate || !pickupSlot) {
       missing.push("upphämtning");
     }
     if (!deliveryDate || !deliverySlot) {
       missing.push("leverans");
-    }
-    if (!bagSize) {
-      missing.push("påse");
     }
     return missing;
   };
@@ -1383,6 +1486,10 @@ export default function BookingFlow({
       ? [cityCheckStep, contactStep, ...baseSteps]
       : baseSteps;
   const totalSteps = steps.length;
+
+  useEffect(() => {
+    setActiveStepIndex((prev) => Math.min(prev, Math.max(0, totalSteps - 1)));
+  }, [totalSteps]);
   const missingBookingFields = getMissingBookingFields();
   const isBookingComplete = missingBookingFields.length === 0;
   const bookingHelperText = "Fyll i alla steg för att kunna bekräfta.";
@@ -1537,7 +1644,7 @@ export default function BookingFlow({
 
     const detailsPayload = {
       wash: washType ? (WASH_OPTIONS.find((o) => o.id === washType)?.title ?? washType) : null,
-      scent: scent ? (SCENT_OPTIONS.find((o) => o.id === scent)?.label ?? scent) : null,
+      scent: washType !== "mattvatt" ? (scent ? (SCENT_OPTIONS.find((o) => o.id === scent)?.label ?? scent) : null) : null,
       pickup_date: pickupDate || null,
       pickup_slot: selectedPickup?.label ?? pickupSlot ?? null,
       delivery_date: deliveryDate || null,
@@ -1547,9 +1654,10 @@ export default function BookingFlow({
       postal_code: normalizePostalCode(contactInfo.postalCode) || null,
       phone: (contactInfo.phone || "").trim() || null,
       email: (contactInfo.email || "").trim() || null,
-      bag: selectedBag?.title ?? bagSize ?? null,
+      bag: washType !== "mattvatt" ? (selectedBag?.title ?? bagSize ?? null) : null,
       price: useCredit ? 0 : (price ?? null),
-      estimated_delivery: deliveryEstimate || null
+      estimated_delivery: deliveryEstimate || null,
+      ...(washType === "mattvatt" && { rug_area_m2: rugAreaM2, rug_price: rugPrice })
     };
 
     let orderIdForHistory = null;
@@ -1568,7 +1676,8 @@ export default function BookingFlow({
             ? addHours(new Date(`${pickupDate}T${selectedPickup.start}:00`), 48).toISOString()
             : null;
       const orderPrice = useCredit ? 0 : price;
-      const estimatedWeightKg = orderPrice > 0 ? Math.max(1, Math.round(orderPrice / 60)) : 1;
+      const estimatedWeightKg =
+        washType === "mattvatt" ? 1 : orderPrice > 0 ? Math.max(1, Math.round(orderPrice / 60)) : 1;
       const customerName = `${(contactInfo.firstName || "").trim()} ${(contactInfo.lastName || "").trim()}`.trim() || "Kund";
       const customerEmail = (contactInfo.email || "").trim() || user?.email || "";
 
@@ -1588,6 +1697,7 @@ export default function BookingFlow({
           pickup_window: pickupWindow,
           delivery_window: deliveryWindow || null,
           bag_size: bagSize || null,
+          wash_type: washType || null,
           estimated_weight_kg: estimatedWeightKg,
           price_per_kg: 60,
           estimated_total_price: orderPrice,
@@ -1634,6 +1744,8 @@ export default function BookingFlow({
     setWashType("");
     setScent("");
     setBagSize("");
+    setRugWidthCm(200);
+    setRugHeightCm(150);
     setPickupDate("");
     setPickupSlot(TIME_SLOTS[0].id);
     setDeliveryDate("");
@@ -1717,7 +1829,7 @@ export default function BookingFlow({
             : "bg-slate-200 text-slate-500 cursor-not-allowed"
         }`}
       >
-        {currentStep.id === "bag-size" ? "Boka" : "Nästa"}
+        {currentStep.id === "bag-size" || (washType === "mattvatt" && currentStep.id === "pickup") ? "Boka" : "Nästa"}
       </button>
     </div>
   );
@@ -1849,13 +1961,15 @@ export default function BookingFlow({
               </button>
               <div className="space-y-2 text-sm text-slate-600">
                 <p>
-                  <span className="font-semibold text-slate-900">Wash:</span>{" "}
+                  <span className="font-semibold text-slate-900">Tvätt:</span>{" "}
                   {washType ? WASH_OPTIONS.find((option) => option.id === washType)?.title : "Ej vald"}
                 </p>
-                <p>
-                  <span className="font-semibold text-slate-900">Doft:</span>{" "}
-                  {scent ? SCENT_OPTIONS.find((option) => option.id === scent)?.label : "Ej vald"}
-                </p>
+                {washType !== "mattvatt" && (
+                  <p>
+                    <span className="font-semibold text-slate-900">Doft:</span>{" "}
+                    {scent ? SCENT_OPTIONS.find((option) => option.id === scent)?.label : "Ej vald"}
+                  </p>
+                )}
                 <p>
                   <span className="font-semibold text-slate-900">Upphämtning:</span>{" "}
                   {pickupDate && selectedPickup ? `${pickupDate} · ${selectedPickup.label}` : "Ej valt"}
@@ -1888,10 +2002,17 @@ export default function BookingFlow({
                     )}
                   </>
                 )}
-                <p>
-                  <span className="font-semibold text-slate-900">Påse:</span>{" "}
-                  {selectedBag ? selectedBag.title : "Ej vald"}
-                </p>
+                {washType === "mattvatt" ? (
+                  <p>
+                    <span className="font-semibold text-slate-900">Mattstorlek:</span>{" "}
+                    {rugWidthCm} × {rugHeightCm} cm = {rugAreaM2.toFixed(1)} m²
+                  </p>
+                ) : (
+                  <p>
+                    <span className="font-semibold text-slate-900">Påse:</span>{" "}
+                    {selectedBag ? selectedBag.title : "Ej vald"}
+                  </p>
+                )}
                 <p>
                   <span className="font-semibold text-slate-900">Pris:</span>{" "}
                   {useSubscriptionCredit ? "Använder abonnemangskredit" : price > 0 ? `${price} kr` : "–"}
@@ -2118,10 +2239,12 @@ export default function BookingFlow({
                   <span className="font-semibold text-slate-900">Tvätt:</span>{" "}
                   {washType ? WASH_OPTIONS.find((option) => option.id === washType)?.title : "Ej vald"}
                 </p>
-                <p>
-                  <span className="font-semibold text-slate-900">Doft:</span>{" "}
-                  {scent ? SCENT_OPTIONS.find((option) => option.id === scent)?.label : "Ej vald"}
-                </p>
+                {washType !== "mattvatt" && (
+                  <p>
+                    <span className="font-semibold text-slate-900">Doft:</span>{" "}
+                    {scent ? SCENT_OPTIONS.find((option) => option.id === scent)?.label : "Ej vald"}
+                  </p>
+                )}
                 <p>
                   <span className="font-semibold text-slate-900">Upphämtning:</span>{" "}
                   {pickupDate && selectedPickup ? `${pickupDate} · ${selectedPickup.label}` : "Ej valt"}
@@ -2140,10 +2263,17 @@ export default function BookingFlow({
                     {selectedDelivery.start}–{selectedDelivery.end}
                   </p>
                 )}
-                <p>
-                  <span className="font-semibold text-slate-900">Påse:</span>{" "}
-                  {selectedBag ? selectedBag.title : "Ej vald"} · {price > 0 ? `${price} kr` : "Pris ej klart"}
-                </p>
+                {washType === "mattvatt" ? (
+                  <p>
+                    <span className="font-semibold text-slate-900">Mattstorlek:</span>{" "}
+                    {rugAreaM2.toFixed(1)} m² · {price > 0 ? `${price} kr` : "Pris ej klart"}
+                  </p>
+                ) : (
+                  <p>
+                    <span className="font-semibold text-slate-900">Påse:</span>{" "}
+                    {selectedBag ? selectedBag.title : "Ej vald"} · {price > 0 ? `${price} kr` : "Pris ej klart"}
+                  </p>
+                )}
               </div>
               <div className="mt-6 space-y-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-400">

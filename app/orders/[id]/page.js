@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import StatusBadge from "@/components/status-badge";
-import { formatDeliveryDisplay, getBagSizeLabel } from "@/lib/order-display";
+import { formatDeliveryDisplay, getBagSizeLabel, getWashTypeLabel } from "@/lib/order-display";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +83,10 @@ export default async function OrderDetailPage({ params }) {
       </div>
 
       <div className="mt-6 border-t pt-4 text-xs text-slate-700 space-y-1">
+        <div className="flex items-center justify-between">
+          <span>Tvätt</span>
+          <span>{getWashTypeLabel(order.wash_type)}</span>
+        </div>
         <div className="flex items-center justify-between">
           <span>Påse</span>
           <span>{getBagSizeLabel(order.bag_size)}</span>

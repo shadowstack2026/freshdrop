@@ -13,7 +13,7 @@ import {
   Trash2
 } from "lucide-react";
 import StatusBadge from "@/components/status-badge";
-import { getBagSizeLabel } from "@/lib/order-display";
+import { getBagSizeLabel, getWashTypeLabel } from "@/lib/order-display";
 import LoadingSpinner from "@/components/loading-spinner";
 
 function StatCard({ icon: Icon, label, value, sub }) {
@@ -300,181 +300,153 @@ export default function AdminPage() {
         {stats.guestLeads && stats.guestLeads.length > 0 && (
           <section className="mb-8">
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-500">
-              Gästbokningar – från order_status_history
+              Gästbokningar
             </h2>
             <p className="mb-4 text-xs text-slate-500">
-              All info som gästen fyllt i (namn, adress, tid, tvätt, påse m.m.) visas här.
+              Bokningar från gäster (order_status_history). Namn, adress, tid, tvätt, påse m.m.
             </p>
-            <div className="space-y-4">
-              {stats.guestLeads.map((row) => {
-                const d = row.details || {};
-                const email = d.email ?? row.customer_email ?? row.user_email ?? "–";
-                const contact = d.contact ?? "–";
-                const orderId = row.order_id;
-                const guestEmail = (d.email || row.customer_email || "").trim();
-                const linkedOrder =
-                  (orderId && stats.allOrders?.find((o) => o.id === orderId)) ||
-                  (stats.allOrders || [])
-                    .filter((o) => o.guest_lead_id && (o.customer_email || "").trim() === guestEmail)
-                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-                const cardEmail = (d.email || row.customer_email || linkedOrder?.customer_email || "").trim();
-                const cardPhone = (d.phone || linkedOrder?.customer_phone || "").trim();
-                const hasEmail = !!cardEmail;
-                const hasPhone = !!cardPhone;
-                const canNotify = hasEmail || hasPhone;
-                const guestOrderId = linkedOrder?.id;
-                return (
-                  <div
-                    key={row.id}
-                    className="rounded-2xl border border-amber-200/80 bg-amber-50/50 p-4 shadow-sm sm:p-5"
-                  >
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="min-w-0 flex-1">
-                        <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                          <span>{row.created_at ? new Date(row.created_at).toLocaleString("sv-SE") : "–"}</span>
-                          {row.event_type && (
-                            <span className="rounded bg-slate-200 px-1.5 py-0.5">{row.event_type}</span>
-                          )}
-                          {row.status && (
-                            <span className="rounded bg-slate-200 px-1.5 py-0.5">{row.status}</span>
-                          )}
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">Datum</th>
+                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">Kontakt / Namn</th>
+                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">E-post</th>
+                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">Telefon</th>
+                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">Adress</th>
+                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">Upphämtning</th>
+                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">Leverans</th>
+                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">Tvätt</th>
+                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">Påse</th>
+                    <th className="px-3 py-3 text-right font-medium text-slate-600 sm:px-4">Notis / Åtgärd</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 bg-white">
+                  {stats.guestLeads.map((row) => {
+                    const d = row.details || {};
+                    const email = d.email ?? row.customer_email ?? row.user_email ?? "–";
+                    const contact = d.contact ?? "–";
+                    const orderId = row.order_id;
+                    const guestEmail = (d.email || row.customer_email || "").trim();
+                    const linkedOrder =
+                      (orderId && stats.allOrders?.find((o) => o.id === orderId)) ||
+                      (stats.allOrders || [])
+                        .filter((o) => o.guest_lead_id && (o.customer_email || "").trim() === guestEmail)
+                        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+                    const cardEmail = (d.email || row.customer_email || linkedOrder?.customer_email || "").trim();
+                    const cardPhone = (d.phone || linkedOrder?.customer_phone || "").trim();
+                    const hasEmail = !!cardEmail;
+                    const hasPhone = !!cardPhone;
+                    const canNotify = hasEmail || hasPhone;
+                    const guestOrderId = linkedOrder?.id;
+                    return (
+                      <tr key={row.id} className="hover:bg-slate-50/50">
+                        <td className="whitespace-nowrap px-3 py-3 text-slate-600 sm:px-4">
+                          {row.created_at ? new Date(row.created_at).toLocaleString("sv-SE") : "–"}
                           {linkedOrder && (
-                            <Link href={`/orders/${orderId}`} className="font-medium text-primary hover:underline">
-                              Order {orderId.slice(0, 8)}
-                            </Link>
+                            <span className="mt-1 block">
+                              <Link href={`/orders/${orderId}`} className="font-medium text-primary hover:underline">
+                                Order {orderId.slice(0, 8)}
+                              </Link>
+                            </span>
                           )}
-                        </div>
-                        <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                          <div>
-                            <p className="text-xs font-medium uppercase text-slate-500">Kontakt / Namn</p>
-                            <p className="font-medium text-slate-900">{contact}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium uppercase text-slate-500">E-post</p>
-                            <p className="text-slate-800">{email}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium uppercase text-slate-500">Telefon</p>
-                            <p className="text-slate-800">{d.phone ?? "–"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium uppercase text-slate-500">Adress</p>
-                            <p className="text-slate-800">{(d.address ?? [d.postal_code].filter(Boolean).join(" ")) || "–"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium uppercase text-slate-500">Postnummer</p>
-                            <p className="text-slate-800">{d.postal_code ?? "–"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium uppercase text-slate-500">Upphämtning</p>
-                            <p className="text-slate-800">
-                              {[d.pickup_date, d.pickup_slot].filter(Boolean).join(" ") || "–"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium uppercase text-slate-500">Leverans</p>
-                            <p className="text-slate-800">
-                              {[d.delivery_date, d.delivery_slot].filter(Boolean).join(" ") || d.estimated_delivery || "–"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium uppercase text-slate-500">Tvätt</p>
-                            <p className="text-slate-800">{d.wash ?? "–"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium uppercase text-slate-500">Påse</p>
-                            <p className="text-slate-800">{d.bag ?? "–"}</p>
-                          </div>
-                          {(d.price != null || d.scent) && (
-                            <div>
-                              <p className="text-xs font-medium uppercase text-slate-500">Pris / Doft</p>
-                              <p className="text-slate-800">
-                                {d.price != null ? `${d.price} kr` : ""}
-                                {d.price != null && d.scent ? " · " : ""}
-                                {d.scent ?? ""}
+                        </td>
+                        <td className="px-3 py-3 font-medium text-slate-900 sm:px-4">{contact}</td>
+                        <td className="px-3 py-3 text-slate-700 sm:px-4">{email}</td>
+                        <td className="px-3 py-3 text-slate-700 sm:px-4">{d.phone ?? "–"}</td>
+                        <td className="max-w-[140px] px-3 py-3 text-slate-700 sm:px-4">
+                          <span className="block truncate" title={(d.address ?? [d.postal_code].filter(Boolean).join(" ")) || "–"}>
+                            {(d.address ?? [d.postal_code].filter(Boolean).join(" ")) || "–"}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 text-slate-700 sm:px-4">
+                          {[d.pickup_date, d.pickup_slot].filter(Boolean).join(" ") || "–"}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 text-slate-700 sm:px-4">
+                          {[d.delivery_date, d.delivery_slot].filter(Boolean).join(" ") || d.estimated_delivery || "–"}
+                        </td>
+                        <td className="px-3 py-3 text-slate-700 sm:px-4">{d.wash ?? "–"}</td>
+                        <td className="px-3 py-3 text-slate-700 sm:px-4">{d.bag ?? "–"}</td>
+                        <td className="px-3 py-3 text-right sm:px-4">
+                          <div className="flex flex-col items-end gap-2">
+                            {!canNotify ? (
+                              <p className="max-w-[180px] text-right text-xs text-slate-500">
+                                Ingen e-post eller telefon – kan inte skicka notis.
                               </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="shrink-0 lg:ml-4 lg:text-right">
-                        <p className="mb-2 text-xs font-medium uppercase text-slate-500">Notis</p>
-                        {!canNotify ? (
-                          <p className="text-xs text-amber-700">Gästen har varken e-post eller telefon – kan inte skicka notis.</p>
-                        ) : (
-                          <>
-                            <div className="flex flex-wrap items-center justify-end gap-2">
-                              {linkedOrder?.guest_lead_id ? (
-                                <span className="min-h-[32px] rounded-lg bg-slate-900 px-2 py-1 text-xs font-medium text-white">
-                                  SMS
-                                </span>
-                              ) : (
-                                <>
-                                  {hasEmail && (
-                                    <button
-                                      type="button"
-                                      onClick={() => setNotifyChannel("email")}
-                                      title="Skicka till angiven e-post"
-                                      className={`min-h-[32px] rounded-lg px-2 py-1 text-xs font-medium touch-manipulation ${
-                                        notifyChannel === "email"
-                                          ? "bg-slate-900 text-white"
-                                          : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                                      }`}
-                                    >
-                                      E-post
-                                    </button>
+                            ) : (
+                              <>
+                                <div className="flex flex-wrap items-center justify-end gap-2">
+                                  {linkedOrder?.guest_lead_id ? (
+                                    <span className="min-h-[32px] rounded-lg bg-slate-900 px-2 py-1 text-xs font-medium text-white">
+                                      SMS
+                                    </span>
+                                  ) : (
+                                    <>
+                                      {hasEmail && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setNotifyChannel("email")}
+                                          title="Skicka till angiven e-post"
+                                          className={`min-h-[32px] rounded-lg px-2 py-1 text-xs font-medium touch-manipulation ${
+                                            notifyChannel === "email"
+                                              ? "bg-slate-900 text-white"
+                                              : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                          }`}
+                                        >
+                                          E-post
+                                        </button>
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={() => setNotifyChannel("sms")}
+                                        disabled={!hasPhone}
+                                        title={hasPhone ? "Skicka till angivet telefonnummer" : "Inget telefonnummer angivet"}
+                                        className={`min-h-[32px] rounded-lg px-2 py-1 text-xs font-medium touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed ${
+                                          notifyChannel === "sms" || !hasEmail
+                                            ? "bg-slate-900 text-white"
+                                            : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                        } ${!hasPhone ? "opacity-50" : ""}`}
+                                      >
+                                        SMS
+                                      </button>
+                                    </>
                                   )}
-                                  <button
-                                    type="button"
-                                    onClick={() => setNotifyChannel("sms")}
-                                    disabled={!hasPhone}
-                                    title={hasPhone ? "Skicka till angivet telefonnummer" : "Inget telefonnummer angivet"}
-                                    className={`min-h-[32px] rounded-lg px-2 py-1 text-xs font-medium touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed ${
-                                      notifyChannel === "sms" || !hasEmail
-                                        ? "bg-slate-900 text-white"
-                                        : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                                    } ${!hasPhone ? "opacity-50" : ""}`}
-                                  >
-                                    SMS
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                            <p className="mt-1 text-[10px] text-slate-500">
-                              {linkedOrder?.guest_lead_id
-                                ? "Gäst – notis skickas endast via sms."
-                                : `Skickas till: ${hasEmail && hasPhone ? "e-post eller sms (valt)" : hasEmail ? "e-post" : "sms"}`}
-                            </p>
-                            <div className="mt-2 flex flex-wrap justify-end gap-1">
-                              {["TVÄTTAS", "PÅ_VÄG", "LEVERERAD"].map((s) => (
-                                <button
-                                  key={s}
-                                  type="button"
-                                  disabled={!!notifyLoading}
-                                  onClick={() =>
-                                    linkedOrder
-                                      ? setStatusAndNotify(guestOrderId, s, linkedOrder)
-                                      : sendGuestLeadNotify(cardEmail, cardPhone, notifyChannel, s)
-                                  }
-                                  title="Skicka status till gästen"
-                                  className="min-h-[32px] rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
-                                >
-                                  {s === "PÅ_VÄG" ? "På väg" : s === "LEVERERAD" ? "Levererad" : "Tvättas"}
-                                </button>
-                              ))}
-                            </div>
-                            {notifyMessage && notifyLoading === null && (
-                              <p className="mt-2 max-w-[220px] text-right text-xs text-slate-600 lg:ml-auto">
-                                {notifyMessage}
-                              </p>
+                                </div>
+                                <p className="text-[10px] text-slate-500">
+                                  {linkedOrder?.guest_lead_id
+                                    ? "Gäst – endast sms."
+                                    : hasEmail && hasPhone ? "e-post eller sms (valt)" : hasEmail ? "e-post" : "sms"}
+                                </p>
+                                <div className="flex flex-wrap justify-end gap-1">
+                                  {["TVÄTTAS", "PÅ_VÄG", "LEVERERAD"].map((s) => (
+                                    <button
+                                      key={s}
+                                      type="button"
+                                      disabled={!!notifyLoading}
+                                      onClick={() =>
+                                        linkedOrder
+                                          ? setStatusAndNotify(guestOrderId, s, linkedOrder)
+                                          : sendGuestLeadNotify(cardEmail, cardPhone, notifyChannel, s)
+                                      }
+                                      title="Skicka status till gästen"
+                                      className="min-h-[32px] rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                                    >
+                                      {s === "PÅ_VÄG" ? "På väg" : s === "LEVERERAD" ? "Levererad" : "Tvättas"}
+                                    </button>
+                                  ))}
+                                </div>
+                                {notifyMessage && notifyLoading === null && (
+                                  <p className="max-w-[200px] text-right text-xs text-slate-600">{notifyMessage}</p>
+                                )}
+                              </>
                             )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </section>
         )}
@@ -506,6 +478,9 @@ export default function AdminPage() {
                     </th>
                     <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">
                       Upphämtning
+                    </th>
+                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">
+                      Tvätt
                     </th>
                     <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">
                       Påse
@@ -567,6 +542,9 @@ export default function AdminPage() {
                       </td>
                       <td className="px-3 py-3 text-slate-700 sm:px-4">
                         {order.pickup_date} {order.pickup_window}
+                      </td>
+                      <td className="px-3 py-3 text-slate-700 sm:px-4">
+                        {getWashTypeLabel(order.wash_type)}
                       </td>
                       <td className="px-3 py-3 text-slate-700 sm:px-4">
                         {getBagSizeLabel(order.bag_size)}

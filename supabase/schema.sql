@@ -97,6 +97,7 @@ create table if not exists public.orders (
   delivery_estimate_at timestamptz not null,
   delivery_window text,
   bag_size text,
+  wash_type text,
   status text not null default 'MOTTAGEN',
   payment_status text not null default 'unpaid',
   stripe_checkout_session_id text,
@@ -218,4 +219,3 @@ drop trigger if exists on_profile_created_create_subscription on public.profiles
 create trigger on_profile_created_create_subscription
   after insert on public.profiles
   for each row execute function public.create_subscription_for_new_profile();
-
