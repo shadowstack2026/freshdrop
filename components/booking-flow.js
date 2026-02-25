@@ -1712,6 +1712,12 @@ export default function BookingFlow({
         console.error("orders insert failed:", orderError);
       } else if (newOrder?.id) {
         orderIdForHistory = newOrder.id;
+        // Skicka beställningsbekräftelse via e-post till inloggad användare
+        fetch("/api/orders/send-confirmation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: newOrder.id })
+        }).catch((err) => console.error("Kunde inte skicka bekräftelsemail:", err));
       }
     }
 
@@ -1787,8 +1793,19 @@ export default function BookingFlow({
     if (!validateConfirmationInput()) return;
     setConfirmationSending(true);
     try {
-      // Placeholder for future API call – keep modal handling consistent for now.
-      await new Promise((resolve) => setTimeout(resolve, 400));
+      if (confirmationChannel === "email") {
+        const res = await fetch("/api/orders/send-confirmation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: (confirmationEmail || "").trim() })
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setConfirmationError(data.message || "Kunde inte skicka bekräftelse. Försök igen.");
+          return;
+        }
+      }
+      // SMS: fixas senare när API är aktiverat
     } finally {
       setConfirmationSending(false);
     }
