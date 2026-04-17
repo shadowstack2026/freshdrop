@@ -1836,18 +1836,20 @@ export default function BookingFlow({
       >
         Tillbaka
       </button>
-      <button
-        type="button"
-        onClick={handleNext}
-        disabled={!canProceed}
-        className={`w-full min-h-[44px] rounded-full px-5 py-3 text-sm font-semibold text-white transition touch-manipulation ${
-          canProceed
-            ? "bg-primary hover:bg-sky-500 active:bg-sky-600"
-            : "bg-slate-200 text-slate-500 cursor-not-allowed"
-        }`}
-      >
-        {currentStep.id === "bag-size" || (washType === "mattvatt" && currentStep.id === "pickup") ? "Boka" : "Nästa"}
-      </button>
+      {currentStep.id !== "city-check" && (
+        <button
+          type="button"
+          onClick={handleNext}
+          disabled={!canProceed}
+          className={`w-full min-h-[44px] rounded-full px-5 py-3 text-sm font-semibold text-white transition touch-manipulation ${
+            canProceed
+              ? "bg-primary hover:bg-sky-500 active:bg-sky-600"
+              : "bg-slate-200 text-slate-500 cursor-not-allowed"
+          }`}
+        >
+          {currentStep.id === "bag-size" || (washType === "mattvatt" && currentStep.id === "pickup") ? "Boka" : "Nästa"}
+        </button>
+      )}
     </div>
   );
   const summaryContactInfo = contactSaved
