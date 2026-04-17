@@ -1317,7 +1317,10 @@ export default function BookingFlow({
                 } ${isDisabled ? "cursor-not-allowed opacity-50 hover:shadow-none" : ""}`}
               >
                 <span>{slot.emoji}</span>
-                <span>{slot.label}</span>
+                <span>
+                  {slot.label}{" "}
+                  <span className="text-xs font-semibold text-slate-500">{slot.start}–{slot.end}</span>
+                </span>
               </button>
             );
           })}
