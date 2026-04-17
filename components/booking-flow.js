@@ -29,15 +29,45 @@ const WASH_OPTIONS = [
     id: "grovtvatt",
     title: "Grovtvätt",
     description: "För kraftigare plagg som tål hårdare tvätt.",
-    included: ["Handdukar", "Sängkläder", "Jeans", "Arbetskläder"],
-    excluded: ["Ull", "Silke", "Fina klänningar"]
+    included: [
+      "Filtar",
+      "Lakan",
+      "Hoodies & jeans",
+      "Träningskläder",
+      "Arbetskläder",
+      "Mindre badrumsmattor",
+      "Lättare jackor",
+      "Kuddar & täcken"
+    ],
+    excluded: [
+      "Ull/silke och andra ömtåliga material",
+      "Plagg med \"endast kemtvätt\"",
+      "Mycket känsliga plagg (t.ex. finare klänningar)",
+      "Stora, tunga mattor (hör till mattvätt)"
+    ]
   },
   {
     id: "vardagstvatt",
     title: "Vardagstvätt",
     description: "För vardagskläder och känsligare plagg.",
-    included: ["T-shirts", "Underkläder", "Tröjor"],
-    excluded: ["Kraftigt smutsade arbetskläder"]
+    included: [
+      "T-shirts",
+      "Tröjor / hoodies",
+      "Jeans / byxor",
+      "Underkläder & strumpor",
+      "Skjortor",
+      "Shorts",
+      "Träningskläder",
+      "Handdukar",
+      "Sängkläder (lakan, örngott)"
+    ],
+    excluded: [
+      "Kraftigt smutsade arbetskläder (välj grovtvätt)",
+      "Kuddar & täcken (välj grovtvätt)",
+      "Mindre badrumsmattor (välj grovtvätt)",
+      "Lättare jackor (välj grovtvätt)",
+      "Ull/silke och andra ömtåliga material"
+    ]
   },
   {
     id: "mattvatt",
@@ -835,24 +865,6 @@ export default function BookingFlow({
                                 <span>{item}</span>
                               </li>
                             ))}
-                          </ul>
-                        </>
-                      ) : option.id === "vardagstvatt" ? (
-                        <>
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-emerald-600">Det här ingår</p>
-                          <ul className="mt-2 space-y-1.5 text-sm font-medium text-emerald-800">
-                            <li className="flex items-start gap-2">
-                              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                              <span>Vi sorterar efter färg &amp; temperatur</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                              <span>Sängkläder/lakan blir släta och krispiga</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                              <span>Strumpor paras ihop, allt viks snyggt och levereras till dörren</span>
-                            </li>
                           </ul>
                         </>
                       ) : (
@@ -1910,9 +1922,9 @@ export default function BookingFlow({
                   key={step.id}
                   className={`overflow-hidden transition-[opacity,transform,max-height] duration-300 ease-out px-4 sm:px-0 ${
                     isActive
-                      ? "opacity-100 translate-y-0 max-h-[2000px] pointer-events-auto mb-10 lg:z-10 lg:max-h-none lg:opacity-100 lg:translate-y-0"
+                      ? "opacity-100 translate-y-0 max-h-[2000px] pointer-events-auto mb-10 lg:static lg:z-10 lg:max-h-none lg:opacity-100 lg:translate-y-0"
                       : "opacity-0 translate-y-4 max-h-0 pointer-events-none lg:absolute lg:inset-0 lg:z-0 lg:opacity-0 lg:translate-y-4"
-                  } lg:absolute lg:inset-0 lg:overflow-visible`}
+                  } lg:overflow-visible`}
                 >
                   {isActive && (
                     <div
