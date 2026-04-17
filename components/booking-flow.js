@@ -893,12 +893,14 @@ export default function BookingFlow({
                       </ul>
                     </div>
                   </div>
-                  {option.id !== "mattvatt" && (
-                    <div className="mt-auto flex gap-3 text-[10px] font-semibold uppercase tracking-[0.3em] sm:text-[11px]">
-                      <div className="flex-1 rounded-2xl bg-emerald-100/80 p-3 text-emerald-700">✓ Rätt plagg</div>
-                      <div className="flex-1 rounded-2xl bg-red-100/80 p-3 text-red-600">✕ Fel plagg</div>
+                  <div className="mt-auto flex gap-3 text-[10px] font-semibold uppercase tracking-[0.3em] sm:text-[11px]">
+                    <div className="flex-1 rounded-2xl bg-emerald-100/80 p-3 text-emerald-700">
+                      ✓ {option.id === "mattvatt" ? "Rätt material" : "Rätt plagg"}
                     </div>
-                  )}
+                    <div className="flex-1 rounded-2xl bg-red-100/80 p-3 text-red-600">
+                      ✕ {option.id === "mattvatt" ? "Fel material" : "Fel plagg"}
+                    </div>
+                  </div>
                 </button>
               );
             })}
@@ -1947,7 +1949,7 @@ export default function BookingFlow({
                 }
               )}
               {renderNavigationButtons(
-                "hidden w-full flex-col gap-3 border-t border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200 sm:mt-3 sm:flex-row sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none lg:flex lg:static lg:mt-16 lg:mb-8 lg:border-t-0 lg:bg-transparent lg:px-0 lg:py-0 lg:shadow-none"
+                "hidden w-full flex-col gap-3 border-t border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200 sm:mt-3 sm:flex-row sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none lg:flex lg:sticky lg:bottom-6 lg:z-20 lg:mt-6 lg:mb-0 lg:border-t lg:border-slate-200 lg:bg-white/90 lg:px-4 lg:py-3 lg:shadow-sm lg:backdrop-blur-sm"
               )}
             </>
           )}
