@@ -16,6 +16,14 @@ import StatusBadge from "@/components/status-badge";
 import { getBagSizeLabel, getWashTypeLabel } from "@/lib/order-display";
 import LoadingSpinner from "@/components/loading-spinner";
 
+function getOrderType(order) {
+  const hasUser = Boolean(order?.user_id);
+  const hasGuestLead = Boolean(order?.guest_lead_id);
+  if (hasUser && !hasGuestLead) return "account";
+  if (!hasUser && hasGuestLead) return "guest";
+  return "invalid";
+}
+
 function StatCard({ icon: Icon, label, value, sub }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -77,22 +85,15 @@ export default function AdminPage() {
     const hasEmail = !!order?.customer_email?.trim();
     const hasPhone = !!order?.customer_phone?.trim();
     let channel = notifyChannel;
-    if (isGuest) {
-      channel = "sms";
-      if (!hasPhone) {
-        setNotifyMessage("Gäst har inget telefonnummer – kan inte skicka notis (gäster får endast sms).");
-        return;
-      }
-    } else {
-      if (channel === "email" && !hasEmail && hasPhone) channel = "sms";
-      else if (channel === "sms" && !hasPhone && hasEmail) channel = "email";
-      else if (!hasEmail && !hasPhone) {
-        setNotifyMessage("Kunden har varken e-post eller telefon – kan inte skicka notis.");
-        return;
-      } else if ((channel === "email" && !hasEmail) || (channel === "sms" && !hasPhone)) {
-        setNotifyMessage(channel === "email" ? "Kunden har ingen e-post." : "Kunden har inget telefonnummer.");
-        return;
-      }
+    // Gäster kan också få e-post om de fyllt i e-postadress.
+    if (channel === "email" && !hasEmail && hasPhone) channel = "sms";
+    else if (channel === "sms" && !hasPhone && hasEmail) channel = "email";
+    else if (!hasEmail && !hasPhone) {
+      setNotifyMessage("Kunden har varken e-post eller telefon – kan inte skicka notis.");
+      return;
+    } else if ((channel === "email" && !hasEmail) || (channel === "sms" && !hasPhone)) {
+      setNotifyMessage(channel === "email" ? "Kunden har ingen e-post." : "Kunden har inget telefonnummer.");
+      return;
     }
 
     setNotifyLoading(orderId + status);
@@ -297,160 +298,6 @@ export default function AdminPage() {
           </section>
         )}
 
-        {stats.guestLeads && stats.guestLeads.length > 0 && (
-          <section className="mb-8">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-500">
-              Gästbokningar
-            </h2>
-            <p className="mb-4 text-xs text-slate-500">
-              Bokningar från gäster (order_status_history). Namn, adress, tid, tvätt, påse m.m.
-            </p>
-            <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">Datum</th>
-                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">Kontakt / Namn</th>
-                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">E-post</th>
-                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">Telefon</th>
-                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">Adress</th>
-                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">Upphämtning</th>
-                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">Leverans</th>
-                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">Tvätt</th>
-                    <th className="px-3 py-3 text-left font-medium text-slate-600 sm:px-4">Påse</th>
-                    <th className="px-3 py-3 text-right font-medium text-slate-600 sm:px-4">Notis / Åtgärd</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 bg-white">
-                  {stats.guestLeads.map((row) => {
-                    const d = row.details || {};
-                    const email = d.email ?? row.customer_email ?? row.user_email ?? "–";
-                    const contact = d.contact ?? "–";
-                    const orderId = row.order_id;
-                    const guestEmail = (d.email || row.customer_email || "").trim();
-                    const linkedOrder =
-                      (orderId && stats.allOrders?.find((o) => o.id === orderId)) ||
-                      (stats.allOrders || [])
-                        .filter((o) => o.guest_lead_id && (o.customer_email || "").trim() === guestEmail)
-                        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-                    const cardEmail = (d.email || row.customer_email || linkedOrder?.customer_email || "").trim();
-                    const cardPhone = (d.phone || linkedOrder?.customer_phone || "").trim();
-                    const hasEmail = !!cardEmail;
-                    const hasPhone = !!cardPhone;
-                    const canNotify = hasEmail || hasPhone;
-                    const guestOrderId = linkedOrder?.id;
-                    return (
-                      <tr key={row.id} className="hover:bg-slate-50/50">
-                        <td className="whitespace-nowrap px-3 py-3 text-slate-600 sm:px-4">
-                          {row.created_at ? new Date(row.created_at).toLocaleString("sv-SE") : "–"}
-                          {linkedOrder && (
-                            <span className="mt-1 block">
-                              <Link href={`/orders/${orderId}`} className="font-medium text-primary hover:underline">
-                                Order {orderId.slice(0, 8)}
-                              </Link>
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-3 py-3 font-medium text-slate-900 sm:px-4">{contact}</td>
-                        <td className="px-3 py-3 text-slate-700 sm:px-4">{email}</td>
-                        <td className="px-3 py-3 text-slate-700 sm:px-4">{d.phone ?? "–"}</td>
-                        <td className="max-w-[140px] px-3 py-3 text-slate-700 sm:px-4">
-                          <span className="block truncate" title={(d.address ?? [d.postal_code].filter(Boolean).join(" ")) || "–"}>
-                            {(d.address ?? [d.postal_code].filter(Boolean).join(" ")) || "–"}
-                          </span>
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-slate-700 sm:px-4">
-                          {[d.pickup_date, d.pickup_slot].filter(Boolean).join(" ") || "–"}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-slate-700 sm:px-4">
-                          {[d.delivery_date, d.delivery_slot].filter(Boolean).join(" ") || d.estimated_delivery || "–"}
-                        </td>
-                        <td className="px-3 py-3 text-slate-700 sm:px-4">{d.wash ?? "–"}</td>
-                        <td className="px-3 py-3 text-slate-700 sm:px-4">{d.bag ?? "–"}</td>
-                        <td className="px-3 py-3 text-right sm:px-4">
-                          <div className="flex flex-col items-end gap-2">
-                            {!canNotify ? (
-                              <p className="max-w-[180px] text-right text-xs text-slate-500">
-                                Ingen e-post eller telefon – kan inte skicka notis.
-                              </p>
-                            ) : (
-                              <>
-                                <div className="flex flex-wrap items-center justify-end gap-2">
-                                  {linkedOrder?.guest_lead_id ? (
-                                    <span className="min-h-[32px] rounded-lg bg-slate-900 px-2 py-1 text-xs font-medium text-white">
-                                      SMS
-                                    </span>
-                                  ) : (
-                                    <>
-                                      {hasEmail && (
-                                        <button
-                                          type="button"
-                                          onClick={() => setNotifyChannel("email")}
-                                          title="Skicka till angiven e-post"
-                                          className={`min-h-[32px] rounded-lg px-2 py-1 text-xs font-medium touch-manipulation ${
-                                            notifyChannel === "email"
-                                              ? "bg-slate-900 text-white"
-                                              : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                                          }`}
-                                        >
-                                          E-post
-                                        </button>
-                                      )}
-                                      <button
-                                        type="button"
-                                        onClick={() => setNotifyChannel("sms")}
-                                        disabled={!hasPhone}
-                                        title={hasPhone ? "Skicka till angivet telefonnummer" : "Inget telefonnummer angivet"}
-                                        className={`min-h-[32px] rounded-lg px-2 py-1 text-xs font-medium touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed ${
-                                          notifyChannel === "sms" || !hasEmail
-                                            ? "bg-slate-900 text-white"
-                                            : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                                        } ${!hasPhone ? "opacity-50" : ""}`}
-                                      >
-                                        SMS
-                                      </button>
-                                    </>
-                                  )}
-                                </div>
-                                <p className="text-[10px] text-slate-500">
-                                  {linkedOrder?.guest_lead_id
-                                    ? "Gäst – endast sms."
-                                    : hasEmail && hasPhone ? "e-post eller sms (valt)" : hasEmail ? "e-post" : "sms"}
-                                </p>
-                                <div className="flex flex-wrap justify-end gap-1">
-                                  {["TVÄTTAS", "PÅ_VÄG", "LEVERERAD"].map((s) => (
-                                    <button
-                                      key={s}
-                                      type="button"
-                                      disabled={!!notifyLoading}
-                                      onClick={() =>
-                                        linkedOrder
-                                          ? setStatusAndNotify(guestOrderId, s, linkedOrder)
-                                          : sendGuestLeadNotify(cardEmail, cardPhone, notifyChannel, s)
-                                      }
-                                      title="Skicka status till gästen"
-                                      className="min-h-[32px] rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
-                                    >
-                                      {s === "PÅ_VÄG" ? "På väg" : s === "LEVERERAD" ? "Levererad" : "Tvättas"}
-                                    </button>
-                                  ))}
-                                </div>
-                                {notifyMessage && notifyLoading === null && (
-                                  <p className="max-w-[200px] text-right text-xs text-slate-600">{notifyMessage}</p>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
         <section>
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-500">
             Alla beställningar
@@ -503,15 +350,28 @@ export default function AdminPage() {
                   {stats.allOrders.map((order) => (
                     <tr key={order.id} className="hover:bg-slate-50/50">
                       <td className="px-3 py-3 sm:px-4">
-                        <span
-                          className={
-                            order.guest_lead_id
-                              ? "inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800"
-                              : "inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700"
+                        {(() => {
+                          const type = getOrderType(order);
+                          if (type === "guest") {
+                            return (
+                              <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
+                                Gäst
+                              </span>
+                            );
                           }
-                        >
-                          {order.guest_lead_id ? "Gäst" : "Konto"}
-                        </span>
+                          if (type === "account") {
+                            return (
+                              <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                                Konto
+                              </span>
+                            );
+                          }
+                          return (
+                            <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
+                              Fel data
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-3 py-3 text-slate-800 sm:px-4">
                         <Link
@@ -572,33 +432,31 @@ export default function AdminPage() {
                             const hasEmail = !!order.customer_email?.trim();
                             const hasPhone = !!order.customer_phone?.trim();
                             const isGuest = !!order.guest_lead_id;
-                            const canNotify = isGuest ? hasPhone : (hasEmail || hasPhone);
+                            const canNotify = hasEmail || hasPhone;
                             return (
                               <>
                                 <div className="flex items-center gap-2">
                                   <span className="text-xs text-slate-500">Notis:</span>
-                                  {!isGuest && (
-                                    <button
-                                      type="button"
-                                      onClick={() => setNotifyChannel("email")}
-                                      disabled={!hasEmail}
-                                      title={hasEmail ? "Skicka till kundens e-post" : "Kunden har inte angett e-post"}
-                                      className={`min-h-[32px] rounded-lg px-2 py-1 text-xs font-medium touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed ${
-                                        notifyChannel === "email"
-                                          ? "bg-slate-900 text-white"
-                                          : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                                      } ${!hasEmail ? "opacity-50" : ""}`}
-                                    >
-                                      E-post
-                                    </button>
-                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => setNotifyChannel("email")}
+                                    disabled={!hasEmail}
+                                    title={hasEmail ? "Skicka till kundens e-post" : "Kunden har inte angett e-post"}
+                                    className={`min-h-[32px] rounded-lg px-2 py-1 text-xs font-medium touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed ${
+                                      notifyChannel === "email"
+                                        ? "bg-slate-900 text-white"
+                                        : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                    } ${!hasEmail ? "opacity-50" : ""}`}
+                                  >
+                                    E-post
+                                  </button>
                                   <button
                                     type="button"
                                     onClick={() => setNotifyChannel("sms")}
                                     disabled={!hasPhone}
                                     title={hasPhone ? "Skicka till kundens telefon" : "Kunden har inte angett telefon"}
                                     className={`min-h-[32px] rounded-lg px-2 py-1 text-xs font-medium touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed ${
-                                      (isGuest ? true : notifyChannel === "sms")
+                                      notifyChannel === "sms"
                                         ? "bg-slate-900 text-white"
                                         : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                                     } ${!hasPhone ? "opacity-50" : ""}`}
@@ -606,11 +464,7 @@ export default function AdminPage() {
                                     SMS
                                   </button>
                                 </div>
-                                {isGuest ? (
-                                  <p className="text-[10px] text-amber-700">
-                                    Gäst har inte konto – notis skickas endast via sms.
-                                  </p>
-                                ) : canNotify ? (
+                                {canNotify ? (
                                   <p className="text-[10px] text-slate-400">
                                     Skickas till: {hasEmail && hasPhone ? "e-post eller sms (valt)" : hasEmail ? "e-post" : "sms"}
                                   </p>
@@ -622,7 +476,7 @@ export default function AdminPage() {
                                       type="button"
                                       disabled={!!notifyLoading || !canNotify}
                                       onClick={() => setStatusAndNotify(order.id, s, order)}
-                                      title={!canNotify ? (isGuest ? "Gäst har inget telefonnummer" : "Kunden har varken e-post eller telefon") : undefined}
+                                      title={!canNotify ? "Kunden har varken e-post eller telefon" : undefined}
                                       className="min-h-[32px] rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
                                     >
                                       {s === "PÅ_VÄG" ? "På väg" : s === "LEVERERAD" ? "Levererad" : "Tvättas"}

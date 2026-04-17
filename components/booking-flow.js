@@ -294,6 +294,16 @@ export default function BookingFlow({
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [paymentModalProcessing, setPaymentModalProcessing] = useState(false);
+  const [paymentChoice, setPaymentChoice] = useState(""); // "on_site" | "direct"
+  const [directPaymentMethod, setDirectPaymentMethod] = useState(""); // "card" | "swish" | "klarna" (test)
+
+  const generateId = () => {
+    try {
+      return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    } catch {
+      return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+  };
 
   useEffect(() => {
     if (showContactStep && profileHasBasics) {
@@ -1612,7 +1622,7 @@ export default function BookingFlow({
     setShowSummary(false);
   };
 
-  const handleConfirmBooking = async (useCreditOverride) => {
+  const handleConfirmBooking = async () => {
     if (!isBookingComplete) {
       setBookingCompletionError("Du måste slutföra alla steg innan du kan bekräfta bokningen.");
       setShowSummary(true);
@@ -1624,121 +1634,10 @@ export default function BookingFlow({
     setShowSummary(false);
     setSummaryOpen(false);
     setShowPaymentModal(false);
-
-    const useCredit = useCreditOverride !== undefined ? useCreditOverride : useSubscriptionCredit;
-
-    if (user && useCredit) {
-      const consumeRes = await fetch("/api/subscription/consume-credit", { method: "POST" });
-      if (!consumeRes.ok) {
-        const errData = await consumeRes.json().catch(() => ({}));
-        setBookingCompletionError(errData.message || "Kunde inte använda abonnemangskredit.");
-        setShowSummary(true);
-        setSummaryOpen(true);
-        scrollSummaryIntoView();
-        return;
-      }
-      try {
-        onSubscriptionCreditUsed?.();
-      } catch (_) {}
-    }
-
-    const detailsPayload = {
-      wash: washType ? (WASH_OPTIONS.find((o) => o.id === washType)?.title ?? washType) : null,
-      scent: washType !== "mattvatt" ? (scent ? (SCENT_OPTIONS.find((o) => o.id === scent)?.label ?? scent) : null) : null,
-      pickup_date: pickupDate || null,
-      pickup_slot: selectedPickup?.label ?? pickupSlot ?? null,
-      delivery_date: deliveryDate || null,
-      delivery_slot: selectedDelivery?.label ?? deliverySlot ?? null,
-      contact: `${(contactInfo.firstName || "").trim()} ${(contactInfo.lastName || "").trim()}`.trim() || null,
-      address: [contactInfo.address, contactInfo.address2, contactInfo.city].filter(Boolean).join(", ") || null,
-      postal_code: normalizePostalCode(contactInfo.postalCode) || null,
-      phone: (contactInfo.phone || "").trim() || null,
-      email: (contactInfo.email || "").trim() || null,
-      bag: washType !== "mattvatt" ? (selectedBag?.title ?? bagSize ?? null) : null,
-      price: useCredit ? 0 : (price ?? null),
-      estimated_delivery: deliveryEstimate || null,
-      ...(washType === "mattvatt" && { rug_area_m2: rugAreaM2, rug_price: rugPrice })
-    };
-
-    let orderIdForHistory = null;
-
-    if (user) {
-      const pickupWindow = selectedPickup
-        ? `${selectedPickup.start}-${selectedPickup.end}`
-        : "";
-      const deliveryWindow = selectedDelivery
-        ? `${selectedDelivery.start}-${selectedDelivery.end}`
-        : "";
-      const deliveryEstimateAt =
-        deliveryDate && selectedDelivery
-          ? new Date(`${deliveryDate}T${selectedDelivery.end}:00`).toISOString()
-          : pickupDate && selectedPickup
-            ? addHours(new Date(`${pickupDate}T${selectedPickup.start}:00`), 48).toISOString()
-            : null;
-      const orderPrice = useCredit ? 0 : price;
-      const estimatedWeightKg =
-        washType === "mattvatt" ? 1 : orderPrice > 0 ? Math.max(1, Math.round(orderPrice / 60)) : 1;
-      const customerName = `${(contactInfo.firstName || "").trim()} ${(contactInfo.lastName || "").trim()}`.trim() || "Kund";
-      const customerEmail = (contactInfo.email || "").trim() || user?.email || "";
-
-      const { data: newOrder, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          user_id: user.id,
-          guest_lead_id: null,
-          customer_email: customerEmail || null,
-          customer_name: customerName,
-          customer_phone: (contactInfo.phone || "").trim() || null,
-          address_line1: (contactInfo.address || "").trim() || "",
-          address_line2: (contactInfo.address2 || "").trim() || null,
-          postal_code: normalizePostalCode(contactInfo.postalCode) || "",
-          city: (contactInfo.city || "").trim() || "",
-          pickup_date: pickupDate,
-          pickup_window: pickupWindow,
-          delivery_window: deliveryWindow || null,
-          bag_size: bagSize || null,
-          wash_type: washType || null,
-          estimated_weight_kg: estimatedWeightKg,
-          price_per_kg: 60,
-          estimated_total_price: orderPrice,
-          delivery_estimate_at: deliveryEstimateAt,
-          status: "MOTTAGEN",
-          payment_status: "unpaid"
-        })
-        .select("id")
-        .single();
-
-      if (orderError) {
-        console.error("orders insert failed:", orderError);
-      } else if (newOrder?.id) {
-        orderIdForHistory = newOrder.id;
-        // Skicka beställningsbekräftelse via e-post till inloggad användare
-        fetch("/api/orders/send-confirmation", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId: newOrder.id })
-        }).catch((err) => console.error("Kunde inte skicka bekräftelsemail:", err));
-      }
-    }
-
-    try {
-      if (!user) {
-        await supabase.rpc("add_order_status_history", {
-          p_order_id: orderIdForHistory,
-          p_status: "booking_confirmed",
-          p_details: detailsPayload
-        });
-      }
-    } catch (err) {
-      console.error("order_status_history insert failed:", err);
-    }
-
-    if (user) {
-      setShowConfirmationModal(true);
-      handlePersistContact({ skipStepAdvance: true }).catch(() => {});
-    } else {
-      await handlePersistContact({ skipStepAdvance: true });
-    }
+    setPaymentChoice("");
+    setDirectPaymentMethod("");
+    setConfirmationError("");
+    setShowConfirmationModal(true);
   };
 
   const closeConfirmationModal = () => {
@@ -1769,6 +1668,14 @@ export default function BookingFlow({
   };
 
   const validateConfirmationInput = () => {
+    if (!paymentChoice) {
+      setConfirmationError("Välj om du vill betala på plats eller betala direkt.");
+      return false;
+    }
+    if (paymentChoice === "direct" && !directPaymentMethod) {
+      setConfirmationError("Välj en betalmetod (test) för betalning direkt.");
+      return false;
+    }
     if (confirmationChannel === "email") {
       const cleanedEmail = (confirmationEmail || "").trim();
       setConfirmationEmail(cleanedEmail);
@@ -1793,19 +1700,97 @@ export default function BookingFlow({
     if (!validateConfirmationInput()) return;
     setConfirmationSending(true);
     try {
-      if (confirmationChannel === "email") {
-        const res = await fetch("/api/orders/send-confirmation", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: (confirmationEmail || "").trim() })
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          setConfirmationError(data.message || "Kunde inte skicka bekräftelse. Försök igen.");
+      const useCredit = useSubscriptionCredit;
+      // Skapa order först när användaren trycker "Beställ"
+      const pickupWindow = selectedPickup ? `${selectedPickup.start}-${selectedPickup.end}` : "";
+      const deliveryWindow = selectedDelivery ? `${selectedDelivery.start}-${selectedDelivery.end}` : "";
+      const deliveryEstimateAt =
+        deliveryDate && selectedDelivery
+          ? new Date(`${deliveryDate}T${selectedDelivery.end}:00`).toISOString()
+          : pickupDate && selectedPickup
+            ? addHours(new Date(`${pickupDate}T${selectedPickup.start}:00`), 48).toISOString()
+            : null;
+      const orderPrice = useCredit ? 0 : price;
+      const estimatedWeightKg =
+        washType === "mattvatt" ? 1 : orderPrice > 0 ? Math.max(1, Math.round(orderPrice / 60)) : 1;
+      const customerName = `${(contactInfo.firstName || "").trim()} ${(contactInfo.lastName || "").trim()}`.trim() || "Kund";
+      const effectiveEmail =
+        user?.email ||
+        (confirmationChannel === "email" ? (confirmationEmail || "").trim() : (contactInfo.email || "").trim());
+      const customerEmail = effectiveEmail || (contactInfo.email || "").trim() || "";
+
+      let guestLeadId = null;
+      if (!user) {
+        guestLeadId = generateId();
+        const { error: guestError } = await supabase
+          .from("guest_leads")
+          .insert({
+            id: guestLeadId,
+            email: customerEmail,
+            full_name: customerName,
+            phone: (contactInfo.phone || "").trim() || null,
+            address_line1: (contactInfo.address || "").trim() || "",
+            address_line2: (contactInfo.address2 || "").trim() || null,
+            postal_code: normalizePostalCode(contactInfo.postalCode) || "",
+            city: (contactInfo.city || "").trim() || ""
+          });
+        if (guestError) {
+          setConfirmationError("Kunde inte spara gästinfo. Försök igen.");
           return;
         }
+      } else {
+        // spara uppdaterad profil när ordern skapas
+        handlePersistContact({ skipStepAdvance: false }).catch(() => {});
       }
-      // SMS: fixas senare när API är aktiverat
+
+      const paymentStatus =
+        paymentChoice === "on_site"
+          ? "pay_on_site"
+          : directPaymentMethod === "card"
+            ? "unpaid" // (test) här kopplar vi senare Stripe
+            : "paid_test";
+
+      const newOrderId = generateId();
+      const { error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          id: newOrderId,
+          user_id: user?.id || null,
+          guest_lead_id: user ? null : guestLeadId,
+          customer_email: customerEmail || null,
+          customer_name: customerName,
+          customer_phone: (contactInfo.phone || "").trim() || null,
+          address_line1: (contactInfo.address || "").trim() || "",
+          address_line2: (contactInfo.address2 || "").trim() || null,
+          postal_code: normalizePostalCode(contactInfo.postalCode) || "",
+          city: (contactInfo.city || "").trim() || "",
+          pickup_date: pickupDate,
+          pickup_window: pickupWindow,
+          delivery_window: deliveryWindow || null,
+          bag_size: bagSize || null,
+          wash_type: washType || null,
+          estimated_weight_kg: estimatedWeightKg,
+          price_per_kg: 60,
+          estimated_total_price: orderPrice,
+          delivery_estimate_at: deliveryEstimateAt,
+          status: "MOTTAGEN",
+          payment_status: paymentStatus,
+          stripe_checkout_session_id: paymentChoice === "direct" ? "test" : null
+        });
+
+      if (orderError) {
+        setConfirmationError("Kunde inte skapa beställning. Försök igen.");
+        return;
+      }
+
+      // Skicka bekräftelse via e-post om valt
+      if (confirmationChannel === "email" && customerEmail) {
+        await fetch("/api/orders/send-confirmation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(user ? { orderId: newOrderId } : { email: customerEmail })
+        }).catch(() => {});
+      }
     } finally {
       setConfirmationSending(false);
     }
@@ -2060,11 +2045,7 @@ export default function BookingFlow({
                 <button
                   type="button"
                   onClick={() => {
-                    if (user) {
-                      setShowPaymentModal(true);
-                    } else {
-                      handleConfirmBooking(false);
-                    }
+                    handleConfirmBooking();
                   }}
                   disabled={contactSaving || !isBookingComplete}
                   className="min-h-[48px] flex-1 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition active:scale-[0.98] hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 touch-manipulation"
@@ -2190,69 +2171,29 @@ export default function BookingFlow({
           aria-labelledby="booking-confirmation-title"
           tabIndex={-1}
         >
-          {user ? (
-            <>
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Betalt</p>
-                  <h3
-                    id="booking-confirmation-title"
-                    className="text-2xl font-semibold text-slate-900"
-                  >
-                    Tack för din bokning hos oss
-                  </h3>
-                  <p className="mt-2 text-sm text-slate-600">
-                    Din beställning är mottagen och kommer att hanteras. Du kan följa upp den under Mina beställningar.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={closeConfirmationModal}
-                  className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-slate-100 p-2 text-slate-600 transition hover:bg-slate-200 active:bg-slate-300 touch-manipulation"
-                  aria-label="Stäng"
+          <>
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Klart</p>
+                <h3
+                  id="booking-confirmation-title"
+                  className="text-2xl font-semibold text-slate-900"
                 >
-                  ✕
-                </button>
+                  Bekräfta din beställning
+                </h3>
+                <p className="mt-2 text-sm text-slate-600">
+                  Beställningen sparas först när du trycker på <span className="font-semibold">Beställ</span>.
+                </p>
               </div>
-              <div className="mt-6 flex flex-col gap-3">
-                <Link
-                  href="/bookings"
-                  onClick={closeConfirmationModal}
-                  className="flex min-h-[48px] w-full items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition active:scale-[0.98] hover:bg-sky-500 touch-manipulation"
-                >
-                  Följ upp beställningen
-                </Link>
-                <button
-                  type="button"
-                  onClick={closeConfirmationModal}
-                  className="min-h-[48px] w-full rounded-full border-2 border-slate-200 py-3 text-sm font-semibold text-slate-600 transition active:scale-[0.98] hover:bg-slate-50 touch-manipulation"
-                >
-                  Stäng
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Klart</p>
-                  <h3
-                    id="booking-confirmation-title"
-                    className="text-2xl font-semibold text-slate-900"
-                  >
-                    Bokning bekräftad ✅
-                  </h3>
-                  <p className="text-sm text-slate-600">Tack! Du kan få bekräftelsen via SMS eller e-post.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={closeConfirmationModal}
-                  className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-slate-100 p-2 text-slate-600 transition hover:bg-slate-200 active:bg-slate-300 touch-manipulation"
-                  aria-label="Stäng"
-                >
-                  ✕
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={closeConfirmationModal}
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-slate-100 p-2 text-slate-600 transition hover:bg-slate-200 active:bg-slate-300 touch-manipulation"
+                aria-label="Stäng"
+              >
+                ✕
+              </button>
+            </div>
               <div className="mt-4 space-y-2 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-sm text-slate-600">
                 <p>
                   <span className="font-semibold text-slate-900">Tvätt:</span>{" "}
@@ -2294,6 +2235,75 @@ export default function BookingFlow({
                   </p>
                 )}
               </div>
+
+              <div className="mt-6 space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-400">Välj betalning</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaymentChoice("on_site");
+                      setConfirmationError("");
+                    }}
+                    className={`min-h-[48px] rounded-2xl border-2 p-4 text-left transition touch-manipulation ${
+                      paymentChoice === "on_site"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-slate-200 bg-white text-slate-700"
+                    }`}
+                  >
+                    <p className="text-sm font-semibold">Betala på plats</p>
+                    <p className="text-xs text-slate-500">Betalas vid upphämtning/leverans</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaymentChoice("direct");
+                      setConfirmationError("");
+                    }}
+                    className={`min-h-[48px] rounded-2xl border-2 p-4 text-left transition touch-manipulation ${
+                      paymentChoice === "direct"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-slate-200 bg-white text-slate-700"
+                    }`}
+                  >
+                    <p className="text-sm font-semibold">Betala direkt (test)</p>
+                    <p className="text-xs text-slate-500">Kort / Swish / Klarna</p>
+                  </button>
+                </div>
+
+                {paymentChoice === "direct" && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Betalmetod</p>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      {[
+                        { id: "card", label: "Kort" },
+                        { id: "swish", label: "Swish" },
+                        { id: "klarna", label: "Klarna" }
+                      ].map((m) => {
+                        const isActive = directPaymentMethod === m.id;
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => {
+                              setDirectPaymentMethod(m.id);
+                              setConfirmationError("");
+                            }}
+                            className={`min-h-[44px] rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+                              isActive
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-slate-200 bg-white text-slate-700"
+                            }`}
+                          >
+                            {m.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="mt-6 space-y-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-400">
                   Hur vill du få bekräftelsen?
@@ -2372,7 +2382,7 @@ export default function BookingFlow({
                   disabled={confirmationSending}
                   className="flex-1 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {confirmationSending ? "Skickar..." : "OK"}
+                  {confirmationSending ? "Skickar..." : "Beställ"}
                 </button>
                 <button
                   type="button"
@@ -2382,8 +2392,7 @@ export default function BookingFlow({
                   Avbryt
                 </button>
               </div>
-            </>
-          )}
+          </>
         </div>
       </Modal>
     </section>
