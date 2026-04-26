@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import Input from "@/components/ui/input";
@@ -115,21 +116,17 @@ const SCENT_OPTIONS = [
 
 const BAG_OPTIONS = [
   {
-    id: "small",
-    title: "Liten påse",
-    price: 219,
-    subtitle: "För vardaglig tvätt och grovtvätt."
-  },
-  {
     id: "medium",
-    title: "Mellan påse",
+    title: "Vanlig påse",
     price: 279,
+    capacity: "8–10 kg",
     subtitle: "För vardaglig tvätt och grovtvätt."
   },
   {
     id: "large",
     title: "Stor påse",
     price: 329,
+    capacity: "10–13 kg",
     subtitle: "För vardaglig tvätt och grovtvätt."
   }
 ];
@@ -1084,7 +1081,7 @@ export default function BookingFlow({
               </p>
             </div>
           </div>
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
             {BAG_OPTIONS.map((option) => {
               const isSelected = bagSize === option.id;
               return (
@@ -1098,11 +1095,36 @@ export default function BookingFlow({
                       : "border-slate-200 hover:border-primary/50 hover:shadow-lg"
                   }`}
                 >
+                  <div className="relative w-full overflow-hidden rounded-2xl bg-slate-50">
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/0 via-white/10 to-white/30" />
+                    <Image
+                      src={option.id === "large" ? "/images/bags/stor.png" : "/images/bags/vanlig.png"}
+                      alt={option.title}
+                      width={900}
+                      height={650}
+                      className="h-32 w-full object-cover transition duration-300 ease-out group-hover:scale-[1.02]"
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      priority={false}
+                    />
+                  </div>
                   <div className="flex w-full items-center justify-between gap-3">
-                    <p className="text-lg font-semibold text-slate-900">{option.title}</p>
+                    <div className="min-w-0">
+                      <p className="text-lg font-semibold text-slate-900">{option.title}</p>
+                      <p className="mt-0.5 text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
+                        Rymmer {option.capacity}
+                      </p>
+                    </div>
                     <span className="text-lg font-semibold text-primary">{option.price} kr</span>
                   </div>
                   <p className="text-sm text-slate-600">{option.subtitle}</p>
+                  <ul className="text-sm text-slate-600 space-y-1">
+                    {["Sortering", "Hämtning", "Tvätt", "Strykning på skjortor", "Leverans"].map((item) => (
+                      <li key={`${option.id}-${item}`} className="flex items-center gap-2">
+                        <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
                   <div className="mt-auto text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
                     {isSelected ? "Vald" : "Välj påse"}
                   </div>

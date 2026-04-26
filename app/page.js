@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, CheckCircle2, X, HelpCircle, Plus, Minus } from "lucide-react";
 import Testimonials from "@/components/testimonials";
 import HowItWorksSection from "@/components/how-it-works";
@@ -12,22 +13,24 @@ import { supabaseBrowserClient } from "@/lib/supabase/client";
 
 const bagPricing = [
   {
-    title: "Liten påse",
-    price: "219 kr",
-    subtitle: "För vardaglig tvätt och grovtvätt.",
-    details: "I den lilla påsen erbjuds en liten påse som rymmer 5–8 kg. Perfekt för vardaglig tvätt och grovtvätt."
-  },
-  {
-    title: "Mellan påse",
+    id: "vanlig",
+    title: "Vanlig påse",
     price: "279 kr",
     subtitle: "För vardaglig tvätt och grovtvätt.",
-    details: "Mellan påse rymmer 8–10 kg. Lagom för vardaglig tvätt och grovtvätt."
+    capacity: "8–10 kg",
+    imageSrc: "/images/bags/vanlig.png",
+    details:
+      "Rymmer cirka 8–10 kg. Perfekt för vardaglig tvätt och grovtvätt. I priset ingår sortering, hämtning, tvätt, strykning på skjortor och leverans."
   },
   {
+    id: "stor",
     title: "Stor påse",
     price: "329 kr",
     subtitle: "För vardaglig tvätt och grovtvätt.",
-    details: "Stor påse rymmer 11–15 kg. För vardaglig tvätt och grovtvätt."
+    capacity: "10–13 kg",
+    imageSrc: "/images/bags/stor.png",
+    details:
+      "Rymmer cirka 10–13 kg. För dig som vill ta allt i ett svep. I priset ingår sortering, hämtning, tvätt, strykning på skjortor och leverans."
   }
 ];
 
@@ -189,27 +192,47 @@ export default function HomePage() {
             <h3 className="text-xl md:text-2xl font-semibold text-slate-900 text-center">
               Varje påse har fast pris
             </h3>
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2">
               {bagPricing.map((item, index) => {
                 const isVisible = visiblePricingCards.includes(index);
                 const isOpen = openBag === index;
                 return (
                   <div
-                    key={item.title}
+                    key={item.id}
                     ref={(el) => (pricingCardRefs.current[index] = el)}
                     data-pricing-card={index}
                     className={`group rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-sm transition duration-700 ease-out ${
                       isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
                     } hover:-translate-y-1 hover:shadow-xl`}
                   >
-                    <div className="flex h-40 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-100 via-white to-slate-200 text-[10px] font-semibold uppercase tracking-[0.4em] text-slate-400">
-                      Bild kommer här
+                    <div className="relative h-44 overflow-hidden rounded-2xl bg-slate-50">
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/0 via-white/10 to-white/30" />
+                      <Image
+                        src={item.imageSrc}
+                        alt={item.title}
+                        width={1100}
+                        height={800}
+                        className="h-full w-full object-cover transition duration-300 ease-out group-hover:scale-[1.02]"
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                        priority={false}
+                      />
+                      <div className="absolute left-4 top-4 inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-800 shadow-sm backdrop-blur">
+                        Rymmer {item.capacity}
+                      </div>
                     </div>
                     <div className="mt-5 flex items-center justify-between gap-4">
                       <h4 className="text-lg font-semibold text-slate-900">{item.title}</h4>
                       <span className="text-lg font-semibold text-primary">{item.price}</span>
                     </div>
                     <p className="mt-2 text-sm text-slate-600">{item.subtitle}</p>
+                    <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-slate-600">
+                      {["Sortering", "Hämtning", "Tvätt", "Strykning på skjortor", "Leverans"].map((service) => (
+                        <li key={`${item.id}-${service}`} className="flex items-center gap-2">
+                          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                          <span>{service}</span>
+                        </li>
+                      ))}
+                    </ul>
                     <button
                       type="button"
                       onClick={() => setOpenBag((prev) => (prev === index ? null : index))}

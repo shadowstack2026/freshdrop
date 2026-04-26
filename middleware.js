@@ -6,6 +6,19 @@ const protectedPaths = ["/hem", "/profil", "/dashboard", "/account", "/orders", 
 export async function middleware(req) {
   const pathname = req.nextUrl.pathname;
 
+  // Never run auth middleware for Next internals or static assets.
+  // This avoids broken CSS/JS loads in dev/prod when middleware is applied too broadly.
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/favicon") ||
+    pathname.startsWith("/images") ||
+    pathname.startsWith("/fonts") ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml"
+  ) {
+    return NextResponse.next();
+  }
+
   // Failsafe: om något POST:ar /admin (t.ex. 307-redirect från en form),
   // tvinga om till GET så vi inte får 405 på /admin-sidan.
   if (pathname === "/admin" && req.method === "POST") {
@@ -66,5 +79,5 @@ export async function middleware(req) {
 }
 
 export const config = {
-  matcher: ["/", "/hem/:path*", "/profil/:path*", "/dashboard/:path*", "/account/:path*", "/orders/:path*", "/admin/:path*", "/abonnemang/:path*", "/bookings/:path*", "/login", "/signup"]
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)"]
 };
