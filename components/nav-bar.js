@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { User, LogIn, LogOut } from "lucide-react";
 import Logo from "@/components/logo";
 import { useEffect, useRef, useState } from "react";
@@ -25,6 +25,7 @@ const guestNavLinks = [
 
 export default function NavBar() {
   const router = useRouter();
+  const pathname = usePathname();
   const supabase = createClientComponentClient();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -112,9 +113,15 @@ export default function NavBar() {
   };
 
   const handleSectionClick = (targetId) => {
-    if (scrollToSection(targetId)) {
+    // If we're not on the landing page, navigate there with hash.
+    // The landing page already handles scrolling to the hash on mount.
+    if (pathname !== "/") {
+      router.push(`/#${targetId}`);
       setProfileOpen(false);
+      return;
     }
+
+    if (scrollToSection(targetId)) setProfileOpen(false);
   };
 
   const handleLogout = async () => {
