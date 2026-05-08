@@ -7,7 +7,7 @@ FreshDrop är en enkel tvättjänst där vi hämtar dina kläder hemma hos dig, 
 - **Next.js** med App Router (`app`-mapp, JavaScript)
 - **Tailwind CSS** för styling
 - **Supabase** för auth och databas (Postgres)
-- **Stripe** för betalning (Checkout i testläge)
+- **Stripe** för betalning (Checkout i testläge).
 - **lucide-react** för ikoner
 
 ### Funktioner
