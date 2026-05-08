@@ -320,6 +320,7 @@ export default function BookingFlow({
   const [confirmationError, setConfirmationError] = useState("");
   const [confirmationSending, setConfirmationSending] = useState(false);
   const [customerNote, setCustomerNote] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [paymentModalProcessing, setPaymentModalProcessing] = useState(false);
@@ -1685,6 +1686,7 @@ export default function BookingFlow({
     setShowConfirmationModal(false);
     setConfirmationError("");
     setCustomerNote("");
+    setTermsAccepted(false);
     // Återställ bokningen så användaren kan göra en ny (steg 0, inga val – inte som “vald påse”-läge)
     setActiveStepIndex(0);
     setStepDirection(1);
@@ -2441,11 +2443,44 @@ export default function BookingFlow({
                 )}
                 {confirmationError && <p className="text-sm text-red-500">{confirmationError}</p>}
               </div>
+
+              <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                <label className="flex cursor-pointer items-start gap-3 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={termsAccepted}
+                    onChange={(e) => setTermsAccepted(e.target.checked)}
+                    className="mt-1 h-4 w-4 accent-primary"
+                  />
+                  <span>
+                    Jag accepterar FreshDrops{" "}
+                    <Link
+                      href="/villkor"
+                      className="font-semibold text-primary hover:underline"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      allmänna villkor
+                    </Link>{" "}
+                    och{" "}
+                    <Link
+                      href="/integritet"
+                      className="font-semibold text-primary hover:underline"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      integritetspolicy
+                    </Link>
+                    .
+                  </span>
+                </label>
+              </div>
+
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <button
                   type="button"
                   onClick={handleConfirmationSubmit}
-                  disabled={confirmationSending}
+                  disabled={confirmationSending || !termsAccepted}
                   className="flex-1 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {confirmationSending ? "Skickar..." : "Beställ"}
