@@ -43,7 +43,12 @@ export async function POST(req) {
     }
 
     const md = session.metadata || {};
-    const amount = Number(md.estimated_total_price || session.amount_total ? (session.amount_total / 100) : 0);
+    const amount =
+      md.estimated_total_price != null && String(md.estimated_total_price).trim() !== ""
+        ? Number(md.estimated_total_price)
+        : session.amount_total != null
+          ? session.amount_total / 100
+          : 0;
     const orderId = randomUUID();
 
     await supabase.from("orders").insert({
