@@ -1817,6 +1817,45 @@ export default function BookingFlow({
             : "paid_test";
 
       const newOrderId = generateId();
+      if (paymentChoice === "direct") {
+        const res = await fetch("/api/orders/create-booking-checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            payment_method: directPaymentMethod || "card",
+            user_id: user?.id || null,
+            customer_email: customerEmail || null,
+            customer_name: customerName,
+            customer_phone: (contactInfo.phone || "").trim() || null,
+            address_line1: (contactInfo.address || "").trim() || "",
+            address_line2: (contactInfo.address2 || "").trim() || null,
+            postal_code: normalizePostalCode(contactInfo.postalCode) || "",
+            city: (contactInfo.city || "").trim() || "",
+            pickup_date: pickupDate,
+            pickup_window: pickupWindow,
+            delivery_window: deliveryWindow || null,
+            bag_size: bagSize || null,
+            wash_type: washType || null,
+            estimated_weight_kg: estimatedWeightKg,
+            estimated_total_price: orderPrice,
+            delivery_estimate_at: deliveryEstimateAt,
+            guest_lead_id: user ? null : guestLeadId,
+            customer_note: (customerNote || "").trim() || null
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setConfirmationError(data.message || "Kunde inte starta betalning. Försök igen.");
+          return;
+        }
+        if (data.checkoutUrl) {
+          router.push(data.checkoutUrl);
+          return;
+        }
+        setConfirmationError("Kunde inte starta betalning. Försök igen.");
+        return;
+      }
+
       const { error: orderError } = await supabase
         .from("orders")
         .insert({
@@ -1842,7 +1881,7 @@ export default function BookingFlow({
           delivery_estimate_at: deliveryEstimateAt,
           status: "MOTTAGEN",
           payment_status: paymentStatus,
-          stripe_checkout_session_id: paymentChoice === "direct" ? "test" : null
+          stripe_checkout_session_id: null
         });
 
       if (orderError) {
@@ -2348,6 +2387,7 @@ export default function BookingFlow({
                     type="button"
                     onClick={() => {
                       setPaymentChoice("direct");
+                      setDirectPaymentMethod("card");
                       setConfirmationError("");
                     }}
                     className={`min-h-[48px] rounded-2xl border-2 p-4 text-left transition touch-manipulation ${
@@ -2366,9 +2406,9 @@ export default function BookingFlow({
                     <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Betalmetod</p>
                     <div className="grid gap-2 sm:grid-cols-3">
                       {[
-                        { id: "card", label: "Kort" },
-                        { id: "swish", label: "Swish" },
-                        { id: "klarna", label: "Klarna" }
+                        { id: "card", label: "Kort", badgeClass: "bg-slate-900 text-white", sub: "Visa / Mastercard" },
+                        { id: "swish", label: "Swish", badgeClass: "bg-emerald-600 text-white", sub: "Snabbt i mobilen" },
+                        { id: "klarna", label: "Klarna", badgeClass: "bg-pink-500 text-white", sub: "Betala senare" }
                       ].map((m) => {
                         const isActive = directPaymentMethod === m.id;
                         return (
@@ -2379,13 +2419,19 @@ export default function BookingFlow({
                               setDirectPaymentMethod(m.id);
                               setConfirmationError("");
                             }}
-                            className={`min-h-[44px] rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+                            className={`min-h-[54px] rounded-xl border px-3 py-2 text-left text-sm font-semibold transition ${
                               isActive
                                 ? "border-primary bg-primary/10 text-primary"
                                 : "border-slate-200 bg-white text-slate-700"
                             }`}
                           >
-                            {m.label}
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="truncate">{m.label}</span>
+                              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${m.badgeClass}`}>
+                                {m.label}
+                              </span>
+                            </div>
+                            <div className="mt-0.5 text-[11px] font-medium text-slate-500">{m.sub}</div>
                           </button>
                         );
                       })}
