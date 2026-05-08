@@ -391,6 +391,18 @@ export default function AdminPage() {
                             <span className="text-slate-500">{order.customer_phone}</span>
                           </>
                         )}
+                        {(order.customer_note || "").trim() && (
+                          <>
+                            <br />
+                            <span
+                              className="mt-1 inline-block max-w-[260px] text-[11px] text-slate-500"
+                              title={order.customer_note}
+                            >
+                              <span className="font-medium text-slate-600">Önskemål:</span>{" "}
+                              {order.customer_note}
+                            </span>
+                          </>
+                        )}
                       </td>
                       <td className="px-3 py-3 text-slate-700 sm:px-4 max-w-[180px]">
                         <span className="block truncate" title={`${order.address_line1 || ""} ${order.postal_code || ""} ${order.city || ""}`.trim()}>

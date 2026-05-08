@@ -65,6 +65,14 @@ export default async function OrderDetailPage({ params }) {
               )}
             </p>
           </div>
+          {(order.customer_note || "").trim() && (
+            <div>
+              <span className="font-medium">Önskemål</span>
+              <p className="text-slate-600 whitespace-pre-wrap">
+                {order.customer_note}
+              </p>
+            </div>
+          )}
           <div>
             <span className="font-medium">Adress</span>
             <p>

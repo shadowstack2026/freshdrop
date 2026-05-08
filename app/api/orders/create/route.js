@@ -110,6 +110,7 @@ export async function POST(req) {
       city: body.city,
       pickup_date: body.pickup_date,
       pickup_window: body.pickup_window,
+      customer_note: (body.customer_note || "").trim() || null,
       estimated_weight_kg: weight,
       price_per_kg: PRICE_PER_KG,
       estimated_total_price: estimatedTotal,

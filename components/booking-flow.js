@@ -8,6 +8,7 @@ import Script from "next/script";
 import Input from "@/components/ui/input";
 import Card from "@/components/ui/card";
 import Modal from "@/components/ui/modal";
+import LoadingSpinner from "@/components/loading-spinner";
 import {
   ALLOWED_POSTAL_CODES,
   normalizePostalCode,
@@ -318,6 +319,7 @@ export default function BookingFlow({
   const [confirmationPhone, setConfirmationPhone] = useState(contactInfo.phone);
   const [confirmationError, setConfirmationError] = useState("");
   const [confirmationSending, setConfirmationSending] = useState(false);
+  const [customerNote, setCustomerNote] = useState("");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [paymentModalProcessing, setPaymentModalProcessing] = useState(false);
@@ -1682,6 +1684,7 @@ export default function BookingFlow({
   const closeConfirmationModal = () => {
     setShowConfirmationModal(false);
     setConfirmationError("");
+    setCustomerNote("");
     // Återställ bokningen så användaren kan göra en ny (steg 0, inga val – inte som “vald påse”-läge)
     setActiveStepIndex(0);
     setStepDirection(1);
@@ -1808,6 +1811,7 @@ export default function BookingFlow({
           delivery_window: deliveryWindow || null,
           bag_size: bagSize || null,
           wash_type: washType || null,
+          customer_note: (customerNote || "").trim() || null,
           estimated_weight_kg: estimatedWeightKg,
           price_per_kg: 60,
           estimated_total_price: orderPrice,
@@ -2209,7 +2213,13 @@ export default function BookingFlow({
           aria-modal="true"
           aria-labelledby="booking-confirmation-title"
           tabIndex={-1}
+          className="relative"
         >
+          {confirmationSending && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center rounded-[28px] bg-white/80 backdrop-blur-sm sm:rounded-[32px]">
+              <LoadingSpinner size="md" label="Bearbetar din beställning..." className="text-slate-700" />
+            </div>
+          )}
           <>
             <div className="flex items-start justify-between">
               <div>
@@ -2273,6 +2283,23 @@ export default function BookingFlow({
                     {selectedBag ? selectedBag.title : "Ej vald"} · {price > 0 ? `${price} kr` : "Pris ej klart"}
                   </p>
                 )}
+              </div>
+
+              <div className="mt-4 space-y-2">
+                <label
+                  htmlFor="customer-note"
+                  className="block text-xs font-semibold uppercase tracking-[0.4em] text-slate-400"
+                >
+                  Önskemål (valfritt)
+                </label>
+                <textarea
+                  id="customer-note"
+                  value={customerNote}
+                  onChange={(e) => setCustomerNote(e.target.value)}
+                  placeholder="Skriv önskemål, t.ex. ring på porttelefonen, lämna vid dörren, extra känsligt plagg osv."
+                  rows={3}
+                  className="block w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
               </div>
 
               <div className="mt-6 space-y-3">
