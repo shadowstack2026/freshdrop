@@ -16,6 +16,8 @@ const bagPricing = [
     id: "vanlig",
     title: "Vanlig påse",
     price: "279 kr",
+    oldPrice: "399 kr",
+    badge: "Prisvärd",
     subtitle: "För vardaglig tvätt och grovtvätt.",
     capacity: "8–10 kg",
     imageSrc: "/images/bags/vanlig.png",
@@ -26,6 +28,8 @@ const bagPricing = [
     id: "stor",
     title: "Stor påse",
     price: "329 kr",
+    oldPrice: "449 kr",
+    badge: "Rekommenderas",
     subtitle: "För vardaglig tvätt och grovtvätt.",
     capacity: "10–13 kg",
     imageSrc: "/images/bags/stor.png",
@@ -205,24 +209,44 @@ export default function HomePage() {
                       isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
                     } hover:-translate-y-1 hover:shadow-xl`}
                   >
-                    <div className="relative h-44 overflow-hidden rounded-2xl bg-slate-50">
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/0 via-white/10 to-white/30" />
-                      <Image
-                        src={item.imageSrc}
-                        alt={item.title}
-                        width={1100}
-                        height={800}
-                        className="h-full w-full object-cover transition duration-300 ease-out group-hover:scale-[1.02]"
-                        sizes="(max-width: 768px) 100vw, 50vw"
-                        priority={false}
-                      />
-                      <div className="absolute left-4 top-4 inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-800 shadow-sm backdrop-blur">
-                        Rymmer {item.capacity}
+                    <div className="relative h-48 overflow-hidden rounded-3xl bg-gradient-to-br from-sky-50 via-white to-slate-50 ring-1 ring-slate-200/60">
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-white/10 to-sky-100/20" />
+                      <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-sky-200/30 blur-2xl" />
+                      <div className="absolute -bottom-12 -right-12 h-44 w-44 rounded-full bg-teal-200/20 blur-2xl" />
+                      <div className="relative h-full w-full p-2">
+                        <div className="h-full w-full overflow-hidden rounded-[28px] bg-white/35">
+                          <Image
+                            src={item.imageSrc}
+                            alt={item.title}
+                            width={1100}
+                            height={800}
+                            className="h-full w-full object-contain transition duration-300 ease-out group-hover:scale-[1.01]"
+                            sizes="(max-width: 768px) 100vw, 50vw"
+                            priority={false}
+                          />
+                        </div>
+                      </div>
+                      <div className="absolute left-4 top-4 flex flex-wrap items-center gap-2">
+                        {item.badge && (
+                          <div className="inline-flex items-center rounded-full bg-slate-900/80 px-3 py-1 text-[11px] font-semibold text-white shadow-sm backdrop-blur">
+                            {item.badge}
+                          </div>
+                        )}
+                        <div className="inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-800 shadow-sm backdrop-blur">
+                          Rymmer {item.capacity}
+                        </div>
                       </div>
                     </div>
                     <div className="mt-5 flex items-center justify-between gap-4">
                       <h4 className="text-lg font-semibold text-slate-900">{item.title}</h4>
-                      <span className="text-lg font-semibold text-primary">{item.price}</span>
+                      <div className="text-right">
+                        {item.oldPrice && (
+                          <div className="text-xs font-semibold text-slate-400 line-through">
+                            {item.oldPrice}
+                          </div>
+                        )}
+                        <div className="text-lg font-semibold text-primary">{item.price}</div>
+                      </div>
                     </div>
                     <p className="mt-2 text-sm text-slate-600">{item.subtitle}</p>
                     <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-slate-600">

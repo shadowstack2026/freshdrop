@@ -120,6 +120,8 @@ const BAG_OPTIONS = [
     id: "medium",
     title: "Vanlig påse",
     price: 279,
+    oldPrice: 399,
+    badge: "Prisvärd",
     capacity: "8–10 kg",
     subtitle: "För vardaglig tvätt och grovtvätt."
   },
@@ -127,6 +129,8 @@ const BAG_OPTIONS = [
     id: "large",
     title: "Stor påse",
     price: 329,
+    oldPrice: 449,
+    badge: "Rekommenderas",
     capacity: "10–13 kg",
     subtitle: "För vardaglig tvätt och grovtvätt."
   }
@@ -1098,17 +1102,28 @@ export default function BookingFlow({
                       : "border-slate-200 hover:border-primary/50 hover:shadow-lg"
                   }`}
                 >
-                  <div className="relative w-full overflow-hidden rounded-2xl bg-slate-50">
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/0 via-white/10 to-white/30" />
-                    <Image
-                      src={option.id === "large" ? "/images/bags/stor.png" : "/images/bags/vanlig.png"}
-                      alt={option.title}
-                      width={900}
-                      height={650}
-                      className="h-32 w-full object-cover transition duration-300 ease-out group-hover:scale-[1.02]"
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                      priority={false}
-                    />
+                  <div className="relative w-full overflow-hidden rounded-3xl bg-gradient-to-br from-sky-50 via-white to-slate-50 ring-1 ring-slate-200/60">
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-white/10 to-sky-100/20" />
+                    <div className="absolute -left-10 -top-10 h-28 w-28 rounded-full bg-sky-200/30 blur-2xl" />
+                    <div className="absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-teal-200/20 blur-2xl" />
+                    <div className="relative w-full p-1.5">
+                      <div className="overflow-hidden rounded-[24px] bg-white/35">
+                        <Image
+                          src={option.id === "large" ? "/images/bags/stor.png" : "/images/bags/vanlig.png"}
+                          alt={option.title}
+                          width={900}
+                          height={650}
+                          className="h-36 w-full object-contain transition duration-300 ease-out group-hover:scale-[1.01]"
+                          sizes="(max-width: 768px) 100vw, 50vw"
+                          priority={false}
+                        />
+                      </div>
+                    </div>
+                    {option.badge && (
+                      <div className="absolute left-3 top-3 inline-flex items-center rounded-full bg-slate-900/80 px-3 py-1 text-[11px] font-semibold text-white shadow-sm backdrop-blur">
+                        {option.badge}
+                      </div>
+                    )}
                   </div>
                   <div className="flex w-full items-center justify-between gap-3">
                     <div className="min-w-0">
@@ -1117,7 +1132,14 @@ export default function BookingFlow({
                         Rymmer {option.capacity}
                       </p>
                     </div>
-                    <span className="text-lg font-semibold text-primary">{option.price} kr</span>
+                    <div className="text-right">
+                      {option.oldPrice != null && (
+                        <div className="text-xs font-semibold text-slate-400 line-through">
+                          {option.oldPrice} kr
+                        </div>
+                      )}
+                      <div className="text-lg font-semibold text-primary">{option.price} kr</div>
+                    </div>
                   </div>
                   <p className="text-sm text-slate-600">{option.subtitle}</p>
                   <ul className="text-sm text-slate-600 space-y-1">
