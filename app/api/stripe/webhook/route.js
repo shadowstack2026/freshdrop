@@ -3,11 +3,19 @@ import Stripe from "stripe";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { randomUUID } from "crypto";
 
+export const runtime = "nodejs";
+
 export async function POST(req) {
   const stripeSecret = process.env.STRIPE_SECRET_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!stripeSecret || !webhookSecret) {
+    console.error("[stripe-webhook] missing env", {
+      hasStripeSecret: Boolean(stripeSecret),
+      hasWebhookSecret: Boolean(webhookSecret),
+      hasSupabaseUrl: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+      hasServiceRole: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY)
+    });
     return NextResponse.json({ message: "Stripe webhook saknar konfiguration." }, { status: 500 });
   }
 
@@ -22,6 +30,10 @@ export async function POST(req) {
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
+    console.error("[stripe-webhook] signature verify failed", {
+      hasSignature: Boolean(signature),
+      message: err?.message
+    });
     return NextResponse.json({ message: "Ogiltig signatur." }, { status: 400 });
   }
 
@@ -29,6 +41,7 @@ export async function POST(req) {
     const session = event.data.object;
     const supabase = createSupabaseServiceRoleClient();
     if (!supabase) {
+      console.error("[stripe-webhook] missing supabase service role client");
       return NextResponse.json({ message: "Supabase service role saknas." }, { status: 500 });
     }
 
@@ -51,7 +64,7 @@ export async function POST(req) {
           : 0;
     const orderId = randomUUID();
 
-    await supabase.from("orders").insert({
+    const { error: insertError } = await supabase.from("orders").insert({
       id: orderId,
       user_id: md.user_id || null,
       guest_lead_id: md.guest_lead_id || null,
@@ -76,6 +89,13 @@ export async function POST(req) {
       stripe_checkout_session_id: session.id,
       customer_note: md.customer_note || null
     });
+    if (insertError) {
+      console.error("[stripe-webhook] order insert failed", {
+        message: insertError.message,
+        code: insertError.code
+      });
+      return NextResponse.json({ message: "Kunde inte spara ordern." }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ received: true });

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
+export const runtime = "nodejs";
+
 function cleanString(value) {
   if (value == null) return "";
   return String(value).trim();
