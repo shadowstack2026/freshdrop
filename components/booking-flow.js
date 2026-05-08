@@ -1818,32 +1818,40 @@ export default function BookingFlow({
 
       const newOrderId = generateId();
       if (paymentChoice === "direct") {
-        const res = await fetch("/api/orders/create-booking-checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            payment_method: directPaymentMethod || "card",
-            user_id: user?.id || null,
-            customer_email: customerEmail || null,
-            customer_name: customerName,
-            customer_phone: (contactInfo.phone || "").trim() || null,
-            address_line1: (contactInfo.address || "").trim() || "",
-            address_line2: (contactInfo.address2 || "").trim() || null,
-            postal_code: normalizePostalCode(contactInfo.postalCode) || "",
-            city: (contactInfo.city || "").trim() || "",
-            pickup_date: pickupDate,
-            pickup_window: pickupWindow,
-            delivery_window: deliveryWindow || null,
-            bag_size: bagSize || null,
-            wash_type: washType || null,
-            estimated_weight_kg: estimatedWeightKg,
-            estimated_total_price: orderPrice,
-            delivery_estimate_at: deliveryEstimateAt,
-            guest_lead_id: user ? null : guestLeadId,
-            customer_note: (customerNote || "").trim() || null
-          })
-        });
-        const data = await res.json().catch(() => ({}));
+        let res;
+        let data = {};
+        try {
+          res = await fetch("/api/orders/create-booking-checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              payment_method: directPaymentMethod || "card",
+              user_id: user?.id || null,
+              customer_email: customerEmail || null,
+              customer_name: customerName,
+              customer_phone: (contactInfo.phone || "").trim() || null,
+              address_line1: (contactInfo.address || "").trim() || "",
+              address_line2: (contactInfo.address2 || "").trim() || null,
+              postal_code: normalizePostalCode(contactInfo.postalCode) || "",
+              city: (contactInfo.city || "").trim() || "",
+              pickup_date: pickupDate,
+              pickup_window: pickupWindow,
+              delivery_window: deliveryWindow || null,
+              bag_size: bagSize || null,
+              wash_type: washType || null,
+              estimated_weight_kg: estimatedWeightKg,
+              estimated_total_price: orderPrice,
+              delivery_estimate_at: deliveryEstimateAt,
+              guest_lead_id: user ? null : guestLeadId,
+              customer_note: (customerNote || "").trim() || null
+            })
+          });
+          data = await res.json().catch(() => ({}));
+        } catch (e) {
+          console.error("[booking-flow] create-booking-checkout fetch failed", e);
+          setConfirmationError("Nätverksfel. Kunde inte kontakta servern. Försök igen.");
+          return;
+        }
         if (!res.ok) {
           setConfirmationError(data.message || "Kunde inte starta betalning. Försök igen.");
           return;

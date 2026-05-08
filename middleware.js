@@ -6,6 +6,11 @@ const protectedPaths = ["/hem", "/profil", "/dashboard", "/account", "/orders", 
 export async function middleware(req) {
   const pathname = req.nextUrl.pathname;
 
+  // Stripe webhooks MUST receive 2xx (no redirects), otherwise Stripe marks delivery as failed.
+  if (pathname === "/api/stripe/webhook") {
+    return NextResponse.next();
+  }
+
   // Never run auth middleware for Next internals or static assets.
   // This avoids broken CSS/JS loads in dev/prod when middleware is applied too broadly.
   if (
